@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grains — PRD: Overall Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F9F8F6;
+    --paper-raised: #FFFFFF;
+    --ink: #232019;
+    --ink-soft: #5C574C;
+    --rule: #E4E0D8;
+    --accent: #8A5A34;
+    --accent-soft: #F1E6D8;
+    --decided: #3F6B4F;
+    --decided-bg: #E9F0E9;
+    --open: #A6491E;
+    --open-bg: #F7E8DD;
+    --pivot: #6B4A9C;
+    --pivot-bg: #EDE7F5;
+    --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 72px 24px 96px;
+  }
+
+  header.masthead {
+    margin-bottom: 56px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 32px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: 40px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+  }
+
+  .subhead {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+  }
+
+  .subhead span::before { content: "· "; opacity: 0.5; }
+  .subhead span:first-child::before { content: ""; }
+
+  .lede {
+    margin-top: 20px;
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 56px 0 6px;
+    letter-spacing: -0.005em;
+  }
+
+  h2 .letter {
+    font-family: var(--mono);
+    color: var(--accent);
+    margin-right: 8px;
+  }
+
+  h2 .section-note {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+
+  h3 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 28px 0 10px;
+  }
+
+  p { margin: 0 0 14px; color: var(--ink); }
+  p.desc { color: var(--ink-soft); }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 20px 22px;
+    margin: 0 0 14px;
+  }
+
+  .card p:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 100px;
+    margin-bottom: 12px;
+    margin-right: 6px;
+  }
+
+  .tag.decided { color: var(--decided); background: var(--decided-bg); }
+  .tag.open { color: var(--open); background: var(--open-bg); }
+  .tag.pivot { color: var(--pivot); background: var(--pivot-bg); }
+
+  .pivot-banner {
+    background: var(--pivot-bg);
+    border: 1px solid var(--pivot);
+    border-radius: 3px;
+    padding: 20px 22px;
+    margin: 0 0 20px;
+  }
+
+  .pivot-banner .tag.pivot { background: var(--paper-raised); }
+  .pivot-banner p:last-child { margin-bottom: 0; }
+
+  ul.plain {
+    margin: 0 0 14px;
+    padding-left: 20px;
+  }
+
+  ul.plain li { margin-bottom: 6px; }
+
+  .glossary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 0 0 14px;
+  }
+
+  .term {
+    background: var(--accent-soft);
+    border-radius: 3px;
+    padding: 14px 18px;
+  }
+
+  .term.retired {
+    background: var(--rule);
+    opacity: 0.75;
+  }
+
+  .term .name {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .term.retired .name { color: var(--ink-soft); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  .term .def { color: var(--ink); font-size: 15px; }
+  .term .avoid { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+
+  .open-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .open-list li {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--open);
+    border-radius: 3px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+  }
+
+  .open-list .title { font-weight: 500; margin-bottom: 4px; }
+  .open-list .note { font-size: 14px; color: var(--ink-soft); }
+
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 24px 0 0;
+  }
+
+  .stat {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 12px 18px;
+    flex: 1 1 140px;
+  }
+
+  .stat .num {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat .label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 48px 18px 72px; }
+    h1 { font-size: 32px; }
+    .stat-row { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Grains — PRD Recap</p>
+    <h1>Overall PRD Summary</h1>
+    <div class="subhead">
+      <span>Sessions: 2026-08-31 → 2026-09-02</span>
+      <span>Interviewer: PM</span>
+      <span>Interviewee: Product Owner / Domain Expert</span>
+      <span>Method: Wayfinder — one unblocked decision at a time</span>
+    </div>
+    <p class="lede">Grains is a crowdsourced directory for finding film-developing labs, paired with a community film-stock catalog and a minimal Are.na-inspired photobook portfolio. This page rolls up every requirements decision made across all four MVP feature areas — including a mid-session architecture pivot on the portfolio feature — into one record.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">4</div><div class="label">Feature areas grilled</div></div>
+      <div class="stat"><div class="num">26</div><div class="label">Decisions resolved</div></div>
+      <div class="stat"><div class="num">1</div><div class="label">Architecture pivot</div></div>
+      <div class="stat"><div class="num">2</div><div class="label">Items still open</div></div>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="letter">A.</span>Lab Directory &amp; Discovery<span class="section-note">12 decisions · full write-up: prd/lab-directory-discovery.md</span></h2>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Single persona — the <strong>community member</strong>. No Lab Owner or Moderator/Admin persona in MVP. Browsing needs no account; contributing (add/edit a lab, mark closed, upload atmosphere photos) requires login, and every contribution is attributed.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Trust-by-default.</strong> Edits go live immediately, no review queue. Trust is maintained after the fact via attribution and full edit history, not gatekeeping up front. This precedent carries through every other feature below.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Minimum to publish a lab: name + location + at least one chemical process. Everything else (pricing, hours, scanner, inventory, photos) is optional and fills in later via community edits.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Two distinct photo concepts: <strong>Lab Atmosphere Photos</strong> (storefront/interior, attached to the Lab, no quality judgment) vs. <strong>Film Sample Photos</strong> (scan quality, attached only to the Film Stock — never the Lab, protecting a lab's reputation from a subjectively "bad" scan). This split becomes the product's core content-integrity rule.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>No automated duplicate detection. <strong>Soft prevention</strong> — nearby existing labs surface on the map during the add-lab flow. Manual cleanup only if a duplicate slips through.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Inventory scoped down: "what do they sell," not live stock. Film stock sold must link to a real Film Stock catalog entry (powers reverse search); darkroom equipment/chemicals use loose tags with no catalog link. No quantity tracking, no "Last Verified" mechanic.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Lab status has three independent signals: weekly <strong>hours</strong> (auto-computes open/closed), a manual <strong>status override</strong> for exceptions, and a permanent <strong>"Mark as Closed"</strong> flag (hidden from search, still viewable via direct link). All trust-by-default.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Discovery auto-locates the user by default; manual location search is a first-class alternative. Results rank nearest-first, weighted toward more complete data. Thai and English both required.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Empty states double as contribution on-ramps: zero labs nearby → add the first lab; zero labs after filtering → edit a nearby lab to add the missing process, not create a duplicate entry.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="letter">B.</span>Film Stock Index &amp; Gallery<span class="section-note">3 decisions · full write-up: prd/film-stock-index-gallery.md</span></h2>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Catalog uses the <strong>same trust-by-default model as Labs</strong> — any logged-in user can add/edit a film stock entry, live immediately, full edit history, soft duplicate prevention (no hard block). Keeps the Lab Directory's Inventory→Film Stock linkage from becoming a launch blocker.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>One catalog entry per film name + ISO</strong> — format (135/120) is a multi-select attribute, not a separate entry. The emulsion is identical across formats; splitting would fragment the inspiration gallery and double catalog maintenance for no matching benefit.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>The Gallery has <strong>no upload flow of its own</strong> — it's a derived view of any Photo tagged with that Film Stock (see feature D's Photo entity). Scanner model may show as neutral metadata; the specific Lab never does. Accepted MVP risk: a stock can show zero gallery photos until someone tags one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="letter">D.</span>Minimal Photobook Portfolio<span class="section-note">8 decisions · full write-up: prd/photobook-portfolio.md</span></h2>
+
+    <div class="pivot-banner">
+      <span class="tag pivot">Architecture pivot</span>
+      <p>Mid-session, the rigid <code>Lab → Roll → Photo</code> hierarchy was replaced with an <strong>Are.na-inspired model</strong>: <strong>Photo</strong> is now an atomic entity (owns its own Film Stock/Scanner/Camera/Chemistry metadata) that can belong to many <strong>Photobooks</strong> — thematic, concept-driven collections, public by default. <strong>Connection</strong> lets any user save another user's public Photo into their own Photobook without re-uploading it. "Roll" is retired as a curation-unit term. This single change simplified feature B's dependency (the Gallery only needs the Photo entity, not Photobook mechanics) and drove every decision below.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Content-integrity rule reaffirmed.</strong> The pivot's original "Reverse Attribution" pitch (click a photo, see the exact Lab used) directly conflicted with the locked no-lab-attribution rule from feature A — the same link that lets a good scan reflect well on a lab lets a bad one reflect badly. Resolved: Scanner <em>model</em> stays as neutral metadata, same category as Camera; the specific Lab is never shown or linkable from a Photo, individually or in aggregate.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Connections use a <strong>reference model</strong>, not copies — one canonical Photo object per upload; every Photobook that Connects it points to the same object. Editing the original updates everywhere; deleting it removes it everywhere it was Connected.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Photos are <strong>instant-live</strong> — no draft/private state, no separate publish step. Matches the trust-by-default precedent and actual Are.na block behavior; curation happens at the Photobook level, which is already public by default.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>The per-user photo cap applies <strong>only to original uploads</strong>, not to Connections (which cost zero extra storage as references). Capping total Photos including Connections would directly fight the network-effect goal the pivot is built around.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>No restriction on Connecting</strong> for MVP — any public Photo can be freely saved into any Photobook. An uploader's only recourse is deleting their own Photo outright. Matches Are.na's real precedent; easier to add restriction later than retrofit openness.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>One artist's note per Photobook</strong> (2-3 lines), not per individual Photo. Matches the original brief and protects the "high negative space, no clutter" visual direction as Photobooks grow via free Connecting.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>When a Connected Photo's source is deleted, its slot is <strong>removed silently and the grid re-flows</strong> — no "removed by uploader" placeholder. (Flagged for revisit if deliberate photo-essay sequencing turns out to matter more than a clean, always-intentional-looking grid.)</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="letter">C.</span>Community &amp; Data Integrity — Upvote/Badges<span class="section-note">3 decisions · full write-up: prd/community-data-integrity.md</span></h2>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Fixed, curated badge list</strong> (e.g. "Fast Turnaround," "Clean Scan") — not freeform/user-proposed tags. With no Moderator/Admin persona in MVP, an open namespace has no way to consolidate duplicate/synonym badges; a fixed list keeps every badge comparable across labs.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Votes are a <strong>retractable toggle</strong> — one (user, lab, badge) state, on or off, changeable any time. A badge's strength always reflects current sentiment, not a historical total. This also inherently enforces one vote per user per badge.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>No minimum vote threshold</strong> to display a badge — it shows at 1 endorsement, always paired with its current count, so users judge credibility themselves rather than the product gatekeeping behind an untuned constant.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Vocabulary, current state<span class="section-note">CONTEXT.md, as of this session</span></h2>
+    <div class="glossary">
+      <div class="term">
+        <div class="name">Photo</div>
+        <div class="def">The atomic unit of community-uploaded visual content. Carries Film Stock, Scanner model, Camera, Chemistry metadata — never a specific Lab. Can belong to multiple Photobooks.</div>
+      </div>
+      <div class="term">
+        <div class="name">Photobook</div>
+        <div class="def">A thematic, concept-driven collection of Photos curated by a user, public by default. The unit of curation on a portfolio (<code>/u/@username</code>). Replaces "Roll."</div>
+      </div>
+      <div class="term">
+        <div class="name">Connection</div>
+        <div class="def">Saving another user's public Photo into one's own Photobook without re-uploading — a reference to the same canonical Photo, not a copy.</div>
+      </div>
+      <div class="term">
+        <div class="name">Lab Atmosphere Photo</div>
+        <div class="def">A community-uploaded photo of a lab's storefront/interior, attached directly to the Lab. Venue documentation only.</div>
+        <div class="avoid">Avoid: conflating with Film Sample Photo</div>
+      </div>
+      <div class="term">
+        <div class="name">Film Sample Photo</div>
+        <div class="def">A community-uploaded Photo showing what a film stock looks like when processed/scanned, surfaced on that stock's Gallery. Attached only to the Film Stock, never a Lab.</div>
+        <div class="avoid">Avoid: "Lab photo" or "sample photo" without specifying which it's linked to</div>
+      </div>
+      <div class="term retired">
+        <div class="name">Roll (retired as curation unit)</div>
+        <div class="def">Formerly the fixed unit of curation on a portfolio. Replaced by Photobook + atomic Photo so a photo isn't locked to one rigid group. May still appear in copy to mean a physical roll of film.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Still open<span class="section-note">outside this session's boundary — requirements only, no schema/tech/visual-design work</span></h2>
+    <ul class="open-list">
+      <li>
+        <div class="title">Design Direction &amp; Visual Identity</div>
+        <div class="note">Translating the visual/typography/color brief into concrete UI decisions. Not attempted this session — out of the requirements/business-rules boundary.</div>
+      </li>
+      <li>
+        <div class="title">Tech stack decision</div>
+        <div class="note">Go vs. Next.js Server Actions/API Routes for backend; confirm Supabase + PostGIS. Explicitly excluded from this session's scope.</div>
+      </li>
+      <li>
+        <div class="title">Small mechanical loose ends</div>
+        <div class="note">Exact per-user photo upload cap number, which Photo metadata fields are mandatory vs. optional at upload, the full badge name roster beyond the brief's examples, and Film Stock catalog browsing/reverse-search UI mechanics. Lower priority — tuning and content decisions, not structural ones.</div>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>PRDs: <a href="../prd/lab-directory-discovery.md">lab-directory-discovery.md</a> · <a href="../prd/film-stock-index-gallery.md">film-stock-index-gallery.md</a> · <a href="../prd/photobook-portfolio.md">photobook-portfolio.md</a> · <a href="../prd/community-data-integrity.md">community-data-integrity.md</a><br>
+    Backlog: <a href="../backlog.md">docs/backlog.md</a> · Glossary: <a href="../../CONTEXT.md">CONTEXT.md</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
