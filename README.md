@@ -39,5 +39,6 @@ Not yet decided. [docs/Idea.md](docs/Idea.md) suggests Next.js (App Router) + Ta
 - [docs/Idea.md](docs/Idea.md) — original product brief
 - [docs/backlog.md](docs/backlog.md) — what's resolved vs. still open across all features
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
+- [docs/plans/](docs/plans/) — implementation plans awaiting review/execution
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary
 - [CLAUDE.md](CLAUDE.md) — guidance for working in this repo

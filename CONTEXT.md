@@ -23,6 +23,10 @@ _Avoid_: confusing with Film Sample Photo
 A community-uploaded Photo showing what a film stock looks like when processed/scanned, surfaced on that stock's Gallery. Attached only to the Film Stock, never to a Lab, so that a subjectively "bad" scan can't damage a specific lab's reputation. Scanner *model* (e.g. Noritsu, Frontier) may appear as neutral technical metadata on the photo — the same category as Camera — but the specific Lab that processed it is never shown or linkable from the photo.
 _Avoid_: Lab photo, sample photo (without specifying it's stock-linked, not lab-linked)
 
+**Landmark note**:
+A short, contributor-written line describing what to look for when finding a Lab in person (e.g. "above the 7-Eleven, unmarked door"), attached to the Lab alongside its map pin. Distinct from a formal street address — it captures the "how a person actually finds this place" detail an address doesn't, especially for a Lab down a soi or sharing an entrance with another business. See [docs/prd/lab-directory-discovery.md](docs/prd/lab-directory-discovery.md).
+_Avoid_: address, directions (the note is a supplement to the pin/address, not a replacement)
+
 ## Retired terms
 
 **Roll** (as curation unit): Originally the unit of curation on a user's portfolio — a fixed grid of photos grouped together, one Lab/Camera/Scanner/Film Stock context per group. Retired in favor of **Photobook** + atomic **Photo**, adopting an Are.na-style model where a Photo is independent and can be curated into many Photobooks rather than belonging to one rigid group. "Roll" may still appear in casual product copy to mean a physical roll of film (the real-world object), but is no longer a data/curation term.

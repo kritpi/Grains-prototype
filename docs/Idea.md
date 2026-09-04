@@ -1,51 +1,59 @@
 # Grains - Discover film labs near me
 
 1. Core Vision & Concept
-- Vision: แพลตฟอร์มค้นหาและรวบรวมข้อมูลร้านล้างฟิล์มและชนิดฟิล์มแบบ Crowdsourced สำหรับคอมมูนิตี้ (คล้ายแอปวงการ Specialty Coffee)
+- Vision: A crowdsourced platform for finding and cataloging film-developing labs and film stocks, for the community (similar in spirit to specialty-coffee-shop-finder apps).
 - Core Rule:
-  - ฝั่งร้านล้าง (Labs): Information-first (เน้นข้อมูลที่ถูกต้อง ชัดเจน เข้าถึงง่าย)
-  - ฝั่งฟิล์ม (Films): Inspiration-first (เน้น mood & tone ตัวอย่างภาพจากคอมมูนิตี้)
-  - ไม่ผูกรูปที่คอมมูนิตี้อัปโหลดเข้ากับร้านล้างโดยตรง เพื่อป้องกันปัญหาเรื่องคุณภาพงานที่อาจกระทบชื่อเสียงร้าน
+  - Labs (ร้านล้างฟิล์ม): Information-first (accurate, clear, easy-to-access data).
+  - Films (ฟิล์ม): Inspiration-first (mood & tone, sample photos from the community).
+  - Community-uploaded photos are never directly attributed to the lab that developed them, to avoid a bad scan reflecting on a lab's reputation.
 2. Core Features (MVP)
-A. Lab Directory & Discovery (ค้นหาร้านล้าง)
-- Geospatial Search: ค้นหาร้านใกล้ตัวตามพิกัดและระยะทาง (PostGIS / ST_DWithin)
+
+A. Lab Directory & Discovery
+- Geospatial Search: find nearby labs by coordinates and radius (PostGIS / ST_DWithin).
 - Process & Scanner Filters:
-  - Chemical Process: C-41 (สีปกติ), ECN-2 (ฟิล์มหนัง), B&W (ขาวดำ), E-6 (สไลด์)
-  - Scanner Models: Fuji Frontier (เน้นสกินโทน/สีหวาน), Noritsu (คม คอนทราสต์จัด), SP-3000
+  - Chemical Process: C-41 (standard color), ECN-2 (motion picture film), B&W (black & white), E-6 (slide).
+  - Scanner Models: Fuji Frontier (warm skin tones/color), Noritsu (sharp, high contrast), SP-3000.
 - Lab Metadata & Details:
-  - ราคาค่าบริการแต่ละกระบวนการ และ Turnaround Time (ระยะเวลาได้รูป)
-  - บริการเสริม: จุด Drop box หน้าร้าน / ช่องทางส่งทางไปรษณีย์
-  - ข้อมูลติดต่อ พิกัดแผนที่ วัน-เวลาเปิดปิด และสถานะร้าน
-- Lab Inventory & Supplies (ฟีเจอร์เพิ่ม):
-  - ค้นหาฟิล์มที่มีจำหน่ายที่ร้าน (เช่น Kodak Double-X, Cinestill)
-  - อุปกรณ์ Darkroom & เคมีภัณฑ์ (น้ำยาล้าง D-76, แทงค์ล้าง, กระดาษอัดรูป)
-  - มีระบบ "Last Verified" ระบุวันที่อัปเดตสต็อกล่าสุด
-B. Film Stock Index & Gallery (แคตตาล็อกฟิล์ม)
-- Catalog & Metadata: ค้นหาตามชื่อฟิล์ม, ISO (100, 200, 400, 800), และฟอร์แมต (135, 120)
-- Community Inspiration Gallery: ตัวอย่างภาพถ่ายจากฟิล์มแต่ละตัวเพื่อดูโทนสีก่อนซื้อ
-- Reverse Search: หน้ารายละเอียดฟิล์มจะบอกเลยว่า "มีขายที่ร้านไหนบ้างใกล้คุณ"
-C. Community & Data Integrity (ระบบ Crowdsource)
-- "Suggest Lab / Suggest Edit": ฟอร์มเสนอเพิ่มร้านใหม่ หรือกดแจ้งแก้ไขข้อมูลที่เปลี่ยนไป
-- Community Upvote / Badges: โหวตจุดเด่นร้าน เช่น "Fast Turnaround", "Clean Scan"
+  - Pricing per process, and Turnaround Time.
+  - Additional services: storefront drop-box / mail-in shipping.
+  - Contact info, map location, hours, and lab status.
+- Lab Inventory & Supplies (additional feature):
+  - Search for film stock carried in-store (e.g. Kodak Double-X, Cinestill).
+  - Darkroom equipment & chemicals (D-76 developer, tanks, printing paper).
+  - "Last Verified" system showing the last stock-update date.
+
+B. Film Stock Index & Gallery
+- Catalog & Metadata: search by film name, ISO (100, 200, 400, 800), and format (135, 120).
+- Community Inspiration Gallery: sample photos from each film stock to preview its tone before buying.
+- Reverse Search: a film stock's detail page shows which nearby labs carry it.
+
+C. Community & Data Integrity
+- "Suggest Lab / Suggest Edit": a form to propose a new lab or flag a change to existing data.
+- Community Upvote / Badges: vote on a lab's strengths, e.g. "Fast Turnaround", "Clean Scan".
+
 D. Minimal Photobook Portfolio (/u/@username)
-- Concept: หน้า Public Profile สไตล์ Early Instagram ผสม Fine Art Photobook เน้นโชว์ผลงานคราฟต์ ไร้ noise โฆษณาและยอดไลก์
+- Concept: a public profile page styled like Early Instagram meets a fine-art photobook — showcasing craft, with no ad noise and no like counts.
 - Core Mechanics:
-  - Curation by Roll: จัดแสดงภาพเป็นชุดภาพ (Roll) หรือ Minimal Grid ที่เคารพ Aspect Ratio จริง (3:2, 1:1, 6:7)
-    - "Roll" is the locked canonical term for the curation unit — see [CONTEXT.md](../CONTEXT.md). Previously the brief used "Story"/"Photo Essay"/"Series" interchangeably; avoid those going forward.
-  - Analog Metadata Linkage: ผูก Film Stock, Camera, Lab, Scanner เข้ากับ Directory กลาง
-  - Short Artist Note: พื้นที่เขียนบันทึกโมเมนต์สั้นๆ 2-3 บรรทัดใต้ชุดภาพ
-  - MVP Safeguards: จำกัดจำนวนภาพต่อผู้ใช้เพื่อคุม Storage และกระตุ้นให้เลือกเฉพาะ Best Shots
+  - Curation by Photobook: photos are displayed as a curated set (Photobook) or minimal grid that respects true aspect ratio (3:2, 1:1, 6:7).
+    - **Superseded (2026-09-01):** the curation unit was originally "Roll" (a fixed set, one Lab/Camera/Scanner/Film Stock context per group). This is retired — see [CONTEXT.md](../CONTEXT.md) and [docs/prd/photobook-portfolio.md](prd/photobook-portfolio.md) for the resolved decision. The model pivoted to an Are.na-style **Photo** (the atomic unit; can belong to many Photobooks) + **Photobook** (the curated collection) + **Connection** (saving another user's public Photo into your own Photobook by reference, without re-uploading it). Treat the linked PRD as canonical.
+  - Analog Metadata Linkage: each Photo ties to Film Stock, Camera, and Scanner in the central directory — never to a specific Lab, per the content-integrity rule above.
+  - Short Artist Note: a short 2-3 line note under each Photobook.
+  - MVP Safeguards: a cap on original photo uploads per user, to bound storage and push toward "best shots only" (Connections don't count against the cap).
+
 3. Design Direction & Visual Identity
-- Vibe & Influence: ได้รับแรงบันดาลใจจากช่างภาพ Street & Editorial (Saul Leiter, Cartier-Bresson, Vivian Maier, Joe Greer, Willem Verbeeck)
-- Layout & Space: Editorial Grid, Negative Space สูง, ไร้เส้นขอบหนาและเงาฟุ้งแบบ generic SaaS
+- Vibe & Influence: inspired by street & editorial photographers (Saul Leiter, Cartier-Bresson, Vivian Maier, Joe Greer, Willem Verbeeck).
+- Layout & Space: editorial grid, high negative space, no heavy borders or generic-SaaS drop shadows, no rounded corners.
 - Color Palette:
-  - Light: Warm Fine-Art Paper (เช่น #F9F8F6, Off-White)
-  - Dark: Muted Charcoal / Deep Obsidian
+  - Light: warm fine-art paper (e.g. #F9F8F6, off-white).
+  - **Superseded (2026-09-04):** a dark palette was originally planned here. Decided against a dark theme — light mode only. See [CLAUDE.md](../CLAUDE.md#design-direction--visual-identity-not-yet-implemented) and [docs/design-system/visual-identity.html](design-system/visual-identity.html).
 - Typography Pairing:
-  - Headings / Series Title: Editorial Serif (เช่น Instrument Serif หรือ Newsreader)
-  - Metadata / UI Labels: Clean Minimalist Sans หรือ Mono ขนาดเล็ก คล้ายป้าย Exhibition Tag ในหอศิลป์
-- Frame Respect: ไม่บังคับครอปภาพ รองรับการแสดงผลแบบ Contact Sheet ขอบฟิล์มเดิม
+  - Headings / Series Title: editorial serif (e.g. Instrument Serif or Newsreader).
+  - Metadata / UI Labels: clean minimalist sans, like an exhibition tag in a gallery.
+    - **Superseded (2026-09-04):** "small mono" was originally offered as an alternative here. Decided against any monospace/typewriter font for UI text — sans only. See [CLAUDE.md](../CLAUDE.md#design-direction--visual-identity-not-yet-implemented).
+- Frame Respect: no forced cropping; supports contact-sheet-style display with original film edges.
+- Authentication: Google OAuth 2.0 only — no email/password sign-in. See [CLAUDE.md](../CLAUDE.md#authentication-not-yet-implemented).
+
 4. Suggested Tech Stack
-- Frontend: Next.js (App Router), Tailwind CSS, shadcn/ui
-- Backend / API: Go หรือ Next.js Server Actions / API Routes
-- Database: PostgreSQL (Supabase) + PostGIS extension สำหรับการคำนวณพิกัดระยะทาง
+- Frontend: Next.js (App Router), Tailwind CSS, shadcn/ui.
+- Backend / API: Go, or Next.js Server Actions / API Routes.
+- Database: PostgreSQL (Supabase) + PostGIS extension for distance/proximity calculations.
