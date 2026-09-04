@@ -32,12 +32,13 @@ Influenced by street/editorial photographers (Saul Leiter, Cartier-Bresson, Vivi
 
 ## Tech stack
 
-Not yet decided. [docs/Idea.md](docs/Idea.md) suggests Next.js (App Router) + Tailwind + shadcn/ui on the frontend, Go or Next.js Server Actions on the backend, and PostgreSQL (Supabase) + PostGIS for geospatial queries — to be confirmed before scaffolding.
+Not yet decided. [docs/Idea.md](docs/Idea.md) suggests Next.js (App Router) + Tailwind + shadcn/ui on the frontend, Go or Next.js Server Actions on the backend, and PostgreSQL (Supabase) + PostGIS for geospatial queries — to be confirmed before scaffolding. See [docs/tech-decisions-backlog.md](docs/tech-decisions-backlog.md) for the ranked list of open decisions.
 
 ## Docs
 
 - [docs/Idea.md](docs/Idea.md) — original product brief
 - [docs/backlog.md](docs/backlog.md) — what's resolved vs. still open across all features
+- [docs/tech-decisions-backlog.md](docs/tech-decisions-backlog.md) — ranked backlog of open infrastructure/architecture decisions
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
 - [docs/plans/](docs/plans/) — implementation plans awaiting review/execution
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary
