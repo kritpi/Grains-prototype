@@ -1,0 +1,222 @@
+<title>Photobook Prototype Gap Plan</title>
+<style>
+  :root{
+    --paper:#F9F8F6; --ink:#141412; --ash:#55554F; --faint:#8B8B84;
+    --hair:#D8D7D1; --sunk:#F1F0EC; --flag:#B3402A;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);margin:0;
+       font:400 14px/1.65 ui-sans-serif,-apple-system,"Helvetica Neue",sans-serif}
+  main{max-width:1000px;margin:0 auto;padding:56px 28px 96px}
+  h1{font:400 40px/1.1 "Instrument Serif",Georgia,serif;margin:0 0 10px;letter-spacing:-.01em}
+  h2{font:400 26px/1.2 "Instrument Serif",Georgia,serif;margin:56px 0 6px;
+     border-top:1px solid var(--hair);padding-top:22px}
+  h3{font:600 12px/1.4 ui-sans-serif,sans-serif;letter-spacing:.12em;text-transform:uppercase;
+     color:var(--faint);margin:30px 0 10px}
+  p{margin:0 0 14px;max-width:74ch}
+  .lede{color:var(--ash);font-size:15px;max-width:74ch}
+  .meta{font:400 11.5px ui-monospace,monospace;color:var(--faint);letter-spacing:.04em;
+        text-transform:uppercase;margin-bottom:28px}
+  .scroll{overflow-x:auto;margin:0 0 8px}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+  th{text-align:left;font:600 10.5px ui-sans-serif,sans-serif;letter-spacing:.1em;
+     text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--ink);
+     padding:0 12px 8px 0;vertical-align:bottom}
+  td{border-bottom:1px solid var(--hair);padding:11px 12px 11px 0;vertical-align:top;line-height:1.55}
+  td:first-child,th:first-child{width:52px}
+  .id{font:400 11px ui-monospace,monospace;color:var(--faint)}
+  .sev{font:600 10px ui-sans-serif,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+       white-space:nowrap;padding:2px 6px;border:1px solid var(--ink)}
+  .sev.p1{background:var(--ink);color:var(--paper)}
+  .sev.p2{background:none;color:var(--ink)}
+  .sev.p3{background:none;color:var(--faint);border-color:var(--hair)}
+  .src{font:400 11px ui-monospace,monospace;color:var(--ash);white-space:nowrap}
+  code{font:400 12px ui-monospace,monospace;background:var(--sunk);padding:1px 4px}
+  ol,ul{max-width:74ch;padding-left:20px}
+  li{margin-bottom:7px}
+  .note{border-left:2px solid var(--flag);padding:2px 0 2px 14px;color:var(--ash);
+        margin:18px 0;max-width:74ch}
+  .phase{border:1px solid var(--hair);padding:18px 20px;margin:0 0 14px;background:#fff}
+  .phase h4{margin:0 0 4px;font:400 20px "Instrument Serif",Georgia,serif}
+  .phase .who{font:400 11px ui-monospace,monospace;color:var(--faint);
+              text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .new{font:600 9.5px ui-sans-serif,sans-serif;letter-spacing:.1em;color:var(--flag);
+       vertical-align:2px;margin-left:5px}
+  footer{margin-top:64px;border-top:1px solid var(--hair);padding-top:16px;
+         font-size:12px;color:var(--faint)}
+</style>
+
+<main>
+
+<h1>Photobook Portfolio — prototype gap plan</h1>
+<div class="meta">Frames 1j · 1k · 1l — grains-wireframe.html vs grains-prototype.html vs docs/prd/photobook-portfolio.md · rev. 2, after adversarial review</div>
+
+<p class="lede">The wireframe covers the photobook feature area in three frames: <strong>1j</strong> public profile, <strong>1k</strong> photobook detail, <strong>1l</strong> photo detail. The prototype implements all three as screens (<code>portfolio</code>, <code>book</code>, <code>photo</code>) and self-references those frame IDs in its own <code>wireMap</code>, so the intended mapping is explicit.</p>
+
+<p class="lede">One qualifier on that mapping: the prototype's <code>photo</code> screen is doing double duty. Its eyebrow reads <code>SAMPLE SCAN</code>, its <code>&lt;h1&gt;</code> is the film stock name and its CTA is "See the stock" — it is really frame <strong>1g</strong>'s film-stock gallery photo, wearing 1l's route. Several findings below are therefore not "1l built badly" but "1l never built, because one screen is serving two roles." The fix is to split them.</p>
+
+<p class="lede">Broadly: the prototype has the shells of all three screens and honours the content-integrity rule, but it is missing every state variant (visitor vs. owner, empty, connected vs. own), the artist's note, any Photo upload path, the Connect destination sheet, and the profile-as-destination routing the PRD's only discovery path depends on. In two places it contradicts a resolved PRD decision outright.</p>
+
+<h2>1j — Public profile</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>#</th><th>Gap in the prototype</th><th>Source of truth</th><th>Sev</th></tr></thead>
+<tbody>
+<tr><td class="id">J1</td><td><strong>No visitor view — the profile is always "yours".</strong> <code>goPortfolio</code> always opens the same screen, <code>profileHandle</code> falls back to <code>@somchai.film</code> even when signed out, and the "+ New photobook" tile renders unconditionally. The wireframe splits visitor and owner: owner adds the cap meter, edit-profile and the new-book tile; visitor gets a share action and neither. <em>Sequencing note: this is a one-line state addition (<code>viewedHandle</code>) that three other P1s depend on.</em></td><td class="src">wf 1j</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">J2</td><td><strong>The profile is unreachable as another user's page.</strong> Photo detail prints "Uploaded by @x" as static text, so there is no photo → uploader route. PRD decision 9 makes exactly that the <em>only</em> MVP discovery path once following/feed is deferred, so the prototype currently has no user-to-user discovery at all.</td><td class="src">PRD §9, wf 1l</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">J13<span class="new">NEW</span></td><td><strong>Connections are counted as original uploads.</strong> <code>proto_main.html:2190</code> renders <code>(19 + s.connected.length) + ' photos · ' + s.connected.length + ' connected by you'</code> — connecting one Photo increments <em>both</em> numbers. PRD §5 exists precisely to say Connections don't count against a user's uploads, and this is the one number in the product that expresses it. Clearest outright contradiction of a resolved decision in the prototype.</td><td class="src">PRD §5</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">J10<span class="new">NEW</span></td><td><strong>There is no Photo upload path anywhere on the profile.</strong> The wireframe's owner empty state leads with "+ Upload"; the prototype's only upload entry point is <code>addSample</code> on the <em>film-stock gallery</em> (<code>proto_main.html:2168</code>). That is the one surface film-stock PRD §3 explicitly rules out ("no separate direct-upload path for feature B" — upload belongs to feature D). Nothing about the Photo lifecycle or the cap is demonstrable until this exists.</td><td class="src">film-stock PRD §3, wf 1j</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">J3</td><td><strong>No upload-cap meter.</strong> Wireframe shows "Original uploads 41 / 50" on the owner view with the explicit line that Connections are unlimited — the visible surface of PRD §5. Downgraded from P1 on review: §5 defers the exact number as "not a requirements-level decision", and the meter has nothing to move until J10 lands.</td><td class="src">PRD §5, wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J4</td><td><strong>Stat line is collapsed and loses a metric.</strong> Wireframe desktop has four labelled counts — Photobooks, Photos uploaded, Connections made, <em>Connected by others</em>. The prototype has one unlabelled run-on line and no fourth metric. (The miscounting half of this finding is now J13.)</td><td class="src">wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J12<span class="new">NEW</span></td><td><strong>Profile cards omit the connected breakdown.</strong> Wireframe card meta is "14 Photos · 5 connected"; prototype renders <code>b.count + ' photos'</code> (<code>:2193</code>). Same fix as K5, applied to the profile.</td><td class="src">wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J11<span class="new">NEW</span></td><td><strong>A Photo in no Photobook has no home on the profile.</strong> PRD §4 and film-stock PRD §3 both establish that a Photo is live and Gallery-eligible without belonging to any Photobook — but the profile lists only Photobooks while claiming a total Photo count. Neither the wireframe nor the original plan addressed where those Photos surface. Needs a decision, not just code.</td><td class="src">PRD §4, film-stock PRD §3</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J5</td><td><strong>No grid/list toggle, and the artist's note appears nowhere.</strong> Corrected on review: the note is a <em>card-level</em> element in the wireframe — it renders in the mobile list, the desktop grid and the desktop list, and is omitted only from the mobile grid. The wireframe's own annotation ("list view is the only place the note appears") contradicts its markup and needs reconciling.</td><td class="src">wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J6</td><td><strong>No empty state.</strong> Wireframe specifies two: visitor ("No public Photobooks yet · Browse Films instead ↗") and owner ("Start your first Photobook · + Upload / New Photobook").</td><td class="src">wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J7</td><td><strong>Cover is a single 3:2 block, not a 3-up mosaic.</strong> Wireframe: "Cover is a 3-up mosaic of the first Photos, not a single crop — a Photobook is a set, and the mosaic previews mixed aspect ratios honestly."</td><td class="src">wf 1j</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">J8</td><td><strong>Missing: share affordance, sort control ("Newest ▾"), and the <code>/u/@username</code> URL treatment</strong> that the PRD names as the surface itself.</td><td class="src">PRD title, wf 1j</td><td><span class="sev p3">P3</span></td></tr>
+<tr><td class="id">J9<span class="new">NEW</span></td><td><strong>No avatar.</strong> Wireframe has 60px on mobile, 84px in the desktop identity column; the prototype header is handle + bio only.</td><td class="src">wf 1j</td><td><span class="sev p3">P3</span></td></tr>
+<tr><td class="id">J14<span class="new">NEW</span></td><td><strong>No "PHOTOBOOKS · n" section header</strong> on either breakpoint — the prototype drops from the header rule straight into a bare grid.</td><td class="src">wf 1j</td><td><span class="sev p3">P3</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>1k — Photobook detail</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>#</th><th>Gap in the prototype</th><th>Source of truth</th><th>Sev</th></tr></thead>
+<tbody>
+<tr><td class="id">K5</td><td><strong>Every book renders the same three photos.</strong> <code>bookPhotos</code> is hard-coded to <code>this.samples('s2').slice(0,3)</code> regardless of which book was opened (<code>:1811-1813</code>), while books declare 9 / 6 / 4. Promoted to P1 on review: <strong>this is the keystone.</strong> K3's owned-vs-connected credit rule, L4's "4 / 14" and prev/next, and J12's card breakdown are all impossible until a book owns a real photo set.</td><td class="src">wf 1k</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">K1</td><td><strong>The artist's note does not exist.</strong> PRD decision 7 is one short 2–3 line note per Photobook, shown once for the whole collection; the wireframe prints it under the title on mobile and pins it in a sticky column on desktop. The prototype's book header carries only title + count.</td><td class="src">PRD §7, wf 1k</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">K2</td><td><strong>The grid crops.</strong> The <code>image-slot</code> elements are <code>shape="square"</code> inside fixed <code>height:200px</code> cells, in a uniform <code>auto-fill minmax(200px,1fr)</code> grid. The wireframe is explicit: mobile is a single full-width column so every frame keeps true ratio at maximum size, desktop is a 2-col masonry, "no cropping, no uniform tiles, deliberately ragged". This is the core visual promise of the feature.</td><td class="src">CLAUDE.md, wf 1k</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">K3</td><td><strong>Every photo is labelled as Connected.</strong> <code>bookPhotos</code> hard-codes the caption to <code>'connected from ' + by</code> for all tiles. Wireframe rule: own Photos show <em>no credit line at all</em>, Connected Photos show <code>via @original-uploader</code>. So the prototype shows a credit under photos the owner uploaded, in non-canonical wording.</td><td class="src">PRD §3, wf 1k</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">K4</td><td><strong>Editor scaffolding leaks into product copy.</strong> The book meta string ends "…drop your own frames into the empty slots", and three <code>image-slot</code>s (two empty, one carrying a <code>src</code>) render <em>before</em> the real photos — so the first thing a viewer sees in a Photobook is canvas-tool chrome. No such affordance exists in the wireframe or PRD.</td><td class="src">wf 1k</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">K7<span class="new">NEW</span></td><td><strong>Per-frame format label missing.</strong> The wireframe renders two lines under each frame: <code>{{ p.label }}</code> ("3:2 · 135", "6:7 · 120") <em>and</em> <code>{{ p.credit }}</code>. The prototype has one caption line and spends it on the (incorrect) credit — so fixing K3 alone would leave the label absent.</td><td class="src">wf 1k</td><td><span class="sev p3">P3</span></td></tr>
+<tr><td class="id">K8<span class="new">NEW</span></td><td><strong>Book meta advertises a visibility state that doesn't exist.</strong> <code>:2196</code> prints "· public ·". PRD §1 says Photobooks are "public by default", which implies a non-public option that was never decided. Either drop the word or record the decision.</td><td class="src">PRD §1</td><td><span class="sev p3">P3</span></td></tr>
+<tr><td class="id">K6</td><td><strong>Breadcrumb is inert and there is no share.</strong> <code>{{ profileHandle }} / photobook</code> is plain text; the wireframe has a tappable owner handle back to 1j plus share on both breakpoints.</td><td class="src">wf 1k</td><td><span class="sev p3">P3</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>1l — Photo detail</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>#</th><th>Gap in the prototype</th><th>Source of truth</th><th>Sev</th></tr></thead>
+<tbody>
+<tr><td class="id">L1</td><td><strong>Connect has no destination sheet.</strong> The button is a one-shot toggle that hard-codes the target ("Connected into 'Bangkok Overcast'") and can never be undone — <code>connected</code> (an array of photo ids) only ever grows. The wireframe specifies a sheet with multi-select across your books, a "+ New Photobook" row, an already-connected state that reopens with those books ticked, and disconnect through the same control. Multi-book Connect is the point of the atomic model.</td><td class="src">PRD §1 §3, wf 1l</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">L3</td><td><strong>On your own Photo, the prototype shows the wrong view.</strong> Not merely missing: the seed data hands index 3 the handle <code>@somchai.film</code> (<code>:1469</code>), which is the same handle <code>continueWithGoogle</code> signs you in as (<code>:2203</code>) — so a signed-in user reaches their own Photo and is offered <strong>Connect</strong>. The wireframe replaces it with Edit metadata / Delete, the delete confirmation stating the cascade in plain numbers ("removes it from all 7 Photobooks that Connected it"). Under PRD §6 deletion is the <em>only</em> recourse against unwanted Connections, so this screen carries real weight.</td><td class="src">PRD §3 §6 §8, wf 1l</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">L4</td><td><strong>Photo loses its book context.</strong> Opening a photo from a Photobook sets <code>photoId</code> + <code>stockId</code> and routes to the standalone screen under the <em>Films</em> tab, so the nav highlight jumps from Profile to Films. Wireframe 1l is scoped to the book: "Bangkok Overcast · 4 / 14" with swipe/arrow navigation within it. This is the concrete form of the split described in the lede.</td><td class="src">wf 1l</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">L2</td><td><strong>No "Also appears in · N Photobooks" row.</strong> The wireframe calls this "the visible proof of the reference model" — the one place a viewer sees that a Photo is one canonical object in many contexts. <em>Review correction:</em> it is a cross-user fact and must come from seeded data, <strong>not</strong> from the viewer's own connection map — deriving it there would print "1" on a Photo seven people connected. Now confirmed to ship by PRD §11, which drops its counterpart J4.</td><td class="src">PRD §3 §11, wf 1l</td><td><span class="sev p1">P1</span></td></tr>
+<tr><td class="id">L5</td><td><strong>Metadata rail is short a row, in the wrong order, and inert.</strong> Prototype: Film stock / Chemistry / Camera / Scanner model as dead text plus a "See the stock" button. Wireframe: Film Stock / <em>Format</em> / Camera / Scanner / Chemistry — so Format is missing <em>and</em> Chemistry moves from 2nd to last, against the wireframe's rule that row order is fixed so an absent field reads as "not tagged". Note Format is not in photobook PRD §1's metadata list; the support is film-stock PRD §2, which makes adding it a small model change (see Phase 0).</td><td class="src">film-stock PRD §2, wf 1l</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">L6</td><td><strong>Presentation model differs.</strong> Wireframe: mobile is a scrolling page with swipe, desktop is a two-pane lightbox (✕ close, arrow keys, non-scrolling metadata rail). Prototype: one responsive in-shell page with the global back button for both.</td><td class="src">wf 1l</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">L7</td><td><strong>Connect's explanatory line is missing.</strong> Wireframe puts "no re-upload, doesn't count against your upload cap" directly under the button — where PRD §5 gets explained at the moment of action. The prototype's toast covers §3 ("the photo stays the author's") but not §5.</td><td class="src">PRD §5, wf 1l</td><td><span class="sev p3">P3</span></td></tr>
+<tr><td class="id">L9<span class="new">NEW</span></td><td><strong>No share affordance on photo detail</strong> (wireframe mobile header has one). Share was tracked for 1j and 1k but not 1l.</td><td class="src">wf 1l</td><td><span class="sev p3">P3</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Cross-cutting</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>#</th><th>Gap in the prototype</th><th>Source of truth</th><th>Sev</th></tr></thead>
+<tbody>
+<tr><td class="id">X1<span class="new">NEW</span></td><td><strong>Bilingual parity breaks on exactly these three screens.</strong> The prototype is bilingual via <code>data-l</code> throughout — except here: <code>photoMeta</code> keys and values render untranslated (<code>:1205-1206</code>, data at <code>:2173-2177</code>), the book-photo caption (<code>:1259</code>) and the profile card meta (<code>:1235</code>) carry no <code>data-l</code>. In TH mode the entire metadata rail and every photo caption stay English, while the wireframe puts a TH/EN toggle on all three frames.</td><td class="src">wf 1j/1k/1l</td><td><span class="sev p2">P2</span></td></tr>
+<tr><td class="id">X2<span class="new">NEW</span></td><td><strong>Domain terms are lowercased in product copy.</strong> "photobook"/"photos" in the prototype vs. CONTEXT.md and the wireframe treating <strong>Photo / Photobook / Connection</strong> as capitalised domain terms ("14 Photos · 5 Connected", "＋ Connect to a Photobook"). <em>Not a violation:</em> "the lab that processed this roll" (<code>:1214</code>) is the permitted physical-object sense per CONTEXT.md's retired-terms note — leave it alone.</td><td class="src">CONTEXT.md</td><td><span class="sev p3">P3</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>What the prototype gets right</h2>
+<ul>
+<li><strong>Content-integrity rule (PRD §2) is honoured</strong> — no Lab row on the photo, no "where was this developed" affordance, and an explicit line that scanner model is neutral technical metadata in the same class as camera. This is the highest-risk rule in the feature and it holds.</li>
+<li><strong>Logged-out Connect is handled correctly</strong> — gated behind <code>auth()</code> with the button still visible and the image and metadata never requiring an account, exactly as the wireframe specifies. Listed here so it doesn't get "fixed" into a hidden button.</li>
+<li><strong>No likes, no followers, no feed</strong> — consistent with PRD §9 and the "no ads, no like counts" positioning.</li>
+<li><strong>Instant-live photos (PRD §4)</strong> — no draft state anywhere.</li>
+<li><strong>Reference-not-copy language</strong> — "a photobook is a reading order, not a copy" states PRD §3 in product voice.</li>
+<li><strong>Frame-ID traceability</strong> — <code>wireMap</code> already links each screen to its wireframe frame, so regressions are checkable.</li>
+</ul>
+
+<div class="note">
+<strong>Cross-cutting, outside 1j–1l:</strong> both files use <code>border-radius</code> throughout (116 occurrences in the prototype, 169 in the wireframe) and the prototype's paper is <code>#FDFDFC</code>, while CLAUDE.md's locked design direction says sharp flat rectangles only, no rounded corners, warm paper <code>#F9F8F6</code>. Since wireframe <em>and</em> prototype both diverge, this is a design-direction decision to reconfirm or amend in CLAUDE.md — not a prototype bug. Separately, wireframe frame <strong>2b</strong> (Accounts) offers LINE / Google / Apple / email sign-in while CLAUDE.md and the prototype are Google-only — a community-PRD question, out of scope here. Note the wireframe's own 1l annotation misreferences that frame as "1h" (which is Suggest Lab / Suggest Edit); worth correcting in the wireframe.
+</div>
+
+<h2>Plan</h2>
+
+<div class="phase">
+<h4>Phase 0 — Decisions · CLOSED 2026-09-04</h4>
+<div class="who">Recorded as PRD decisions 10–12 · nothing here blocks Phase 1</div>
+<ol>
+<li><strong>Upload surface (J10, J11) → RESOLVED, PRD §10.</strong> Upload starts from the owner's profile ("+ Upload") and from inside a Photobook they own. Closes a requirement film-stock PRD §3 had delegated to feature D and feature D never picked up. <em>Sub-question still open:</em> where a Photo in no Photobook surfaces on the profile (J11).</li>
+<li><strong>Reuse counters (J4, L2) → RESOLVED, PRD §11.</strong> "Also appears in · N Photobooks" ships (a fact about the Photo, and the only demonstration of the reference model); "Connected by others" does not (a popularity score on a person). L2 is therefore un-gated — build it, from seeded cross-user data.</li>
+<li><strong>Self-Connection (L3) → defaulted no</strong> — own Photo shows Edit / Delete instead. PRD §12.</li>
+<li><strong>Photobook visibility (K8) → defaulted no non-public state</strong> — drop the "public" label. PRD §12.</li>
+<li><strong>Format on a Photo (L5) → defaulted yes</strong>, on film-stock PRD §2's authority. PRD §12.</li>
+<li><strong>Artist's note placement (J5) → defaulted to the wireframe's markup</strong> over its annotation: on profile cards everywhere except the mobile grid. PRD §12.</li>
+<li><em>Not blocking:</em> the cap's numeric value — PRD §5 rules it out of scope. 50 as placeholder data.</li>
+<li><em>Not open:</em> whether the artist's note ships. PRD §7 is resolved; only placement was live.</li>
+</ol>
+<p style="margin:12px 0 0;font-size:12.5px;color:var(--ash)">Items 3–6 were defaulted, not explicitly chosen — recorded as PRD §12 <em>PROPOSED</em> so they stay visible and cheap to overturn.</p>
+</div>
+
+<div class="phase">
+<h4>Phase 1 — Data model</h4>
+<div class="who">Prototype edits · everything downstream depends on this</div>
+<ol>
+<li><strong>K5 — give each book its own photo set</strong>, each entry flagged owned or connected, with a real count. Keystone: K3, J12, L4 and the book's "n Photos · m Connected" line all read from this.</li>
+<li><strong>J1 — add <code>viewedHandle</code> to state</strong> and derive owner-only affordances from <code>viewedHandle === user</code>. One line; unblocks J3, K3 and L3.</li>
+<li><strong>L1 — replace the flat <code>connected</code> id array with <code>{photoId: [bookIds]}</code></strong>, which makes disconnect and multi-book membership expressible.</li>
+<li><strong>J13 — stop counting Connections as uploads.</strong> Uploads and Connections become separate counters off the new model.</li>
+</ol>
+</div>
+
+<div class="phase">
+<h4>Phase 2 — Make the model visible</h4>
+<div class="who">Prototype edits · the P1s that carry PRD decisions</div>
+<ol>
+<li><strong>L1 Connect sheet</strong> — multi-select destination books, "+ New Photobook", ticked-state reopen, disconnect through the same control.</li>
+<li><strong>K3 Credit rule</strong> — own Photos: no credit line; Connected: <code>via @uploader</code>.</li>
+<li><strong>K1 Artist's note</strong> — add to the book model; render once under the title, sticky column on desktop.</li>
+<li><strong>L3 Own-photo view</strong> — Edit metadata / Delete replacing Connect when <code>uploader === viewer</code>, with the cascade count spelled out in the confirmation.</li>
+<li><strong>J2 Uploader link</strong> — "Uploaded by @x" opens that user's profile, completing photo → profile → their books.</li>
+<li><strong>L4 Book context</strong> — carry <code>bookId</code> into the photo screen, show "Book · n / total", keep the Profile tab active, offer prev/next within the book. Photos reached from a stock gallery keep today's Films-tab behaviour — this is where the 1l / 1g split gets made explicit.</li>
+<li><strong>L2 "Also appears in · N"</strong> — <em>if Phase 0 item 2 keeps it</em>, from seeded cross-user data, never from the viewer's own map.</li>
+<li><strong>J10 Upload entry point</strong> — per the Phase 0 item 1 decision; move it off the film-stock gallery.</li>
+<li><strong>J6 Empty states</strong> — visitor and owner variants. <strong>J3 Cap meter</strong> — owner view only, with the "Connections are unlimited" line.</li>
+</ol>
+</div>
+
+<div class="phase">
+<h4>Phase 3 — Honour the frame</h4>
+<div class="who">Prototype edits · the feature's visual promise</div>
+<ol>
+<li><strong>K2 True-aspect grid</strong> — drop <code>shape="square"</code> and the fixed 200px cells; single full-width column on mobile, 2-col masonry on desktop, ragged by design.</li>
+<li><strong>K4 Remove editor scaffolding</strong> from the book copy and the grid.</li>
+<li><strong>J7 3-up mosaic covers</strong> on the profile · <strong>K7</strong> restore the per-frame format label alongside the credit.</li>
+<li><strong>J12</strong> "n Photos · m Connected" on profile cards.</li>
+</ol>
+</div>
+
+<div class="phase">
+<h4>Phase 4 — Rail, chrome, parity and polish</h4>
+<div class="who">Prototype edits · lower risk</div>
+<ol>
+<li><strong>X1 Bilingual parity</strong> — <code>data-l</code> on the metadata rail, photo captions and card meta. Cheap, and it is a regression against the prototype's own convention.</li>
+<li><strong>L5</strong> Add the Format row, fix row order to Film Stock / Format / Camera / Scanner / Chemistry, and link the rows out (scope per Phase 0 item 5; note the wireframe's two annotations disagree on <em>which</em> rows link — settle it there).</li>
+<li><strong>L7</strong> Cap-exempt explainer under Connect · <strong>L9</strong> share on photo detail.</li>
+<li><strong>J4</strong> Four labelled counts (pending Phase 0 item 2) · <strong>J5</strong> grid/list toggle · <strong>J8</strong> share, sort, <code>/u/@handle</code> · <strong>J9</strong> avatar · <strong>J14</strong> section header · <strong>K6</strong> live breadcrumb + share · <strong>K8</strong> visibility wording.</li>
+<li><strong>X2</strong> Capitalise Photo / Photobook / Connection in product copy — leave "roll" in the lab-processing sentence alone.</li>
+<li><strong>L6</strong> Decide whether the desktop lightbox is worth building in the prototype or stays wireframe-only fidelity.</li>
+</ol>
+</div>
+
+<h2>PRD follow-ups this exposed</h2>
+<p style="font-size:13px;color:var(--ash)">Five of these were closed on 2026-09-04 as PRD decisions 10–12 (see Phase 0). What remains open:</p>
+<ul>
+<li><strong>Where a book-less Photo surfaces on the profile (J11)</strong> — PRD §10 resolved the upload surface but explicitly left this sub-question open. The profile lists Photobooks only, so a Photo in no Photobook is reachable from the Film Stock Gallery but not from its own author's page.</li>
+<li><strong>Also update film-stock PRD §3</strong> — its "still open" note about upload now has two answers: visibility from §4, surface from §10. Worth closing the loop there so the two PRDs don't drift.</li>
+<li><strong>§8 silent removal</strong> has no UI anywhere by design — the wireframe flags it as the one resolved decision with nothing to show. Worth a line in the PRD noting that absence <em>is</em> the implementation.</li>
+<li><strong>Book-level ownership</strong> — the PRD never says whether a Photobook made entirely of Connections (the wireframe's "Borrowed Light", 18 photos / 18 connected) is a first-class case. It follows from §5 but isn't stated.</li>
+</ul>
+
+<footer>Sources: <code>grains-wireframe.html</code> frames 1j/1k/1l (2b checked for the auth cross-reference) · <code>grains-prototype.html</code> screens <code>portfolio</code>/<code>book</code>/<code>photo</code> · <code>docs/prd/photobook-portfolio.md</code> decisions 1–9 · <code>docs/prd/film-stock-index-gallery.md</code> §2–3 · <code>CONTEXT.md</code> · <code>CLAUDE.md</code>. Rev. 2 incorporates an adversarial review pass: 10 corrections and 11 added findings.</footer>
+
+</main>

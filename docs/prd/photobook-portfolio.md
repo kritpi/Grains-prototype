@@ -76,3 +76,43 @@ Status: grilling in progress — decisions logged below as resolved; persona/jou
 **Amends decision 3**, which had left this open with a placeholder assumption ("removed by uploader" tombstone) — superseded by this decision.
 
 **Rationale:** User-directed: prioritizes every Photobook always presenting as clean and intentional over surfacing the fact that a removal happened. Note for later grilling: this means a curator gets no signal that their composition/sequence changed and no record of what used to occupy that slot — worth revisiting if this turns out to matter once Photobooks are used as deliberately sequenced photo-essays rather than loose grids.
+
+### 9. User-to-user discovery (following/feed) — DEFERRED post-MVP (2026-09-04)
+
+**Decision:** No following/follower mechanism and no feed for MVP. The only path to discover another user for MVP is the Connection graph — browse a Film Stock gallery or a Photobook → click a Photo → reach its uploader's `/u/@username` → browse their other public Photobooks.
+
+**Rationale:** Following/feed is a substantial scope add (social graph, notification model, feed ranking/pagination) that cuts against the "quiet fine-art photobook, no ads, no like counts" positioning already locked in for this feature. Better to launch with purely serendipitous, graph-based discovery and validate whether users actually want an explicit social layer before building one. Flagged by the user as a good candidate for a post-MVP phase, not as something to design away permanently.
+
+**Note for post-MVP scoping:** if picked up later, revisit whether "following" fits the product's restrained tone at all (vs. a lighter-weight primitive, e.g. surfacing "more Photobooks by this curator" on a Photobook page — cheap, no new schema, doesn't require a social graph) before defaulting to a conventional follow/feed model.
+
+### 10. Photo upload surface — RESOLVED (2026-09-04)
+
+**Decision:** Photo upload starts from two places, both owned by this feature: an "+ Upload" action on the user's own `/u/@username` profile, and an add-photo affordance inside a Photobook the user owns.
+
+- Closes a requirement that was, until now, unowned: [film-stock-index-gallery.md](film-stock-index-gallery.md) §3 rules out a direct-upload path for feature B and delegates upload to feature D, but feature D never specified where it lives. The Film Stock Gallery remains a purely derived view.
+- The upload-visibility half of film-stock §3's "still open" note is already answered by decision 4 above (instant-live, no draft state). This decision closes the remaining half — the surface.
+- A Photo uploaded from within a Photobook is added to that Photobook, but this is a convenience, not a coupling: per decision 1 the Photo is still an independent entity that can belong to zero or many Photobooks.
+
+**Rationale:** Keeps upload on the surfaces that own the Photo lifecycle, and puts the per-user cap meter (decision 5) directly next to the action it constrains. Considered and rejected: a global "+" in the app shell — a better literal fit for decision 4's "live the moment it's tagged", but it introduces a nav element the wireframe never drew and detaches upload from the cap it's governed by. Also rejected: leaving upload on the film-stock gallery where the prototype currently has it, which would require amending film-stock §3 rather than implementing it.
+
+**Open sub-question:** where a Photo that belongs to no Photobook surfaces on `/u/@username`. The profile currently lists Photobooks only, so such a Photo is reachable via the Film Stock Gallery but not from its own author's profile.
+
+### 11. Public reuse counters — RESOLVED (2026-09-04)
+
+**Decision:** Ship "Also appears in · N Photobooks" on a Photo. Do not ship "Connected by others" on a profile.
+
+- Both counters appear in the wireframe (frames 1l and 1j respectively) with no decision behind either; this resolves them in opposite directions.
+- "Also appears in" is a property of the Photo — one canonical object seen in many contexts — and is the only place in the product where the reference model of decision 3 is *demonstrated* rather than asserted in copy.
+- It is a cross-user count and must be derived from the canonical Photo, never from the viewing user's own Connections.
+
+**Rationale:** The distinction is whether a number is attached to an object or to a person. A reuse count on a Photo is navigational and factual; a lifetime "Connected by others" total on a profile is a public popularity score on a user, which is what "no ads, no like counts" (Idea.md, reaffirmed throughout this PRD) rules out. Accepted cost: a curator gets no signal that their work is being reused — the same trade-off already accepted in decision 8, where a curator gets no signal that a Connected Photo was removed.
+
+### 12. Minor decisions defaulted during prototype review — PROPOSED (2026-09-04)
+
+Recorded so they are visible and correctable; each was defaulted rather than explicitly chosen, and any of them can be overturned cheaply before implementation.
+
+- **Self-Connection:** a user cannot Connect their own Photo. The uploader's view shows Edit metadata / Delete in place of the Connect action (per decision 6, deletion is their only recourse over reuse). Connecting to yourself is a no-op under the reference model.
+- **Photobook visibility:** no non-public Photobook state for MVP. "Public by default" in decision 1 was descriptive, not a promise of a toggle; UI should not display a "public" status label implying an alternative that doesn't exist.
+- **Format on a Photo:** `Format` (e.g. "120 · 6×7") joins Film Stock, Camera, Scanner and Chemistry as Photo metadata. Supported by [film-stock-index-gallery.md](film-stock-index-gallery.md) §2 but missing from decision 1's enumeration.
+- **Artist's note placement:** the note (decision 7) renders on Photobook cards on the profile as well as in the Photobook itself, omitted only from the mobile grid for space. Resolves a contradiction between the wireframe's annotation and its own markup.
+- **Cap value:** 50 original uploads, as placeholder data only. Decision 5 explicitly defers this as "not a requirements-level decision" — recorded here so implementation is unblocked, not to settle it.

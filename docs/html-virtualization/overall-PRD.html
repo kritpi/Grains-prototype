@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grains — PRD: Overall Summary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+  :root{
+    --paper:#FDFDFC;
+    --ink:#0D0D0C;
+    --ash:#5B5B58;
+    --faint:#8C8C88;
+    --hairline:#DEDEDA;
+    --sunk:#F4F4F2;
+    --signal:#E23B22;
+    --signal-ink:#FDFDFC;
+    --focus-ring: rgba(226,59,34,.5);
+    --sans:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+
+  *{ box-sizing:border-box; border-radius:0!important; }
+
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  ::selection { background:var(--signal); color:var(--signal-ink); }
+  a { color:var(--ink); }
+  a:hover { color:var(--signal); }
+  :focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+
+  h1, h2, h3 { font-family:var(--serif); color:var(--ink); font-weight:500; margin:0; text-wrap:balance; }
+  h1 em { font-style:italic; color:var(--signal); }
+
+  code { font-family:var(--mono); font-size:.85em; background:var(--sunk); padding:1px 6px; }
+
+  .wrap { max-width:860px; margin:0 auto; padding:0 clamp(20px,5vw,48px) 96px; }
+
+  /* ---- index nav ---- */
+  .index { position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:2px solid var(--ink); }
+  .index-row { display:flex; gap:20px; overflow-x:auto; padding:14px clamp(20px,5vw,48px); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; font-weight:700; }
+  .index-row a { color:var(--ash); text-decoration:none; white-space:nowrap; }
+  .index-row a:hover { color:var(--signal); }
+
+  /* ---- masthead ---- */
+  .masthead { padding:clamp(48px,8vw,88px) 0 44px; }
+  .eyebrow { font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ash); font-weight:700; margin:0 0 14px; }
+  h1 { font-size:clamp(2rem,5vw,3.2rem); line-height:1.05; letter-spacing:-.01em; margin-bottom:16px; }
+  .lede { font-size:1.0625rem; color:var(--ink); max-width:64ch; margin-top:20px; }
+
+  .masthead .source { margin-top:22px; padding-top:18px; border-top:2px solid var(--ink); display:flex; flex-wrap:wrap; gap:8px 20px; align-items:baseline; }
+  .masthead .source span { font-size:.8125rem; color:var(--ash); }
+  .masthead .source a { font-weight:700; text-decoration:underline; }
+
+  .stat-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
+  .stat { border:1.5px solid var(--ink); padding:14px 18px; flex:1 1 130px; }
+  .stat .num { font-family:var(--serif); font-size:1.9rem; font-weight:500; color:var(--ink); line-height:1; }
+  .stat .label { font-size:.6875rem; letter-spacing:.05em; text-transform:uppercase; color:var(--ash); margin-top:8px; font-weight:700; }
+
+  /* ---- sections ---- */
+  section { padding:52px 0; border-top:1px solid var(--hairline); }
+  .section-head { display:flex; justify-content:space-between; align-items:baseline; gap:24px; margin-bottom:28px; flex-wrap:wrap; }
+  .section-head h2 { font-size:1.75rem; }
+  .section-head .eyebrow { white-space:nowrap; margin:0; }
+  .section-intro { max-width:64ch; margin:-14px 0 28px; color:var(--ash); font-size:.9375rem; }
+
+  h3.subhead {
+    font-size:.8125rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink);
+    border-top:1px dotted var(--hairline); padding-top:20px; margin:32px 0 6px;
+  }
+  p.note { font-size:.8125rem; color:var(--ash); max-width:62ch; margin:0 0 18px; }
+
+  /* ---- decision cards ---- */
+  .card { background:var(--paper); border:1.5px solid var(--ink); padding:20px 22px; margin:0 0 14px; }
+  .card p { margin:0 0 10px; }
+  .card p:last-child { margin-bottom:0; }
+
+  .tag {
+    display:inline-block; font-size:.6875rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:4px 10px; border:1.5px solid var(--ink); color:var(--ink); margin-bottom:12px;
+  }
+  .tag.decided { border-style:solid; border-color:var(--ink); color:var(--ink); }
+  .tag.open    { border-style:dashed; border-color:var(--ink); color:var(--ink); }
+  .tag.pivot   { border-style:solid; border-color:var(--ink); color:var(--ink); }
+  .tag.deferred{ border-style:dashed; border-color:var(--faint); color:var(--faint); }
+
+  .banner { border:1.5px solid var(--ink); padding:22px 24px; margin:0 0 16px; }
+  .banner p { margin:0 0 10px; }
+  .banner p:last-child { margin-bottom:0; }
+  .banner.deferred { border-style:dashed; border-color:var(--faint); }
+
+  /* ---- open questions ---- */
+  .open-list { list-style:none; margin:0; padding:0; }
+  .open-list li { border:1.5px solid var(--hairline); border-left:3px solid var(--ink); padding:14px 18px; margin-bottom:10px; }
+  .open-list .title { font-weight:700; margin-bottom:4px; font-size:.9375rem; }
+  .open-list .note { font-size:.875rem; color:var(--ash); }
+
+  /* ---- glossary ---- */
+  .glossary { display:grid; grid-template-columns:1fr; gap:12px; }
+  .term { border:1.5px solid var(--hairline); padding:14px 18px; }
+  .term.retired { border-style:dashed; border-color:var(--faint); }
+  .term .name { font-family:var(--serif); font-weight:500; font-size:1.0625rem; color:var(--ink); margin-bottom:4px; }
+  .term.retired .name { color:var(--faint); text-decoration:line-through; text-decoration-thickness:1px; }
+  .term .def { color:var(--ink); font-size:.9375rem; }
+  .term .avoid { font-size:.75rem; color:var(--faint); margin-top:6px; }
+
+  footer { margin-top:56px; padding-top:24px; border-top:1px solid var(--hairline); font-size:.8125rem; color:var(--faint); }
+  footer a { color:var(--ink); text-decoration:underline; }
+
+  @media (max-width:600px) {
+    h1 { font-size:2rem; }
+    .stat-row { gap:8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="index">
+  <div class="index-row">
+    <a href="#lab-directory">A. Lab Directory</a>
+    <a href="#film-stock">B. Film Stock</a>
+    <a href="#photobook">D. Photobook</a>
+    <a href="#community">C. Badges</a>
+    <a href="#post-mvp">Post-MVP</a>
+    <a href="#vocabulary">Vocabulary</a>
+    <a href="#open">Still open</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Grains — PRD recap</p>
+    <h1>Overall PRD <em>Summary</em></h1>
+    <p class="lede">Grains is a crowdsourced directory for finding film-developing labs, paired with a community film-stock catalog and a minimal Are.na-inspired photobook portfolio. This page rolls up every requirements decision made across all four MVP feature areas — an architecture pivot on the portfolio feature, a later pass that brought the Lab contribution form up to parity with the lab detail page, and a deferred decision to hold user-to-user discovery for post-MVP — into one record.</p>
+    <div class="source">
+      <span class="eyebrow" style="font-style:normal;">Sessions —</span>
+      <span>2026-08-31 → 2026-09-04 · Interviewer: PM · Interviewee: Product Owner / Domain Expert · Method: Wayfinder, one unblocked decision at a time</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">4</div><div class="label">Feature areas grilled</div></div>
+      <div class="stat"><div class="num">30</div><div class="label">Decisions resolved</div></div>
+      <div class="stat"><div class="num">1</div><div class="label">Architecture pivot</div></div>
+      <div class="stat"><div class="num">1</div><div class="label">Deferred, post-MVP</div></div>
+      <div class="stat"><div class="num">3</div><div class="label">Open questions</div></div>
+    </div>
+  </header>
+
+  <section id="lab-directory">
+    <div class="section-head">
+      <h2>A. Lab Directory &amp; Discovery</h2>
+      <div class="eyebrow">16 decisions</div>
+    </div>
+    <p class="note">Full write-up: <code>prd/lab-directory-discovery.md</code></p>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Single persona — the <strong>community member</strong>. No Lab Owner or Moderator/Admin persona in MVP. Browsing needs no account; contributing (add/edit a lab, mark closed, upload atmosphere photos) requires login, and every contribution is attributed.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Trust-by-default.</strong> Edits go live immediately, no review queue. Trust is maintained after the fact via attribution and full edit history, not gatekeeping up front. This precedent carries through every other feature below.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Minimum to publish a lab: name + location + at least one chemical process. Everything else (pricing, hours, scanner, inventory, photos) is optional and fills in later via community edits.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Two distinct photo concepts: <strong>Lab Atmosphere Photos</strong> (storefront/interior, attached to the Lab, no quality judgment) vs. <strong>Film Sample Photos</strong> (scan quality, attached only to the Film Stock — never the Lab, protecting a lab's reputation from a subjectively "bad" scan). This split becomes the product's core content-integrity rule.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>No automated duplicate detection. <strong>Soft prevention</strong> — nearby existing labs surface on the map during the add-lab flow. Manual cleanup only if a duplicate slips through.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Inventory scoped down: "what do they sell," not live stock. Film stock sold must link to a real Film Stock catalog entry (powers reverse search); darkroom equipment/chemicals use loose tags with no catalog link. No quantity tracking, no "Last Verified" mechanic.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Lab status has three independent signals: weekly <strong>hours</strong> (auto-computes open/closed), a manual <strong>status override</strong> for exceptions, and a permanent <strong>"Mark as Closed"</strong> flag (hidden from search, still viewable via direct link). All trust-by-default.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Discovery auto-locates the user by default; manual location search is a first-class alternative. Results rank nearest-first, weighted toward more complete data. Thai and English both required.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Empty states double as contribution on-ramps: zero labs nearby → add the first lab; zero labs after filtering → edit a nearby lab to add the missing process, not create a duplicate entry.</p>
+    </div>
+
+    <h3 class="subhead">Decision ledger — contribution form parity (2026-09-04)</h3>
+    <p class="note">The prototype's lab detail page showed fields — per-process pricing, services, contacts, a landmark note — that the Add Lab / Suggest Edit form had no way to actually set. These seven decisions bring the form's data model in line with the detail page.</p>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Pricing &amp; turnaround are captured per chemical process, and per format (135/120) within it</strong> — a matrix, not a single scalar. A blank cell means unset, distinct from "not offered" (the process isn't selected at all). Fixes the prototype's practice of faking the 120 price by inflating the 135 price 20% — fictional data presented as community-sourced.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Services and darkroom supplies</strong> each get a curated, fixed list a contributor can tick, plus a freeform "add one not listed" entry. Custom entries display like any other but never become a search-filter option — mirrors the no-Moderator-role reasoning already locked for badges.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Film stock carried must resolve to a catalog entry</strong> — restated, not new. If a contributor's stock isn't listed yet, they add it to the Film Stock catalog inline from within this form, exposing an existing trust-by-default add rather than a new trust decision.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Pin over address.</strong> Dropping a pin on a map is the primary, required location input, not a typed address — a secondary "street / area" field stays available for refinement. A new optional <strong>Landmark note</strong> field (e.g. "above the 7-Eleven, unmarked door") is displayed on the lab page.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Contact channels are typed and repeatable</strong> — a list of {channel, value} pairs (phone, LINE, Instagram, Facebook, website, email), not three hardcoded fields. Lets the detail page show quick-action buttons only for channels that actually exist.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Atmosphere photos are addable from the contribution form</strong>, not just the detail page's read-only carousel — labeled in the form itself as "venue documentation only" to restate the content-integrity rule at the point of entry.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>One form, two modes.</strong> Add Lab and Suggest Edit are the same form toggled by create/edit mode, not two maintained flows — every field added to one needs to exist in the other anyway, so one form structurally guarantees the two stay in parity.</p>
+    </div>
+
+    <h3 class="subhead">Open questions</h3>
+    <ul class="open-list">
+      <li>
+        <div class="title">Same-field edit collision</div>
+        <div class="note">Field-level diffs mean two contributors editing different fields never overwrite each other, but what happens when two contributors edit the same field concurrently (or a value changes underneath a stale, already-loaded form) is undecided.</div>
+      </li>
+      <li>
+        <div class="title">Reverse search → lab map filter</div>
+        <div class="note">Reverse search from a Film Stock's detail page implies a "carries film stock X" filter on the lab map, outside this PRD's filter model (process + scanner + radius). Belongs to the Film Stock PRD once that feature is fully grilled.</div>
+      </li>
+      <li>
+        <div class="title">Diff granularity for structured fields</div>
+        <div class="note">With pricing, services, and contacts now each a group of values rather than one scalar, it's undecided whether a diff (and the same-field-collision unit above) applies per group or per individual value — e.g. whether two contributors editing different processes' prices on the same lab collide the way editing the same field does today.</div>
+      </li>
+    </ul>
+  </section>
+
+  <section id="film-stock">
+    <div class="section-head">
+      <h2>B. Film Stock Index &amp; Gallery</h2>
+      <div class="eyebrow">3 decisions</div>
+    </div>
+    <p class="note">Full write-up: <code>prd/film-stock-index-gallery.md</code></p>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Catalog uses the <strong>same trust-by-default model as Labs</strong> — any logged-in user can add/edit a film stock entry, live immediately, full edit history, soft duplicate prevention (no hard block). Keeps the Lab Directory's Inventory→Film Stock linkage from becoming a launch blocker.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>One catalog entry per film name + ISO</strong> — format (135/120) is a multi-select attribute, not a separate entry. The emulsion is identical across formats; splitting would fragment the inspiration gallery and double catalog maintenance for no matching benefit.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>The Gallery has <strong>no upload flow of its own</strong> — it's a derived view of any Photo tagged with that Film Stock. The Are.na pivot (see feature D) actually simplifies this dependency further: a Photo only needs Film Stock metadata to qualify, and doesn't need to belong to any Photobook at all. Scanner model may show as neutral metadata; the specific Lab never does. Accepted MVP risk: a stock can show zero gallery photos until someone tags one. (Whether Photo upload itself is instant-live is now resolved — see feature D, decision 4: it is.)</p>
+    </div>
+  </section>
+
+  <section id="photobook">
+    <div class="section-head">
+      <h2>D. Minimal Photobook Portfolio</h2>
+      <div class="eyebrow">9 decisions (8 resolved, 1 deferred)</div>
+    </div>
+    <p class="note">Full write-up: <code>prd/photobook-portfolio.md</code></p>
+
+    <div class="banner">
+      <span class="tag pivot">Architecture pivot</span>
+      <p>Mid-session, the rigid <code>Lab → Roll → Photo</code> hierarchy was replaced with an <strong>Are.na-inspired model</strong>: <strong>Photo</strong> is now an atomic entity (owns its own Film Stock/Scanner/Camera/Chemistry metadata) that can belong to many <strong>Photobooks</strong> — thematic, concept-driven collections, public by default. <strong>Connection</strong> lets any user save another user's public Photo into their own Photobook without re-uploading it. "Roll" is retired as a curation-unit term. This single change simplified feature B's dependency (the Gallery only needs the Photo entity, not Photobook mechanics) and drove every decision below.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Content-integrity rule reaffirmed.</strong> The pivot's original "Reverse Attribution" pitch (click a photo, see the exact Lab used) directly conflicted with the locked no-lab-attribution rule from feature A — the same link that lets a good scan reflect well on a lab lets a bad one reflect badly. Resolved: Scanner <em>model</em> stays as neutral metadata, same category as Camera; the specific Lab is never shown or linkable from a Photo, individually or in aggregate.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Connections use a <strong>reference model</strong>, not copies — one canonical Photo object per upload; every Photobook that Connects it points to the same object. Editing the original updates everywhere; deleting it removes it everywhere it was Connected.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Photos are <strong>instant-live</strong> — no draft/private state, no separate publish step. Matches the trust-by-default precedent and actual Are.na block behavior; curation happens at the Photobook level, which is already public by default.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>The per-user photo cap applies <strong>only to original uploads</strong>, not to Connections (which cost zero extra storage as references). Capping total Photos including Connections would directly fight the network-effect goal the pivot is built around.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>No restriction on Connecting</strong> for MVP — any public Photo can be freely saved into any Photobook. An uploader's only recourse is deleting their own Photo outright. Matches Are.na's real precedent; easier to add restriction later than retrofit openness.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>One artist's note per Photobook</strong> (2-3 lines), not per individual Photo. Matches the original brief and protects the "high negative space, no clutter" visual direction as Photobooks grow via free Connecting.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>When a Connected Photo's source is deleted, its slot is <strong>removed silently and the grid re-flows</strong> — no "removed by uploader" placeholder. Amends the earlier tombstone assumption. Note for later grilling: a curator gets no signal their sequence changed — worth revisiting if deliberate photo-essay sequencing turns out to matter more than an always-clean grid.</p>
+    </div>
+
+    <div class="banner deferred">
+      <span class="tag deferred">Deferred · post-MVP</span>
+      <p><strong>No following/feed for MVP</strong> (2026-09-04). The only path to discover another user is the Connection graph: browse a Film Stock gallery or a Photobook → click a Photo → reach its uploader's <code>/u/@username</code> → browse their other public Photobooks. Following/feed is a substantial scope add (social graph, notifications, feed ranking) that cuts against the product's quiet, ad-free, no-like-counts positioning — flagged as a strong post-MVP candidate, not designed away permanently.</p>
+      <p>Note for post-MVP scoping: consider a lighter-weight primitive ("more Photobooks by this curator") before defaulting to a conventional follow/feed model.</p>
+    </div>
+  </section>
+
+  <section id="community">
+    <div class="section-head">
+      <h2>C. Community &amp; Data Integrity — Upvote/Badges</h2>
+      <div class="eyebrow">3 decisions</div>
+    </div>
+    <p class="note">Full write-up: <code>prd/community-data-integrity.md</code></p>
+
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>Fixed, curated badge list</strong> (e.g. "Fast Turnaround," "Clean Scan") — not freeform/user-proposed tags. With no Moderator/Admin persona in MVP, an open namespace has no way to consolidate duplicate/synonym badges; a fixed list keeps every badge comparable across labs.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p>Votes are a <strong>retractable toggle</strong> — one (user, lab, badge) state, on or off, changeable any time. A badge's strength always reflects current sentiment, not a historical total. This also inherently enforces one vote per user per badge.</p>
+    </div>
+    <div class="card">
+      <span class="tag decided">Decided</span>
+      <p><strong>No minimum vote threshold</strong> to display a badge — it shows at 1 endorsement, always paired with its current count, so users judge credibility themselves rather than the product gatekeeping behind an untuned constant.</p>
+    </div>
+  </section>
+
+  <section id="post-mvp">
+    <div class="section-head">
+      <h2>Post-MVP</h2>
+      <div class="eyebrow">deferred, not yet grilled</div>
+    </div>
+    <p class="note">Source: <code>docs/backlog.md</code></p>
+    <p class="section-intro">Features intentionally deferred out of MVP scope. Each needs its own persona/journey/scope pass when it comes up for a future release.</p>
+
+    <div class="card">
+      <span class="tag deferred">Deferred</span>
+      <p><strong>User-to-user discovery (following/feed)</strong> — deferred 2026-09-04 when reviewing feature D's discovery model (decision 9 above). MVP discovery stays Connection-graph-only. Open note for whenever it's grilled: weigh a lighter-weight primitive against a conventional follow/feed model before defaulting to one, since a social graph and notification system sit in tension with the product's quiet, ad-free positioning.</p>
+    </div>
+  </section>
+
+  <section id="vocabulary">
+    <div class="section-head">
+      <h2>Vocabulary, current state</h2>
+      <div class="eyebrow">as of this session</div>
+    </div>
+    <p class="note">Source: <code>CONTEXT.md</code></p>
+    <div class="glossary">
+      <div class="term">
+        <div class="name">Photo</div>
+        <div class="def">The atomic unit of community-uploaded visual content. Carries Film Stock, Scanner model, Camera, Chemistry metadata — never a specific Lab. Can belong to multiple Photobooks.</div>
+      </div>
+      <div class="term">
+        <div class="name">Photobook</div>
+        <div class="def">A thematic, concept-driven collection of Photos curated by a user, public by default. The unit of curation on a portfolio (<code>/u/@username</code>). Replaces "Roll."</div>
+      </div>
+      <div class="term">
+        <div class="name">Connection</div>
+        <div class="def">Saving another user's public Photo into one's own Photobook without re-uploading — a reference to the same canonical Photo, not a copy.</div>
+      </div>
+      <div class="term">
+        <div class="name">Lab Atmosphere Photo</div>
+        <div class="def">A community-uploaded photo of a lab's storefront/interior, attached directly to the Lab. Venue documentation only.</div>
+        <div class="avoid">Avoid: conflating with Film Sample Photo</div>
+      </div>
+      <div class="term">
+        <div class="name">Film Sample Photo</div>
+        <div class="def">A community-uploaded Photo showing what a film stock looks like when processed/scanned, surfaced on that stock's Gallery. Attached only to the Film Stock, never a Lab.</div>
+        <div class="avoid">Avoid: "Lab photo" or "sample photo" without specifying which it's linked to</div>
+      </div>
+      <div class="term retired">
+        <div class="name">Roll (retired as curation unit)</div>
+        <div class="def">Formerly the fixed unit of curation on a portfolio. Replaced by Photobook + atomic Photo so a photo isn't locked to one rigid group. May still appear in copy to mean a physical roll of film.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="open">
+    <div class="section-head">
+      <h2>Still open</h2>
+      <div class="eyebrow">outside this session's boundary</div>
+    </div>
+    <p class="section-intro">Requirements only, no schema/tech/visual-design work.</p>
+    <ul class="open-list">
+      <li>
+        <div class="title">Design Direction &amp; Visual Identity</div>
+        <div class="note">Translating the visual/typography/color brief into concrete UI decisions — now underway separately, see <code>docs/design-system/visual-identity.html</code> and <code>docs/design-system/component-library.html</code>.</div>
+      </li>
+      <li>
+        <div class="title">Tech stack decision</div>
+        <div class="note">Go vs. Next.js Server Actions/API Routes for backend; confirm Supabase + PostGIS. Explicitly excluded from this session's scope.</div>
+      </li>
+      <li>
+        <div class="title">Small mechanical loose ends</div>
+        <div class="note">Exact per-user photo upload cap number, which Photo metadata fields are mandatory vs. optional at upload, the full badge name roster beyond the brief's examples, and Film Stock catalog browsing/reverse-search UI mechanics. Lower priority — tuning and content decisions, not structural ones.</div>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>PRDs: <a href="../prd/lab-directory-discovery.md">lab-directory-discovery.md</a> · <a href="../prd/film-stock-index-gallery.md">film-stock-index-gallery.md</a> · <a href="../prd/photobook-portfolio.md">photobook-portfolio.md</a> · <a href="../prd/community-data-integrity.md">community-data-integrity.md</a><br>
+    Backlog: <a href="../backlog.md">docs/backlog.md</a> · Glossary: <a href="../../CONTEXT.md">CONTEXT.md</a><br>
+    Design system: <a href="../design-system/visual-identity.html">visual-identity.html</a> · <a href="../design-system/component-library.html">component-library.html</a></p>
+  </footer>
+
+</div>
+</body>
+</html>

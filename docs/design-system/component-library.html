@@ -1,0 +1,590 @@
+<title>Grains Component Library</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+  :root{
+    --paper:#FDFDFC;
+    --ink:#0D0D0C;
+    --ash:#5B5B58;
+    --faint:#8C8C88;
+    --hairline:#DEDEDA;
+    --sunk:#F4F4F2;
+    --signal:#E23B22;
+    --signal-ink:#FDFDFC;
+    --focus-ring: rgba(226,59,34,.5);
+    --sans:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+
+    --proc-c41:#C97112;
+    --proc-c41-ink:#0D0D0C;
+    --proc-ecn2:#0E8C7D;
+    --proc-ecn2-ink:#FDFDFC;
+    --proc-e6:#1D4FD8;
+    --proc-e6-ink:#FDFDFC;
+  }
+
+  *{box-sizing:border-box; border-radius:0!important;}
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; }
+  ::selection{ background:var(--signal); color:var(--signal-ink); }
+  a{ color:var(--ink); }
+  a:hover{ color:var(--signal); }
+  :focus-visible{ outline:2px solid var(--focus-ring); outline-offset:3px; }
+
+  h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); font-weight:500; text-wrap:balance; margin:0; }
+  .eyebrow{ font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ash); font-weight:700; }
+  .lede{ font-size:1.0625rem; color:var(--ink); max-width:62ch; }
+  code, .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 clamp(20px,5vw,64px); }
+
+  .masthead{ padding:clamp(48px,8vw,88px) 0 44px; }
+  .masthead h1{ font-size:clamp(2.1rem,5.2vw,3.4rem); line-height:1.05; letter-spacing:-.01em; }
+  .masthead .lede{ margin-top:16px; font-size:1.0625rem; }
+  .masthead .source{ margin-top:22px; padding-top:18px; border-top:2px solid var(--ink); display:flex; flex-wrap:wrap; gap:8px 20px; align-items:baseline; }
+  .masthead .source span{ font-size:.8125rem; color:var(--ash); }
+  .masthead .source a{ font-weight:700; text-decoration:underline; }
+
+  .index{ position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:2px solid var(--ink); }
+  .index-row{ display:flex; gap:20px; overflow-x:auto; padding:14px clamp(20px,5vw,64px); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; font-weight:700; }
+  .index-row a{ color:var(--ash); text-decoration:none; white-space:nowrap; }
+  .index-row a:hover{ color:var(--signal); }
+
+  section{ padding:52px 0; border-top:1px solid var(--hairline); }
+  .section-head{ display:flex; justify-content:space-between; align-items:baseline; gap:24px; margin-bottom:28px; }
+  .section-head h2{ font-size:1.75rem; }
+  .section-head .eyebrow{ white-space:nowrap; }
+  .section-intro{ max-width:66ch; margin:-14px 0 32px; color:var(--ash); font-size:.9375rem; }
+
+  h3.sub{ font-size:1.0625rem; margin:0 0 6px; }
+  .note{ font-size:.8125rem; color:var(--ash); max-width:60ch; margin:0 0 18px; }
+
+  /* tables */
+  table{ width:100%; border-collapse:collapse; font-size:.8125rem; margin-bottom:8px; }
+  caption{ text-align:left; font:700 .625rem var(--sans); letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-bottom:8px; }
+  th{ text-align:left; font-size:.6875rem; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-weight:700; padding:0 14px 8px 0; border-bottom:1.5px solid var(--ink); }
+  td{ padding:10px 14px 10px 0; border-bottom:1px solid var(--hairline); vertical-align:top; color:var(--ink); }
+  td.mono, th.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.75rem; }
+  td .ash{ color:var(--ash); }
+  .table-wrap{ overflow-x:auto; margin-bottom:20px; }
+
+  /* swatches */
+  .swatch-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:8px; }
+  .swatch{ border:1.5px solid var(--ink); overflow:hidden; }
+  .swatch .fill{ height:70px; }
+  .swatch .label{ padding:10px 12px 12px; }
+  .swatch .name{ font-family:'Fraunces',serif; font-size:.9375rem; }
+  .swatch .hex{ font-size:.6875rem; color:var(--ash); margin-top:2px; font-family:ui-monospace,monospace; }
+  .swatch .use{ font-size:.75rem; color:var(--ash); margin-top:6px; }
+
+  /* component demo blocks */
+  .demo{ border:1.5px solid var(--hairline); padding:24px clamp(16px,3vw,28px); margin-bottom:14px; background:var(--paper); }
+  .demo-row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .demo-label{ font-size:.6875rem; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:700; margin-bottom:14px; }
+
+  /* buttons */
+  .btn{ font-family:var(--sans); font-weight:700; letter-spacing:.01em; border:1.5px solid; cursor:pointer; }
+  .btn-primary{ background:var(--signal); color:var(--signal-ink); border-color:var(--signal); font-size:.8125rem; padding:11px 18px; }
+  .btn-secondary{ background:transparent; border-color:var(--ink); color:var(--ink); font-size:.8125rem; padding:11px 18px; }
+  .btn-ghost{ background:transparent; border-color:transparent; color:var(--ash); text-decoration:underline; font-size:.75rem; padding:6px 0; font-weight:400; }
+  .btn-icon{ width:30px; height:30px; border:1.5px solid var(--ink); background:var(--paper); display:grid; place-items:center; font-size:12px; }
+
+  /* segmented control */
+  .segmented{ display:inline-flex; border:1.5px solid var(--ink); }
+  .segmented button{ font:700 10.5px var(--sans); padding:5px 12px; border:none; background:none; color:var(--faint); cursor:pointer; }
+  .segmented button + button{ border-left:1.5px solid var(--ink); }
+  .segmented button[data-active="true"]{ color:var(--ink); }
+
+  /* chips */
+  .chip{ font-size:.75rem; font-weight:700; padding:6px 12px; border:1.5px solid var(--chip-color, var(--ink)); color:var(--ink); background:var(--paper); cursor:pointer; }
+  .chip[data-on="true"]{ background:var(--chip-color, var(--ink)); color:var(--chip-ink, var(--paper)); }
+  [data-process="c41"]{ --chip-color:var(--proc-c41); --chip-ink:var(--proc-c41-ink); }
+  [data-process="ecn2"]{ --chip-color:var(--proc-ecn2); --chip-ink:var(--proc-ecn2-ink); }
+  [data-process="e6"]{ --chip-color:var(--proc-e6); --chip-ink:var(--proc-e6-ink); }
+  [data-process="bw"]{ --chip-color:var(--ink); --chip-ink:var(--paper); }
+
+  /* status pill */
+  .status-pill{ display:inline-flex; align-items:center; gap:7px; font-size:.75rem; font-weight:700; letter-spacing:.02em; }
+  .status-pill i{ width:7px; height:7px; border-radius:50%!important; border:1.5px solid currentColor; display:block; }
+  .status-pill.open{ color:var(--ink); } .status-pill.open i{ background:currentColor; }
+  .status-pill.caution{ color:var(--ash); font-style:italic; }
+  .status-pill.closed{ color:var(--faint); }
+
+  /* badge */
+  .badge{ display:inline-flex; align-items:baseline; gap:7px; font-size:.8125rem; padding:7px 11px; border:1.5px solid var(--ink); }
+  .badge .dot{ width:6px; height:6px; border-radius:50%!important; background:var(--signal); }
+  .badge .count{ color:var(--faint); font-size:.6875rem; }
+  .badge.zero{ color:var(--faint); border-style:dashed; }
+  .badge.zero .dot{ background:none; border:1.5px solid var(--faint); border-radius:50%!important; }
+  .badge.endorsed{ background:var(--ink); border-color:var(--ink); color:var(--paper); }
+
+  /* svbox */
+  .svbox{ width:14px; height:14px; border:1.5px solid var(--ink); display:inline-grid; place-items:center; font-size:9px; flex:none; }
+  .svrow{ display:flex; align-items:center; gap:9px; font-size:.8125rem; }
+  .svrow.unknown{ color:var(--faint); }
+  .svrow.unknown .svbox{ border-color:var(--faint); }
+
+  /* card */
+  .lab-card{ border:1.5px solid var(--ink); padding:18px; display:flex; gap:14px; max-width:440px; }
+  .lab-card .thumb{ width:74px; height:74px; flex:none; background:repeating-linear-gradient(45deg,var(--sunk) 0 6px,var(--paper) 6px 12px); border:1px solid var(--hairline); display:grid; place-items:center; font-size:8px; color:var(--faint); text-align:center; }
+  .lab-card .body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+  .lab-card .en{ font-family:'Fraunces',serif; font-size:1.0625rem; line-height:1.2; }
+  .lab-card .th{ font-size:.8125rem; color:var(--ash); }
+  .lab-card .meta{ font-size:.6875rem; color:var(--ash); }
+
+  /* stock tile */
+  .stock-tile{ display:flex; flex-direction:column; gap:8px; width:170px; }
+  .stock-tile .frame{ position:relative; aspect-ratio:1/1; border:1.5px solid var(--ink); }
+  .stock-tile .frame.c41{ background:linear-gradient(155deg,#F0B570,#3A2308 78%); }
+  .stock-tile .frame.bw{ background:linear-gradient(155deg,#F4F4F2,#0D0D0C 82%); }
+  .stock-tile .frame.ecn2{ background:linear-gradient(165deg,#5FD6C2,#082623 80%); }
+  .stock-tile .frame.e6{ background:linear-gradient(155deg,#6E8CFF,#050A2E 80%); }
+  .stock-tile .count{ position:absolute; right:5px; bottom:5px; background:var(--paper); border:1.5px solid var(--ink); padding:1px 6px; font:700 9px var(--sans); }
+  .stock-tile .name{ font-family:'Fraunces',serif; font-size:.9375rem; }
+  .stock-tile .meta{ font-size:.625rem; color:var(--ash); letter-spacing:.02em; }
+
+  /* map pin */
+  .pin-demo{ position:relative; height:120px; background:repeating-linear-gradient(0deg,var(--sunk) 0 22px,var(--paper) 22px 23px),repeating-linear-gradient(90deg,var(--sunk) 0 22px,var(--paper) 22px 23px); border:1px solid var(--hairline); }
+  .pin{ position:absolute; width:22px; height:22px; border:1.5px solid var(--ink); border-radius:50% 50% 50% 0!important; transform:rotate(-45deg); }
+  .pin.you{ width:12px; height:12px; border-radius:50%!important; transform:none; border-width:2px; background:var(--ink); }
+
+  /* inputs */
+  .field{ display:flex; flex-direction:column; gap:6px; max-width:280px; }
+  .field span{ font:700 10px var(--sans); letter-spacing:.1em; color:var(--faint); }
+  .field input{ font:400 14px var(--sans); border:2px solid var(--ink); padding:10px 12px; background:var(--paper); color:var(--ink); }
+  .field.grid input{ border:1.5px solid var(--hairline); padding:6px 8px; font-size:.75rem; }
+
+  /* toast */
+  .toast-demo{ display:inline-flex; align-items:center; gap:14px; background:var(--ink); color:var(--paper); padding:11px 16px; }
+  .toast-demo span:last-child{ opacity:.6; font-weight:700; font-size:.6875rem; }
+
+  /* empty state */
+  .empty{ border:1px dashed var(--hairline); padding:36px 20px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; max-width:360px; }
+  .empty .ring{ width:44px; height:44px; border:1.5px dashed var(--ink); border-radius:50%!important; }
+  .empty h4{ font-size:1rem; }
+  .empty p{ font-size:.75rem; color:var(--ash); margin:0; max-width:32ch; }
+
+  /* diff row */
+  .diff{ border:1.5px solid var(--ink); padding:14px 16px; max-width:520px; }
+  .diff .field{ font:700 .6875rem var(--sans); text-transform:uppercase; letter-spacing:.06em; }
+  .diff .change{ font-size:.8125rem; margin-top:4px; }
+  .diff .change s{ color:var(--faint); }
+  .diff .who{ font-size:.6875rem; color:var(--ash); margin-top:4px; }
+
+  /* bilingual demo */
+  .bilingual-pair{ border:1px solid var(--hairline); padding:14px 16px; max-width:340px; }
+  .bilingual-pair .primary{ font-family:'Fraunces',serif; font-size:1.0625rem; }
+  .bilingual-pair .secondary{ font-size:.8125rem; color:var(--ash); margin-top:3px; }
+  .bilingual-pair.th .primary{ font-family:'Noto Sans Thai',sans-serif; font-weight:600; font-size:1.0625rem; }
+  .bilingual-pair.th .secondary{ font-family:'Fraunces',serif; font-size:.8125rem; }
+
+  .attr-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
+
+  .dos-donts{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .dd-col{ border:1.5px solid var(--ink); padding:22px clamp(16px,3vw,28px); }
+  .dd-col h3{ font-size:.9375rem; letter-spacing:.06em; text-transform:uppercase; margin-bottom:14px; }
+  .dd-col.yes h3{ color:var(--ink); }
+  .dd-col.no h3{ color:var(--signal); }
+  .dd-col ul{ list-style:none; padding:0; display:flex; flex-direction:column; gap:11px; }
+  .dd-col li{ font-size:.8125rem; padding-left:20px; position:relative; }
+  .dd-col li::before{ position:absolute; left:0; font-weight:700; }
+  .dd-col.yes li::before{ content:'+'; }
+  .dd-col.no li::before{ content:'×'; color:var(--signal); }
+  @media (max-width:640px){ .dos-donts{ grid-template-columns:1fr; } }
+
+  footer{ padding:40px 0 72px; }
+  footer p{ font-size:.8125rem; color:var(--faint); }
+</style>
+
+<div class="index">
+  <div class="index-row">
+    <a href="#foundations">Foundations</a>
+    <a href="#type">Type scale</a>
+    <a href="#bilingual">Bilingual</a>
+    <a href="#states">State attributes</a>
+    <a href="#layout">Layout &amp; frame</a>
+    <a href="#components">Components</a>
+    <a href="#screens">Screen templates</a>
+    <a href="#interaction">Interaction rules</a>
+    <a href="#dos-donts">Do / don't</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Component library — v1</div>
+    <h1>The tokens the prototype<br>already lives by.</h1>
+    <p class="lede">Where <a href="visual-identity.html">visual-identity.html</a> is the mood board — the argument for black-and-white-plus-one-signal — this document is the build spec: the exact pixel values, CSS custom properties, state-driven attribute contracts, and screen structures pulled directly out of the working interactive prototype. If the two ever disagree, this one wins for implementation, because it's transcribed from running markup, not redrawn from memory.</p>
+    <div class="source">
+      <span class="eyebrow" style="font-style:normal;">Extracted from —</span>
+      <span><a href="../design/grains-prototype.html">grains-prototype.html</a>, an 11-screen clickable prototype (entry → discovery → lab detail → suggest-edit → edit history → film stocks → stock detail → photo detail → photobook portfolio → photobook → auth)</span>
+    </div>
+  </header>
+
+  <section id="foundations">
+    <div class="section-head">
+      <h2>Foundations</h2>
+      <div class="eyebrow">CSS custom properties</div>
+    </div>
+    <p class="section-intro">Same four core colors and process key as the brand doc, plus one token the prototype needed that the mood board didn't: a fifth neutral, <code>--sunk</code>, for placeholder surfaces — skeleton loaders, map grids, unset photo frames. It's not a fill you compose with; it exists only so "nothing is here yet" reads as a distinct visual state from "paper."</p>
+
+    <div class="swatch-grid">
+      <div class="swatch"><div class="fill" style="background:#FDFDFC;border-bottom:1.5px solid #0D0D0C;"></div><div class="label"><div class="name">--paper</div><div class="hex">#FDFDFC</div><div class="use">App surface</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#0D0D0C;"></div><div class="label"><div class="name">--ink</div><div class="hex">#0D0D0C</div><div class="use">Text, borders, default fills</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#5B5B58;"></div><div class="label"><div class="name">--ash</div><div class="hex">#5B5B58</div><div class="use">Secondary text</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#8C8C88;"></div><div class="label"><div class="name">--faint</div><div class="hex">#8C8C88</div><div class="use">Tertiary / disabled / zero-state text</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#DEDEDA;"></div><div class="label"><div class="name">--hairline (--hair)</div><div class="hex">#DEDEDA</div><div class="use">Dividers, grid-cell input borders</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#F4F4F2;border-bottom:1.5px solid #0D0D0C;"></div><div class="label"><div class="name">--sunk</div><div class="hex">#F4F4F2</div><div class="use">Skeletons, unfilled photo/map placeholders</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#E23B22;"></div><div class="label"><div class="name">--signal</div><div class="hex">#E23B22</div><div class="use">The one action color</div></div></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Process key — identical hex values to visual-identity.html</caption>
+        <thead><tr><th>Token</th><th>Hex</th><th>Ink pairing</th><th>Process</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">c41</td><td class="mono">#C97112</td><td class="mono ash">#0D0D0C (dark text on it)</td><td>C-41, color negative</td></tr>
+          <tr><td class="mono">ecn2</td><td class="mono">#0E8C7D</td><td class="mono ash">#FDFDFC</td><td>ECN-2, cinema color negative</td></tr>
+          <tr><td class="mono">e6</td><td class="mono">#1D4FD8</td><td class="mono ash">#FDFDFC</td><td>E-6, slide/reversal</td></tr>
+          <tr><td class="mono">bw</td><td class="mono">= --ink</td><td class="mono ash">= --paper</td><td>B&amp;W — deliberately hueless</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note"><b>Hard rule, enforced globally, not per-component:</b> the prototype's stylesheet opens with <code>*{border-radius:0!important}</code>. Every button, card, input and tile in the markup still carries an inline <code>border-radius</code> (4px, 6px, 8px, 50%) for portability, but the system stamps it flat everywhere at once. Build components with whatever radius is convenient to reuse — enforce zero at the theme layer, the same way this prototype does, rather than hand-zeroing every component.</p>
+    <p class="note"><b>The prototype's own chrome is not app UI.</b> The <code>#EFEEEB</code> mat behind the device frame, the Mobile/Desktop/Reset control bar, and the fake iOS status bar (<code>09:41 · GRAINS</code>) exist only to demo the prototype inside itself — they are not part of Grains' shipped interface and carry no token status. The real app background is <code>--paper</code>.</p>
+    <p class="note"><b>Accent is a single token, not a theme.</b> The prototype exposes <code>--signal</code> as a swappable prop for design review (red / ink / blue / teal were all wired up) — but the shipped default, and the only one visual-identity.html sanctions, is signal red <code>#E23B22</code>. Treat the swap capability as a review tool, not evidence that Grains supports accent theming.</p>
+  </section>
+
+  <section id="type">
+    <div class="section-head">
+      <h2>Type scale</h2>
+      <div class="eyebrow">as used, not as specified</div>
+    </div>
+    <p class="section-intro">Three families carry the whole system: Fraunces (serif, 400/500/600 + italic) for anything that's a name or headline, Noto Sans Thai (400/600) so Thai text gets its own weight rather than inheriting Latin's, and system sans for everything else. The table below is transcribed straight from the prototype's inline styles — real sizes, not rounded ones.</p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Display &amp; heading usage</caption>
+        <thead><tr><th>Context</th><th class="mono">font shorthand</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Entry screen H1</td><td class="mono">500 40px/1.05 Fraunces</td><td>Largest headline in the system</td></tr>
+          <tr><td>Lab / Stock detail H1 (EN)</td><td class="mono">500 32px/1.08 Fraunces</td><td>Same across mobile &amp; desktop</td></tr>
+          <tr><td>Lab / Stock detail H1 (TH)</td><td class="mono">600 30px/1.35 Noto Sans Thai</td><td>Heavier weight + taller line-height compensates for Thai vertical marks at near-equal size</td></tr>
+          <tr><td>List-row lab name (EN)</td><td class="mono">500 17px/1.2 Fraunces</td><td>TH sibling: 400 13px Noto Sans Thai, ash</td></tr>
+          <tr><td>List-row lab name (TH lead)</td><td class="mono">600 17px/1.5 Noto Sans Thai</td><td>EN sibling: 400 12px Fraunces, ash</td></tr>
+          <tr><td>Stock / photobook tile name</td><td class="mono">500 15–16px Fraunces</td><td>10–10.5px ash meta line beneath, letter-spacing .02em</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Interface &amp; body usage</caption>
+        <thead><tr><th>Context</th><th class="mono">font shorthand</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Section eyebrow / field label</td><td class="mono">700 10–11px, tracking .1–.14em, caps</td><td>Always <code>--faint</code> or <code>--ash</code>, never <code>--ink</code></td></tr>
+          <tr><td>Body / lede copy</td><td class="mono">400 12.5–15px / 1.6–1.9</td><td><code>--ash</code> for secondary, <code>--ink</code> for primary</td></tr>
+          <tr><td>Caption / micro-meta</td><td class="mono">400 10–11px</td><td><code>--faint</code></td></tr>
+          <tr><td>Buttons</td><td class="mono">700 11–14px</td><td>Larger (14px) for primary CTAs, smaller (11px) for dense chip rows</td></tr>
+          <tr><td>Inputs</td><td class="mono">400 12–14px</td><td>Primary fields 14px, grid-cell inputs (pricing table, hours) 12px</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="bilingual">
+    <div class="section-head">
+      <h2>Bilingual pattern</h2>
+      <div class="eyebrow">data-lang toggle</div>
+    </div>
+    <p class="section-intro">A single app-level <code>data-lang="en"|"th"</code> attribute drives visibility for every bilingual pair via <code>[data-l="en"]</code> / <code>[data-l="th"]</code> spans — nothing is duplicated per-component. The leading language always gets the larger, higher-confidence treatment (serif at weight 500 for EN, Noto Sans Thai at weight 600 for TH); the trailing language sits directly beneath in ash, in the *other* family — English glossing Thai in Fraunces italic-adjacent serif, Thai glossing English the same way in reverse. Neither is ever the "small print" version of the other.</p>
+    <div class="demo-row">
+      <div class="bilingual-pair">
+        <div class="primary">Bangkok Darkroom</div>
+        <div class="secondary">ห้องมืดบางกอก</div>
+      </div>
+      <div class="bilingual-pair th">
+        <div class="primary">ห้องมืดบางกอก</div>
+        <div class="secondary">Bangkok Darkroom</div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px;">Implementation note: a wrapping element needs <code>data-blk</code> alongside <code>data-l</code> to force block display for the stacked layout above — without it, the inactive-language span merely display:none's inline, which is enough for single words (chip labels, button text) but not for two-line name pairs.</p>
+  </section>
+
+  <section id="states">
+    <div class="section-head">
+      <h2>State-driven attributes</h2>
+      <div class="eyebrow">the whole interaction vocabulary</div>
+    </div>
+    <p class="section-intro">Every interactive or conditional visual in the prototype is driven by a small, closed set of <code>data-*</code> attributes rather than one-off classes. Learning this table is learning most of the system's behavior at once.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Attribute</th><th>Values</th><th>Effect</th><th>Used on</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">data-process</td><td class="mono">c41 · ecn2 · e6 · bw</td><td>Sets local <code>--proc</code>/<code>--proc-ink</code> vars from the process key</td><td>Chips, badges, film tiles, duotone frames</td></tr>
+          <tr><td class="mono">data-on</td><td class="mono">true · false</td><td>Unselected: border only, in <code>--proc</code> or <code>--ink</code>. Selected: fills background with <code>--proc</code>/<code>--ink</code>, flips text to the ink pairing</td><td>Filter chips, toggle buttons, hours-day toggle</td></tr>
+          <tr><td class="mono">data-tabon</td><td class="mono">true · false</td><td><code>--faint</code> → <code>--ink</code> text color only — never a fill</td><td>Segmented controls (Mobile/Desktop, EN/TH, List/Map, bottom tab bar)</td></tr>
+          <tr><td class="mono">data-status</td><td class="mono">open · caution · closed</td><td>open = ink + filled dot; caution = ash italic + hollow dot; closed = faint + hollow faint dot. Never touches process or signal color</td><td>Status pill</td></tr>
+          <tr><td class="mono">data-zero</td><td class="mono">true · false</td><td>Dashed faint border, faint text — a slot kept, not hidden</td><td>Badge with 0 endorsements</td></tr>
+          <tr><td class="mono">data-endorsed</td><td class="mono">true · false</td><td>Filled ink background, paper text</td><td>Badge the current viewer has personally endorsed</td></tr>
+          <tr><td class="mono">data-filled</td><td class="mono">true · false</td><td>false = faint + italic + "Not yet added — + Add" copy, still rendered in place</td><td>Optional lab fields (address, landmark, contact)</td></tr>
+          <tr><td class="mono">data-svstate</td><td class="mono">yes · no · unknown</td><td>Checkbox-like 14×14 box; unknown = faint box + faint label</td><td>Service checklist rows</td></tr>
+          <tr><td class="mono">data-ratio</td><td class="mono">3/2 · 1/1 · 6/7</td><td><code>aspect-ratio</code> utility — the frame the photo actually was shot in</td><td>Any photo frame, real or placeholder</td></tr>
+          <tr><td class="mono">data-duo</td><td class="mono">c41 · ecn2 · e6 · bw</td><td>Directional duotone gradient standing in for a real sample photo, keyed to that stock's process color</td><td>Film Stock tiles, inspiration-gallery placeholders</td></tr>
+          <tr><td class="mono">data-stripe</td><td class="mono">(presence)</td><td>45° repeating hairline hatch (<code>--sunk</code>/<code>--paper</code>, 6px bands)</td><td>Lab atmosphere-photo placeholders and map backgrounds — <i>never</i> film samples</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>Why two different placeholder textures exist:</b> duotone (<code>data-duo</code>) is reserved for Film Stock content — inspiration, felt; diagonal hatch (<code>data-stripe</code>) is reserved for Lab content — venue documentation, structural. Even as unfilled placeholder art, the system keeps Principle 01 ("labs are read, films are felt") visible.</p>
+  </section>
+
+  <section id="layout">
+    <div class="section-head">
+      <h2>Layout &amp; responsive frame</h2>
+      <div class="eyebrow">2 breakpoints, no fluid middle</div>
+    </div>
+    <p class="section-intro">The prototype models exactly two device states — there is no tablet-intermediate layout. Mobile is a single 390px column; desktop is a 1280px frame that opens a second column (map, filter rail, or metadata sidebar) alongside the primary content. Screens either fully restructure between the two (discovery, lab detail, stock detail) or stay identical (entry, auth).</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">mobile frame width</td><td class="mono">390px</td><td>iPhone-class viewport</td></tr>
+          <tr><td class="mono">desktop frame width</td><td class="mono">1280px (max-width:100%)</td><td>No further breakpoint above this</td></tr>
+          <tr><td>Mobile chrome</td><td colspan="2">Compact top bar (logo · language toggle · sign-in/profile) + bottom tab bar: <span class="mono">Labs · Films · + · Profile</span></td></tr>
+          <tr><td>Desktop chrome</td><td colspan="2">Top bar carries full nav inline: <span class="mono">Labs · Film stocks · Photobooks</span>, no bottom bar</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="demo">
+      <div class="demo-label">Segmented control — mobile/desktop, EN/TH, list/map, all one pattern</div>
+      <div class="demo-row">
+        <div class="segmented"><button data-active="true">Mobile</button><button>Desktop</button></div>
+        <div class="segmented"><button data-active="true">EN</button><button>TH</button></div>
+        <div class="segmented"><button data-active="true">List</button><button>Map</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="components">
+    <div class="section-head">
+      <h2>Components</h2>
+      <div class="eyebrow">built from the tokens above</div>
+    </div>
+
+    <h3 class="sub">Buttons</h3>
+    <p class="note">One filled signal button per screen, at most — reserved for the single highest-commitment action (Publish lab, Save, Add the first lab). Everything else is an ink outline or a plain underlined link.</p>
+    <div class="demo">
+      <div class="demo-row">
+        <button class="btn btn-primary">Add a lab</button>
+        <button class="btn btn-secondary">Save draft</button>
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-icon">⤴</button>
+      </div>
+    </div>
+
+    <h3 class="sub">Filter chips — process-coded</h3>
+    <p class="note">Border always carries the process color, selected or not. Scanner/equipment chips reuse the exact same <code>data-on</code> mechanic but stay plain ink — equipment isn't chemistry.</p>
+    <div class="demo">
+      <div class="demo-row">
+        <button class="chip" data-process="c41" data-on="true">C-41</button>
+        <button class="chip" data-process="ecn2">ECN-2</button>
+        <button class="chip" data-process="bw">B&amp;W</button>
+        <button class="chip" data-process="e6">E-6</button>
+        <button class="chip" data-on="true">Noritsu</button>
+        <button class="chip">Fuji Frontier</button>
+      </div>
+    </div>
+
+    <h3 class="sub">Status pill</h3>
+    <p class="note">Deliberately achromatic. Status is not a process and never borrows the process key or the signal color — solid vs. italic vs. faded carries all three states.</p>
+    <div class="demo">
+      <div class="demo-row">
+        <span class="status-pill open"><i></i>Open now</span>
+        <span class="status-pill caution"><i></i>Temporarily closed</span>
+        <span class="status-pill closed"><i></i>Closed</span>
+      </div>
+    </div>
+
+    <h3 class="sub">Badge</h3>
+    <p class="note">Fixed roster (Clean Scan, Fast Turnaround, Accurate Colors, Good for Beginners), always shown with a live count. A zero-count badge stays visible, dashed — an invitation. Tapping to endorse fills it solid; endorsing is gated behind sign-in, one endorsement per person.</p>
+    <div class="demo">
+      <div class="demo-row">
+        <span class="badge"><span class="dot"></span>Clean Scan <span class="count">12</span></span>
+        <span class="badge endorsed"><span class="dot" style="background:var(--paper);"></span>Fast Turnaround <span class="count" style="color:var(--paper);opacity:.7;">9</span></span>
+        <span class="badge zero"><span class="dot"></span>Good for Beginners <span class="count">0</span></span>
+      </div>
+    </div>
+
+    <h3 class="sub">Service checklist</h3>
+    <p class="note">Three states, not two — a service can be offered, explicitly not offered, or simply never recorded. "Unknown" is its own faint, unchecked-but-not-negated state, distinct from "no."</p>
+    <div class="demo">
+      <div class="demo-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <span class="svrow"><span class="svbox">✓</span>Storefront drop-box · 24h</span>
+        <span class="svrow"><span class="svbox"></span>Negative return · pickup</span>
+        <span class="svrow unknown"><span class="svbox"></span>Hi-res scan — unknown</span>
+      </div>
+    </div>
+
+    <h3 class="sub">Lab card (list row)</h3>
+    <p class="note">Thai and English names as equal-weight siblings. Unfilled optional data (turnaround, contact) stays visible in italic faint text with a "+ Add" prompt, never omitted.</p>
+    <div class="demo">
+      <div class="lab-card">
+        <div class="thumb">atmosphere<br>photo</div>
+        <div class="body">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+            <div><div class="en">Bangkok Darkroom</div><div class="th">ห้องมืดบางกอก</div></div>
+            <span class="status-pill open"><i></i>Open</span>
+          </div>
+          <div class="demo-row" style="gap:5px;">
+            <span class="chip" data-process="c41" data-on="true" style="font-size:.625rem;padding:2px 7px;">C-41</span>
+            <span class="chip" data-process="e6" data-on="true" style="font-size:.625rem;padding:2px 7px;">E-6</span>
+          </div>
+          <div class="meta">Fuji Frontier · 2–3 days · 1.2 km</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">Film stock tile &amp; inspiration gallery</h3>
+    <p class="note">Square on mobile, 3:2 on desktop, always a duotone stand-in for community photos keyed to the stock's process color. The full gallery below the fold uses CSS <code>columns</code> (masonry) rather than a fixed grid specifically so each photo keeps its true 3:2 / 1:1 / 6:7 ratio — no forced cropping to square a grid cell.</p>
+    <div class="demo">
+      <div class="demo-row">
+        <div class="stock-tile">
+          <div class="frame c41"><div class="count">+14</div></div>
+          <div><div class="name">Kodak Portra 400</div><div class="meta">ISO 400 · 135/120 · C-41</div></div>
+        </div>
+        <div class="stock-tile">
+          <div class="frame bw"><div class="count">+9</div></div>
+          <div><div class="name">Ilford HP5 Plus</div><div class="meta">ISO 400 · 135/120 · B&amp;W</div></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">Map pin</h3>
+    <p class="note">A rotated square with one squared-off corner (<code>border-radius:50% 50% 50% 0</code> pre-flattening) — the classic teardrop map marker. The viewer's own position is a plain solid dot, deliberately not pin-shaped, so it never reads as a lab.</p>
+    <div class="demo">
+      <div class="pin-demo">
+        <div class="pin" style="left:20%;top:30%;background:var(--paper);"></div>
+        <div class="pin" style="left:55%;top:50%;background:var(--signal);"></div>
+        <div class="pin you" style="left:50%;top:56%;"></div>
+      </div>
+    </div>
+
+    <h3 class="sub">Inputs — two weights</h3>
+    <p class="note">Primary fields (name, landmark, area search) get a heavy 2px ink border at 14px type — they're the ones a contributor fills once. Dense data-grid cells (per-process pricing table, seven-row hours grid, contact list) drop to a lighter 1.5px hairline border at 12–13px, because the input <i>is</i> the table cell — the shape of the data is the shape of the field, not a freeform box.</p>
+    <div class="demo">
+      <div class="demo-row" style="align-items:flex-end;">
+        <label class="field"><span>LANDMARK · WHAT TO LOOK FOR</span><input placeholder="e.g. above the 7-Eleven"></label>
+        <label class="field grid" style="max-width:120px;"><span>135</span><input placeholder="฿180 / roll"></label>
+      </div>
+    </div>
+
+    <h3 class="sub">Toast</h3>
+    <p class="note">Fixed bottom-center, ink-filled, slides up + fades in over .22s, auto-dismisses after 3.6s. Reserved for confirming a just-completed write ("3 fields live now — no review queue.") — never for errors or blocking validation.</p>
+    <div class="demo">
+      <div class="toast-demo"><span>3 fields live now — no review queue.</span><span>✕</span></div>
+    </div>
+
+    <h3 class="sub">Empty state</h3>
+    <p class="note">Consistent three-part shape everywhere it appears (no labs in an area, no film stock matches, no gallery samples yet): a dashed icon, a Fraunces headline, ash body copy — then a signal-filled primary action paired with a lighter secondary escape hatch.</p>
+    <div class="demo">
+      <div class="empty">
+        <div class="ring"></div>
+        <h4>No labs mapped here yet</h4>
+        <p>Be the first to add one in Talat Noi.</p>
+        <button class="btn btn-primary">+ Add the first lab</button>
+        <button class="btn btn-ghost">Search all of Thailand</button>
+      </div>
+    </div>
+
+    <h3 class="sub">Edit-history diff row</h3>
+    <p class="note">Every field-level change is logged as a from → to pair with attribution and an optional contributor note. Nothing is ever deleted — a revert is itself a new logged edit, attributed the same way.</p>
+    <div class="demo">
+      <div class="diff">
+        <div class="field">Scanner</div>
+        <div class="change"><s>Noritsu</s> → Fuji Frontier</div>
+        <div class="who">@somchai.film · 1w ago</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <div class="section-head">
+      <h2>Screen templates</h2>
+      <div class="eyebrow">11 screens, one shell</div>
+    </div>
+    <p class="section-intro">Every screen shares one app shell (top bar + content + mobile bottom tabs) and pulls only from the component set above. None introduces a one-off pattern.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Screen</th><th>Purpose</th><th>Key structure</th></tr></thead>
+        <tbody>
+          <tr><td>Entry</td><td>First decision: locate or search</td><td>"Use my location" and "Search an area" as two equal-weight outlined buttons — neither is primary. Location prompt fires only on tap, never on load.</td></tr>
+          <tr><td>Locating / Area picker</td><td>Bridge states</td><td>Skeleton rows (sunk-fill blocks) while geolocating; a searchable area list with popular-areas fallback when location is denied.</td></tr>
+          <tr><td>Discovery</td><td>Browse &amp; filter labs</td><td>Process chips + scanner chips + radius segmented control + open-now toggle, all sharing <code>data-on</code>. Mobile: List/Map segmented toggle. Desktop: list and map side by side permanently.</td></tr>
+          <tr><td>Lab detail</td><td>Dense, structured reference</td><td>Atmosphere photo strip (hatch placeholder, explicitly captioned "never attached to a scan") → bilingual name + status → badges (tap to endorse) → per-process pricing table → services checklist → inventory chips → sidebar: map, hours (7-row, collapsible), contact.</td></tr>
+          <tr><td>Suggest Edit / Add Lab</td><td>Structured contribution form</td><td>Every field mirrors its read-view component 1:1 (same pricing grid, same 7-row hours grid, same process/scanner chips) so filling the form previews the final page. Pin-drop map warns on a nearby-duplicate match. New film stock names get duplicate-catalog detection before creating a new entry.</td></tr>
+          <tr><td>Edit history</td><td>Trust &amp; accountability</td><td>Reverse-chronological diff list, one Revert button per entry, explicit copy: "No entry is ever deleted."</td></tr>
+          <tr><td>Film stocks (index)</td><td>Inspiration-first catalog</td><td>ISO / format / process filters. Mobile: chips above a grid. Desktop: a persistent left filter rail with live counts per facet.</td></tr>
+          <tr><td>Stock detail</td><td>Gallery + reverse lookup</td><td>Large duotone hero → ISO/format/process spec chips → masonry inspiration gallery (true aspect ratios) → "Labs near you that carry this stock" reverse search.</td></tr>
+          <tr><td>Photo detail</td><td>Single sample, metadata-forward</td><td>Photo → metadata table (stock, format, camera, scanner) → Connect action → an explicit dashed-border disclaimer that scanner is neutral technical metadata and the processing lab is never recorded.</td></tr>
+          <tr><td>Photobook portfolio</td><td>Public profile</td><td>Handle + short note (2–3 lines) → grid of Photobook tiles (each a duotone cover + title pair) → "+ New photobook" as a dashed-border tile, same visual weight as content, not a chrome button.</td></tr>
+          <tr><td>Photobook</td><td>Curated grid, ratio-respecting</td><td>Responsive grid of connected Photos, each keeping its shot ratio. Footer copy makes the Connection model explicit: "a photobook is a reading order, not a copy."</td></tr>
+          <tr><td>Auth</td><td>Contextual, skippable gate</td><td>Single "Continue with Google" button plus a reason line that changes per trigger ("Editing a listing is signed…", "Adding a lab needs an account…"). Always paired with "Keep browsing without an account."</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="interaction">
+    <div class="section-head">
+      <h2>Interaction rules</h2>
+      <div class="eyebrow">behavior, not just pixels</div>
+    </div>
+    <div class="attr-grid">
+      <div>
+        <h3 class="sub">Auth is deferred and contextual</h3>
+        <p class="note">Every write action (edit, publish, endorse, revert) routes through one <code>auth(reason, then)</code> gate that shows a specific, honest reason ("Endorsing a badge needs an account — one endorsement per person") before Google sign-in — never a generic wall, never on page load. Browsing is always fully open.</p>
+      </div>
+      <div>
+        <h3 class="sub">No review queue</h3>
+        <p class="note">Every save is described in its own confirmation copy as live immediately ("goes live now", "no review queue") and attributed to the editor. Trust comes from the edit-history log being complete and revertible, not from pre-publication moderation.</p>
+      </div>
+      <div>
+        <h3 class="sub">A revert is an edit</h3>
+        <p class="note">Reverting a change creates a new history entry rather than erasing the old one — the diff row pattern is reused, not special-cased, and the revert itself requires the same sign-in gate as any other edit.</p>
+      </div>
+      <div>
+        <h3 class="sub">Zero is an invitation, not an absence</h3>
+        <p class="note">A badge with 0 endorsements, an unfilled contact field, an empty gallery — none of these hide the slot. Each renders in its dashed/faint/italic "not yet" state with a direct call to fill it, applied consistently across labs, film stock, and photos.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="dos-donts">
+    <div class="section-head"><h2>Do / don't</h2></div>
+    <div class="dos-donts">
+      <div class="dd-col yes">
+        <h3>Do</h3>
+        <ul>
+          <li>Drive selection/active state through the shared <code>data-on</code>/<code>data-tabon</code> attributes rather than one-off active classes</li>
+          <li>Give <code>--sunk</code> to anything that's a placeholder for real content, never to a real content surface</li>
+          <li>Keep grid-cell inputs (pricing, hours) visually lighter than standalone fields — density should read in the border weight</li>
+          <li>Reuse the hatch placeholder for lab photography and the duotone placeholder for film photography — never swap them</li>
+        </ul>
+      </div>
+      <div class="dd-col no">
+        <h3>Don't</h3>
+        <ul>
+          <li>Add a third placeholder texture — hatch and duotone already carry the labs-vs-films distinction; a new one dilutes it</li>
+          <li>Let the prototype's own device-frame chrome (#EFEEEB mat, Mobile/Desktop/Reset bar) leak into a spec as if it were product UI</li>
+          <li>Fill a status pill with a process or signal color — status stays achromatic, always</li>
+          <li>Treat the swappable <code>--signal</code> prop as supported theming — it's a design-review tool, ship default red only</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="mono">Grains — component library v1 · transcribed from grains-prototype.html · pairs with visual-identity.html · living document, not a locked system</p>
+  </footer>
+
+</div>
