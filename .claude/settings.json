@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"additionalContext\":\"Reminder: before exiting plan mode, publish this plan as a styled HTML page using the Artifact tool (clear headings, sections, and a checklist of steps) and share the link with the user — do not present the plan only as plain markdown text.\"}}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"additionalContext\":\"Reminder: before exiting plan mode, write this plan as a styled HTML page (clear headings, sections, and a checklist of steps) to docs/plans/<kebab-case-plan-name>.html in the project — do not use the Artifact tool, and do not present the plan only as plain markdown text.\"}}'"
           }
         ]
       }

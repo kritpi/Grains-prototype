@@ -1,0 +1,744 @@
+<title>Architecture Blueprint</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+  :root{
+    --paper:#FDFDFC;
+    --ink:#0D0D0C;
+    --ash:#5B5B58;
+    --faint:#8C8C88;
+    --hairline:#DEDEDA;
+    --sunk:#F4F4F2;
+    --signal:#E23B22;
+    --focus-ring: rgba(226,59,34,.5);
+    --sans:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+
+  *{box-sizing:border-box; border-radius:0!important;}
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6; margin:0; }
+  a{ color:var(--ink); }
+  a:hover{ color:var(--signal); }
+  :focus-visible{ outline:2px solid var(--focus-ring); outline-offset:3px; }
+
+  h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); font-weight:500; text-wrap:balance; margin:0; }
+  .eyebrow{ font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ash); font-weight:700; }
+  .lede{ font-size:1.0625rem; color:var(--ash); max-width:64ch; }
+  code, .mono{ font-family:var(--mono); }
+  code{ font-size:.85em; }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:0 clamp(20px,5vw,48px) 88px; }
+
+  .masthead{ padding:clamp(40px,7vw,72px) 0 32px; }
+  .masthead h1{ font-size:clamp(1.9rem,4.6vw,2.9rem); line-height:1.06; letter-spacing:-.01em; margin-top:14px; }
+  .masthead .lede{ margin-top:16px; }
+  .masthead .source{ margin-top:22px; padding-top:16px; border-top:2px solid var(--ink); display:flex; flex-wrap:wrap; gap:8px 22px; align-items:baseline; }
+  .masthead .source span{ font-size:.8125rem; color:var(--ash); }
+  .masthead .source .mono{ font-size:.75rem; }
+
+  /* index */
+  .index{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:0; border-top:1px solid var(--hairline); margin-bottom:8px; }
+  .index a{ text-decoration:none; padding:14px 16px 14px 0; border-bottom:1px solid var(--hairline); display:block; }
+  .index a .n{ font-family:var(--mono); font-size:.6875rem; color:var(--faint); display:block; margin-bottom:3px; }
+  .index a .l{ font-size:.8125rem; font-weight:700; }
+  .index a:hover .l{ color:var(--signal); }
+
+  /* tables */
+  .table-wrap{ overflow-x:auto; margin:14px 0 8px; }
+  table{ width:100%; border-collapse:collapse; font-size:.8125rem; }
+  caption{ text-align:left; font:700 .625rem var(--sans); letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-bottom:10px; }
+  th{ text-align:left; font-size:.6875rem; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-weight:700; padding:0 16px 8px 0; border-bottom:1.5px solid var(--ink); }
+  td{ padding:11px 16px 11px 0; border-bottom:1px solid var(--hairline); vertical-align:top; color:var(--ash); }
+  td b, td strong{ color:var(--ink); }
+  td.mono, td .mono{ font-family:var(--mono); font-size:.75rem; }
+  td.key{ color:var(--ink); font-weight:700; white-space:nowrap; }
+  td.cut{ color:var(--faint); text-decoration:line-through; text-decoration-color:var(--hairline); white-space:nowrap; }
+
+  /* sections */
+  section.pillar{ padding:44px 0 8px; border-top:1px solid var(--hairline); }
+  section.pillar{ border-left:3px solid var(--signal); padding-left:22px; margin-left:-25px; }
+  section.plain{ padding:44px 0 8px; border-top:1px solid var(--hairline); }
+
+  .pillar-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:12px 16px; margin-bottom:8px; }
+  .pillar-head .frame-no{ font-family:var(--mono); font-size:.8125rem; color:var(--faint); }
+  .pillar-head h2{ font-size:1.5rem; flex:1; min-width:220px; }
+  section.plain h2{ font-size:1.375rem; margin-bottom:8px; }
+
+  .status-pill{ display:inline-flex; align-items:center; gap:7px; font-size:.75rem; font-weight:700; color:var(--signal); }
+  .status-pill i{ width:9px; height:9px; background:var(--signal); display:block;
+    clip-path:polygon(14% 47%,0 61%,40% 100%,100% 22%,86% 9%,38% 71%); }
+
+  .verdict{ border:2px solid var(--ink); padding:22px clamp(16px,3vw,26px); margin:18px 0 26px; }
+  .verdict .eyebrow{ display:block; margin-bottom:9px; }
+  .verdict p{ margin:0; font-size:.9375rem; line-height:1.62; color:var(--ink); max-width:66ch; }
+  .verdict p + p{ margin-top:10px; }
+
+  h3.sub{ font-size:.6875rem; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:700; margin:26px 0 10px; font-family:var(--sans); }
+
+  .decision{ padding:20px 0; border-top:1px solid var(--hairline); }
+  .decision h4{ font-size:1.0625rem; margin:0 0 10px; display:flex; flex-wrap:wrap; gap:8px 11px; align-items:baseline; line-height:1.3; }
+  .decision h4 .n{ font-family:var(--mono); font-size:.75rem; color:var(--faint); flex:none; }
+  .tag{ font-size:.5625rem; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+    padding:3px 7px; border:1.5px solid; flex:none; font-family:var(--sans); }
+  .tag.ok{ color:var(--signal); border-color:var(--signal); }
+  .tag.prop{ color:var(--ash); border-color:var(--ash); }
+  .decision p{ font-size:.875rem; color:var(--ash); margin:0 0 11px; max-width:66ch; }
+  .decision p:last-child{ margin-bottom:0; }
+  .decision p b{ color:var(--ink); }
+  .decision ul{ margin:0 0 11px; padding-left:17px; font-size:.8125rem; color:var(--ash);
+    display:flex; flex-direction:column; gap:7px; max-width:66ch; }
+  .decision ul b, .decision ul strong{ color:var(--ink); }
+
+  .flag{ border-left:2px solid var(--signal); background:var(--sunk); padding:12px 15px;
+    margin:14px 0 11px; font-size:.8125rem; color:var(--ash); max-width:68ch; }
+  .flag b{ color:var(--ink); }
+
+  pre.code{ font-family:var(--mono); font-size:.6875rem; line-height:1.75; background:var(--sunk);
+    border-left:2px solid var(--ink); padding:13px 15px; margin:14px 0; overflow-x:auto; color:var(--ink); }
+
+  .struck ul{ list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .struck li{ font-size:.8125rem; color:var(--ash); padding-left:22px; position:relative; max-width:68ch; }
+  .struck li::before{ content:"\2715"; position:absolute; left:0; top:0; color:var(--signal); font-weight:700; font-size:.75rem; }
+  .struck li b{ color:var(--ink); }
+
+  ol.build{ margin:12px 0 0; padding-left:0; list-style:none; counter-reset:step; }
+  ol.build li{ counter-increment:step; position:relative; padding:12px 0 12px 46px; border-bottom:1px solid var(--hairline); font-size:.875rem; color:var(--ash); max-width:70ch; }
+  ol.build li::before{ content:counter(step,decimal-leading-zero); position:absolute; left:0; top:12px;
+    font-family:var(--mono); font-size:.75rem; color:var(--signal); font-weight:700; }
+  ol.build li b{ color:var(--ink); }
+  ol.build li.ship{ border-bottom:2px solid var(--ink); }
+
+  /* figures */
+  figure.fig{ margin:26px 0 10px; border:1.5px solid var(--ink); padding:18px clamp(12px,2.5vw,20px) 14px; background:var(--paper); }
+  figure.fig .fig-no{ font-family:var(--mono); font-size:.625rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--faint); font-weight:700; display:block; margin-bottom:14px; }
+  figure.fig svg{ display:block; width:100%; height:auto; }
+  figure.fig figcaption{ font-size:.8125rem; color:var(--ash); margin-top:14px; padding-top:11px;
+    border-top:1px solid var(--hairline); max-width:72ch; }
+  figure.fig figcaption b{ color:var(--ink); }
+
+  svg text{ font-family:var(--sans); fill:var(--ink); }
+  svg .t-cap{ font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; fill:var(--faint); }
+  svg .t-box{ font-size:12.5px; font-weight:700; }
+  svg .t-col{ font-family:var(--mono); font-size:9.5px; fill:var(--ash); }
+  svg .t-note{ font-size:10.5px; fill:var(--ash); }
+  svg .t-sig{ font-size:10.5px; fill:var(--signal); font-weight:700; }
+  svg .t-sig-s{ font-family:var(--mono); font-size:9.5px; fill:var(--signal); font-weight:700; }
+  svg .box{ fill:var(--paper); stroke:var(--ink); stroke-width:1.5; }
+  svg .box-sunk{ fill:var(--sunk); stroke:var(--ink); stroke-width:1.5; }
+  svg .box-hub{ fill:var(--sunk); stroke:var(--ink); stroke-width:2.5; }
+  svg .box-ghost{ fill:none; stroke:var(--faint); stroke-width:1.25; stroke-dasharray:5 4; }
+  svg .ln{ stroke:var(--ink); stroke-width:1.25; fill:none; }
+  svg .ln-f{ stroke:var(--faint); stroke-width:1; fill:none; stroke-dasharray:4 3; }
+  svg .ln-s{ stroke:var(--signal); stroke-width:1.75; fill:none; }
+  svg .ln-sd{ stroke:var(--signal); stroke-width:1.5; fill:none; stroke-dasharray:5 4; }
+  svg .life{ stroke:var(--hairline); stroke-width:1.25; stroke-dasharray:3 4; }
+
+  footer{ padding:36px 0 0; border-top:1px solid var(--hairline); margin-top:44px; }
+  footer p{ font-size:.75rem; color:var(--faint); margin:0 0 6px; max-width:70ch; }
+
+  @media (max-width:640px){
+    section.pillar{ margin-left:0; padding-left:16px; }
+    table th:nth-child(3), table td:nth-child(3){ display:none; }
+    figure.fig{ padding-left:8px; padding-right:8px; }
+  }
+</style>
+
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0D0D0C"/></marker>
+    <marker id="arS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E23B22"/></marker>
+    <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8C8C88"/></marker>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Grains — technical planning</div>
+    <h1>Architecture Blueprint</h1>
+    <p class="lede">Nine infrastructure topics collapsed into three decided pillars, sized for one engineer shipping an MVP. Every decision below is made, with the option rejected and the cost accepted stated alongside it. Diagrams are the load-bearing part: the schema, the deployment shape, and the two flows that carry real invariants.</p>
+    <div class="source">
+      <span class="eyebrow" style="font-style:normal;">Status —</span>
+      <span><b>All three pillars decided · 2026-09-05</b></span>
+      <span class="mono">docs/00_BACKLOG.md</span><span>is canonical; this page renders it alongside <span class="mono">schema.sql</span> and <span class="mono">api-surface.md</span></span>
+    </div>
+  </header>
+
+  <nav class="index">
+    <a href="#prune"><span class="n">00</span><span class="l">The prune — 9 → 3</span></a>
+    <a href="#p1"><span class="n">01</span><span class="l">Stack architecture</span></a>
+    <a href="#p2"><span class="n">02</span><span class="l">Data layer</span></a>
+    <a href="#p3"><span class="n">03</span><span class="l">Hosting &amp; auth</span></a>
+    <a href="#api"><span class="n">04</span><span class="l">API surface</span></a>
+    <a href="#open"><span class="n">05</span><span class="l">Open &amp; build order</span></a>
+  </nav>
+
+  <!-- ══════════════════════════════════════ 00 ══ -->
+  <section class="plain" id="prune">
+    <h2>The prune</h2>
+    <p class="lede" style="margin-top:10px;">The old backlog wasn't wrong so much as sized for a different company. It ranked nine infrastructure topics and queued seven of them — provider selection, environment matrices, observability stacks, Redis cache keys — ahead of the first line of application code. For a solo MVP with zero users that ordering inverts the actual risk: what most likely kills Grains is not an unpooled connection, it is nine months of infrastructure decisions and no product.</p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Cut, and why</caption>
+        <thead><tr><th>Cut</th><th>Why it was there</th><th>Why it goes</th></tr></thead>
+        <tbody>
+          <tr><td class="cut">Redis / cache-aside</td><td>ranked last already</td><td>No traffic means no measured hot path. Next.js <code>revalidate</code> plus the CDN covers every public page for free. Revisit when a query is <em>measurably</em> slow.</td></tr>
+          <tr><td class="cut">OpenAPI + codegen + CI check</td><td>protection against FE/BE drift</td><td>The drift it guards against exists <em>because of</em> the split. Remove the split and the protection is TypeScript, for free.</td></tr>
+          <tr><td class="cut">Five-file hexagonal packages</td><td>uniformity for agent predictability</td><td>Six files per endpoint is the opposite of agent-friendly when four are pass-throughs. One rule survives: SQL lives in exactly one directory.</td></tr>
+          <tr><td class="cut">infra/ + Terraform</td><td>reproducible infrastructure</td><td>Two dashboards, configured once. Terraform for two SaaS projects is ceremony with a state file attached.</td></tr>
+          <tr><td class="cut">local → staging → prod</td><td>environment isolation</td><td>Two environments. Staging with no users is production with worse data.</td></tr>
+          <tr><td class="cut">Multi-vendor storage + CDN</td><td>zero egress fees on R2</td><td>Real at scale, irrelevant at zero. One vendor, one bill, one set of credentials — revisit at the first egress bill that stings.</td></tr>
+          <tr><td class="cut">Observability as a topic</td><td>ops maturity</td><td>It is one line: Sentry's free tier plus the host's logs. Not a decision.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Kept, because none of it was bloat</h3>
+    <p style="font-size:.875rem; color:var(--ash); max-width:68ch; margin:0;">Singapore co-location · photos never transit the app server · PostGIS for correctness rather than speed · the content-integrity rule enforced by schema · a <code>version</code> column present in the first migration · no Redis.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ 01 ══ -->
+  <section class="pillar" id="p1">
+    <div class="pillar-head"><span class="frame-no">01</span><h2>Stack architecture</h2><span class="status-pill"><i></i>Decided</span></div>
+
+    <div class="verdict">
+      <span class="eyebrow">The shape, in one paragraph</span>
+      <p><b>One Next.js application.</b> App Router, Server Components for reads, Server Actions for writes, Drizzle over Postgres. No separate backend service, no wire contract, no second language, one deploy. One discipline survives from the old hexagonal plan: <b>SQL exists only in <code>lib/queries/</code></b> — pages, actions and handlers call those functions and never write SQL inline.</p>
+    </div>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 1 — what the decision removes</span>
+      <svg viewBox="0 0 780 250" role="img" aria-label="Before: browser to Next.js to Go API to Postgres. After: browser to Next.js to Postgres.">
+        <text class="t-cap" x="8" y="22">Before — split</text>
+        <rect class="box" x="8" y="48" width="84" height="44"/>
+        <text class="t-box" x="50" y="75" text-anchor="middle">Browser</text>
+        <rect class="box" x="132" y="48" width="120" height="44"/>
+        <text class="t-box" x="192" y="70" text-anchor="middle">Next.js</text>
+        <text class="t-col" x="192" y="84" text-anchor="middle">rendering only</text>
+        <rect class="box" x="292" y="48" width="110" height="44"/>
+        <text class="t-box" x="347" y="70" text-anchor="middle">Go API</text>
+        <text class="t-col" x="347" y="84" text-anchor="middle">5 files / endpoint</text>
+        <rect class="box-sunk" x="442" y="48" width="140" height="44"/>
+        <text class="t-box" x="512" y="70" text-anchor="middle">Postgres + PostGIS</text>
+        <text class="t-col" x="512" y="84" text-anchor="middle">Singapore</text>
+        <line class="ln" x1="92" y1="70" x2="128" y2="70" marker-end="url(#ar)"/>
+        <line class="ln" x1="252" y1="70" x2="288" y2="70" marker-end="url(#ar)"/>
+        <line class="ln" x1="402" y1="70" x2="438" y2="70" marker-end="url(#ar)"/>
+        <text class="t-col" x="270" y="40" text-anchor="middle">REST / OpenAPI</text>
+        <text class="t-note" x="598" y="64">Two network hops before</text>
+        <text class="t-note" x="598" y="78">the first byte renders.</text>
+        <text class="t-note" x="598" y="92">A contract to keep in sync.</text>
+
+        <line class="ln-f" x1="8" y1="120" x2="772" y2="120"/>
+
+        <text class="t-cap" x="8" y="152">Now — unified</text>
+        <rect class="box" x="8" y="178" width="84" height="44"/>
+        <text class="t-box" x="50" y="205" text-anchor="middle">Browser</text>
+        <rect class="box" x="132" y="178" width="190" height="44"/>
+        <text class="t-box" x="227" y="200" text-anchor="middle">Next.js</text>
+        <text class="t-col" x="227" y="214" text-anchor="middle">RSC · Server Actions · 3 handlers</text>
+        <rect class="box-sunk" x="442" y="178" width="140" height="44"/>
+        <text class="t-box" x="512" y="200" text-anchor="middle">Postgres + PostGIS</text>
+        <text class="t-col" x="512" y="214" text-anchor="middle">Singapore</text>
+        <line class="ln" x1="92" y1="200" x2="128" y2="200" marker-end="url(#ar)"/>
+        <line class="ln" x1="322" y1="200" x2="438" y2="200" marker-end="url(#ar)"/>
+        <rect class="box-ghost" x="342" y="182" width="76" height="36"/>
+        <text class="t-sig-s" x="380" y="204" text-anchor="middle">removed</text>
+        <text class="t-note" x="598" y="194">One hop.</text>
+        <text class="t-note" x="598" y="208">The contract is TypeScript,</text>
+        <text class="t-note" x="598" y="222">checked at build time.</text>
+      </svg>
+      <figcaption><b>Server Components delete the API for reads.</b> A lab page, a film gallery and a profile all server-render — which this product needs anyway, since discovery is the point. Under the split each of those was Next → Go → Postgres. Now it is a function call, and that accounts for most of the endpoints.</figcaption>
+    </figure>
+
+    <h3 class="sub">Decision ledger</h3>
+
+    <div class="decision">
+      <h4><span class="n">01</span>One Next.js application, not two deployables<span class="tag ok">Decided</span></h4>
+      <p><b>Decision —</b> App Router. Server Components read the database directly; Server Actions own every write; Route Handlers exist only for what the browser fetches after load. Rejected: the previously-resolved Go service + Next.js frontend over an OpenAPI contract.</p>
+      <p><b>Rationale:</b></p>
+      <ul>
+        <li><b>The hardest open question disappears.</b> The old §5's central problem was how a Go service verifies a session the frontend's auth provider created. In one process, <code>auth()</code> returns the session. The decision evaporates rather than getting answered.</li>
+        <li><b>Agent-assisted development is the stated primary mode.</b> Adding an endpoint went: edit <code>openapi.yaml</code> → regenerate → <code>lab.go</code> → <code>repository.go</code> → <code>postgres.go</code> → <code>service.go</code> → <code>http.go</code> → regenerate the client. It now goes: add a query function, call it. <em>Fewer</em> files per task is worth more to an agent than <em>uniform</em> files per task.</li>
+        <li><b>The old objection to serverless does not apply here.</b> §1.3 ruled out per-request functions because 50 concurrent invocations means 50 database connections. Supabase's transaction pooler is built for exactly that. The <em>other</em> half of §1.3 — region co-location — was the expensive-to-reverse half, and it is kept in full.</li>
+      </ul>
+      <p><b>Costs knowingly accepted:</b></p>
+      <ul>
+        <li><b>The developer wanted to write Go, and this takes that away.</b> That was the honest, primary and legitimate reason the old §1 chose a Go service, and nothing here refutes it — preferences about what you enjoy building are load-bearing on a solo side project.</li>
+        <li>Vendor gravity toward Vercel. RSC and Server Actions run elsewhere, but not without work.</li>
+        <li>No language boundary means no structural guard against business logic leaking into components — mitigated only by the <code>lib/queries/</code> rule, and by keeping <code>updateLab</code> a single transactional function.</li>
+      </ul>
+      <div class="flag"><b>Override note —</b> wanting the Go backend anyway is a sufficient reason on its own and costs no credibility; it was chosen on preference, and reversing a preference-based decision is free. But take the <em>lean</em> Go shape, not the old one: Go + <code>chi</code> + <code>sqlc</code>, no hexagonal packages, no service layer where there is no logic, no OpenAPI codegen — a hand-written typed <code>lib/api.ts</code> is smaller and more honest at ~20 endpoints with one consumer. Budget a day for JWT verification (shared <code>AUTH_SECRET</code>, HS256, not JWKS). <b>Everything else on this page holds unchanged under either branch.</b></div>
+    </div>
+
+    <div class="decision">
+      <h4><span class="n">02</span>SQL lives in one directory<span class="tag ok">Decided</span></h4>
+      <p><b>Decision —</b> <code>lib/queries/*.ts</code> is the only place SQL appears. Pages, Server Actions and Route Handlers all call into it; none of them write SQL inline.</p>
+      <p><b>Rationale —</b> This is the one boundary from the hexagonal plan worth keeping. The other four layers were paying for a database swap that a PostGIS-dependent product can never perform, and the third type representation they implied would have run to hundreds of lines of field-copying per entity for no benefit.</p>
+      <pre class="code">lib/db/schema.ts     Drizzle schema — mirrors schema.sql, source of inferred types
+lib/queries/         the only place SQL exists: labs.ts films.ts photos.ts books.ts
+lib/auth.ts          Auth.js config; auth() returns the session server-side
+app/**/page.tsx      Server Components — call lib/queries directly
+app/**/actions.ts    Server Actions — all writes
+app/api/**/route.ts  the three GET handlers</pre>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ 02 ══ -->
+  <section class="pillar" id="p2">
+    <div class="pillar-head"><span class="frame-no">02</span><h2>Data layer</h2><span class="status-pill"><i></i>Decided</span></div>
+
+    <div class="verdict">
+      <span class="eyebrow">The shape, in one paragraph</span>
+      <p><b>PostgreSQL 15 + PostGIS on Supabase, Singapore (<code>ap-southeast-1</code>). Drizzle ORM. Raw SQL migrations. No cache.</b> Supabase wins over Neon on one argument: this is a photo product, so object storage is needed on day one, and picking Neon means a second vendor for storage anyway. Accepted in exchange: weaker branching, and a free tier that pauses a project after seven idle days.</p>
+    </div>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 2 — ER diagram · the lab directory</span>
+      <svg viewBox="0 0 880 560" role="img" aria-label="Entity relationship diagram centred on the labs table.">
+        <!-- users -->
+        <rect class="box" x="340" y="40" width="200" height="76"/>
+        <text class="t-box" x="352" y="62">users</text>
+        <text class="t-col" x="352" y="82">id · uuid pk</text>
+        <text class="t-col" x="352" y="97">username · unique(lower)</text>
+
+        <!-- labs hub -->
+        <rect class="box-hub" x="340" y="170" width="200" height="212"/>
+        <text class="t-box" x="352" y="194">labs</text>
+        <text class="t-col" x="352" y="216">id · uuid pk</text>
+        <text class="t-col" x="352" y="231">name_en · name_th</text>
+        <text class="t-col" x="352" y="246">location · geography(Point)</text>
+        <text class="t-col" x="352" y="261">area · street · landmark_note</text>
+        <text class="t-col" x="352" y="276">status · lab_status</text>
+        <text class="t-col" x="352" y="291">hours · jsonb (7 days)</text>
+        <text class="t-col" x="352" y="306">completeness · smallint</text>
+        <text class="t-col" x="352" y="321">version · integer</text>
+        <text class="t-col" x="352" y="336">created_by → users.id</text>
+        <line class="ln-f" x1="352" y1="348" x2="528" y2="348"/>
+        <text class="t-sig-s" x="352" y="366">GIST index on location</text>
+
+        <line class="ln" x1="440" y1="116" x2="440" y2="166" marker-end="url(#ar)"/>
+
+        <!-- right bus -->
+        <line class="ln" x1="540" y1="276" x2="580" y2="276"/>
+        <line class="ln" x1="580" y1="69" x2="580" y2="464"/>
+        <line class="ln" x1="580" y1="69" x2="616" y2="69" marker-end="url(#ar)"/>
+        <line class="ln" x1="580" y1="271" x2="616" y2="271" marker-end="url(#ar)"/>
+        <line class="ln" x1="580" y1="364" x2="616" y2="364" marker-end="url(#ar)"/>
+        <line class="ln" x1="580" y1="464" x2="616" y2="464" marker-end="url(#ar)"/>
+
+        <rect class="box" x="620" y="40" width="220" height="58"/>
+        <text class="t-box" x="632" y="62">lab_processes</text>
+        <text class="t-col" x="632" y="82">pk (lab_id, process)</text>
+
+        <rect class="box" x="620" y="126" width="220" height="88"/>
+        <text class="t-box" x="632" y="148">lab_pricing</text>
+        <text class="t-col" x="632" y="168">pk (lab_id, process, format)</text>
+        <text class="t-col" x="632" y="183">price_thb · numeric</text>
+        <text class="t-col" x="632" y="198">turnaround_min_d / _max_d</text>
+        <line class="ln-s" x1="700" y1="98" x2="700" y2="122" marker-end="url(#arS)"/>
+        <text class="t-sig-s" x="710" y="115">composite FK</text>
+
+        <rect class="box" x="620" y="242" width="220" height="58"/>
+        <text class="t-box" x="632" y="264">lab_scanners</text>
+        <text class="t-col" x="632" y="284">pk (lab_id, model)</text>
+
+        <rect class="box" x="620" y="328" width="220" height="72"/>
+        <text class="t-box" x="632" y="350">lab_stock</text>
+        <text class="t-col" x="632" y="370">pk (lab_id, film_stock_id)</text>
+        <text class="t-col" x="632" y="385">formats · film_format[]</text>
+
+        <rect class="box" x="620" y="428" width="220" height="72"/>
+        <text class="t-box" x="632" y="450">lab_photos</text>
+        <text class="t-col" x="632" y="470">storage_key · unique</text>
+        <text class="t-col" x="632" y="485">Atmosphere Photos only</text>
+
+        <!-- left bus -->
+        <line class="ln" x1="340" y1="276" x2="300" y2="276"/>
+        <line class="ln" x1="300" y1="84" x2="300" y2="379"/>
+        <line class="ln-f" x1="300" y1="379" x2="300" y2="482"/>
+        <line class="ln" x1="300" y1="84" x2="284" y2="84" marker-end="url(#ar)"/>
+        <line class="ln" x1="300" y1="187" x2="284" y2="187" marker-end="url(#ar)"/>
+        <line class="ln" x1="300" y1="283" x2="284" y2="283" marker-end="url(#ar)"/>
+        <line class="ln" x1="300" y1="379" x2="284" y2="379" marker-end="url(#ar)"/>
+        <line class="ln-f" x1="300" y1="482" x2="284" y2="482" marker-end="url(#arF)"/>
+
+        <rect class="box" x="60" y="40" width="220" height="88"/>
+        <text class="t-box" x="72" y="62">lab_services</text>
+        <text class="t-col" x="72" y="82">service_key → service_catalog</text>
+        <text class="t-col" x="72" y="97">custom_label · note</text>
+        <text class="t-sig-s" x="72" y="115">CHECK: exactly one of the two</text>
+
+        <rect class="box" x="60" y="150" width="220" height="74"/>
+        <text class="t-box" x="72" y="172">lab_supplies</text>
+        <text class="t-col" x="72" y="192">supply_key → supply_catalog</text>
+        <text class="t-col" x="72" y="207">custom_label</text>
+
+        <rect class="box" x="60" y="246" width="220" height="74"/>
+        <text class="t-box" x="72" y="268">lab_contacts</text>
+        <text class="t-col" x="72" y="288">channel · contact_channel</text>
+        <text class="t-col" x="72" y="303">value · position</text>
+
+        <rect class="box" x="60" y="342" width="220" height="74"/>
+        <text class="t-box" x="72" y="364">lab_badge_votes</text>
+        <text class="t-col" x="72" y="384">pk (lab_id, badge_key, user_id)</text>
+        <text class="t-sig-s" x="72" y="399">retract = DELETE the row</text>
+
+        <rect class="box" x="60" y="438" width="220" height="88"/>
+        <text class="t-box" x="72" y="460">edit_history</text>
+        <text class="t-col" x="72" y="480">entity · edit_entity</text>
+        <text class="t-col" x="72" y="495">entity_id · uuid — no FK</text>
+        <text class="t-col" x="72" y="510">changes · jsonb array</text>
+        <text class="t-note" x="60" y="546">Dashed = polymorphic, shared with film_stocks.</text>
+
+        <text class="t-note" x="440" y="524">Curated catalogs — service_catalog, supply_catalog,</text>
+        <text class="t-note" x="440" y="538">badge_catalog, scanner_models — back the *_key columns.</text>
+      </svg>
+      <figcaption>Every solid line is one-to-many from <code>labs</code>, and every child cascades on delete. Two things are worth reading closely: <b><code>lab_pricing</code> hangs off <code>lab_processes</code>, not off <code>labs</code></b> — a composite foreign key to <code>(lab_id, process)</code>, which is what makes "blank cell" and "not offered" structurally distinguishable — and <b><code>lab_services</code>/<code>lab_supplies</code> carry a CHECK</b> allowing a curated key <em>or</em> a freeform label but never both, with only the curated half indexed. That is the rule "custom entries display but never filter", written into the index definition rather than into a code review.</figcaption>
+    </figure>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 3 — ER diagram · photos, photobooks, film stocks</span>
+      <svg viewBox="0 0 880 460" role="img" aria-label="Entity relationship diagram for photos, photobooks and film stocks, showing that no edge exists between photos and labs.">
+        <rect class="box" x="40" y="40" width="180" height="72"/>
+        <text class="t-box" x="52" y="62">users</text>
+        <text class="t-col" x="52" y="82">id · uuid pk</text>
+        <text class="t-col" x="52" y="97">username</text>
+
+        <rect class="box-hub" x="320" y="40" width="240" height="200"/>
+        <text class="t-box" x="332" y="62">photos</text>
+        <text class="t-col" x="332" y="84">id · uuid pk</text>
+        <text class="t-col" x="332" y="99">owner_id → users.id</text>
+        <text class="t-col" x="332" y="114">storage_key · unique</text>
+        <text class="t-col" x="332" y="129">width · height</text>
+        <text class="t-col" x="332" y="144">film_stock_id → film_stocks</text>
+        <text class="t-col" x="332" y="159">format · frame_size</text>
+        <text class="t-col" x="332" y="174">camera</text>
+        <text class="t-col" x="332" y="189">scanner_model → scanner_models</text>
+        <text class="t-col" x="332" y="204">chemistry</text>
+        <line class="ln-f" x1="332" y1="214" x2="548" y2="214"/>
+        <text class="t-sig-s" x="332" y="231">no lab_id — and never one</text>
+
+        <rect class="box" x="660" y="40" width="190" height="90"/>
+        <text class="t-box" x="672" y="62">film_stocks</text>
+        <text class="t-col" x="672" y="84">id · uuid pk</text>
+        <text class="t-col" x="672" y="99">unique (lower(name), iso)</text>
+        <text class="t-col" x="672" y="114">formats · film_format[]</text>
+
+        <rect class="box" x="660" y="170" width="190" height="64"/>
+        <text class="t-box" x="672" y="192">lab_stock</text>
+        <text class="t-col" x="672" y="212">pk (lab_id, film_stock_id)</text>
+
+        <rect class="box-sunk" x="660" y="274" width="190" height="58"/>
+        <text class="t-box" x="672" y="296">labs</text>
+        <text class="t-col" x="672" y="316">the lab directory</text>
+
+        <rect class="box" x="40" y="196" width="180" height="90"/>
+        <text class="t-box" x="52" y="218">photobooks</text>
+        <text class="t-col" x="52" y="240">id · uuid pk</text>
+        <text class="t-col" x="52" y="255">owner_id → users.id</text>
+        <text class="t-col" x="52" y="270">slug · artist_note</text>
+
+        <rect class="box" x="320" y="300" width="240" height="100"/>
+        <text class="t-box" x="332" y="322">photobook_items</text>
+        <text class="t-col" x="332" y="344">pk (photobook_id, photo_id)</text>
+        <text class="t-col" x="332" y="359">position · integer</text>
+        <text class="t-sig-s" x="332" y="381">a Connection is just a row here</text>
+
+        <!-- edges -->
+        <line class="ln" x1="220" y1="76" x2="316" y2="76" marker-end="url(#ar)"/>
+        <line class="ln" x1="130" y1="112" x2="130" y2="192" marker-end="url(#ar)"/>
+        <polyline class="ln" points="220,241 268,241 268,348 316,348" marker-end="url(#ar)"/>
+        <line class="ln" x1="440" y1="240" x2="440" y2="296" marker-end="url(#ar)"/>
+        <text class="t-sig-s" x="450" y="264">ON DELETE CASCADE</text>
+        <text class="t-sig-s" x="450" y="278">= silent reflow</text>
+        <polyline class="ln" points="560,144 600,144 600,100 656,100" marker-end="url(#ar)"/>
+        <line class="ln" x1="755" y1="130" x2="755" y2="166" marker-end="url(#ar)"/>
+        <line class="ln" x1="755" y1="234" x2="755" y2="270" marker-end="url(#ar)"/>
+
+        <!-- the forbidden edge -->
+        <polyline class="ln-sd" points="560,200 634,200 634,303 656,303"/>
+        <line class="ln-s" x1="626" y1="244" x2="642" y2="260"/>
+        <line class="ln-s" x1="642" y1="244" x2="626" y2="260"/>
+        <text class="t-sig" x="634" y="278" text-anchor="middle">never</text>
+
+        <text class="t-note" x="40" y="428">A Photo reaches a Film Stock; a Film Stock reaches a Lab through inventory. That path is deliberately not transitive in the product —</text>
+        <text class="t-note" x="40" y="444">"labs that sell this film" is a different statement from "the lab that developed this photo", and nothing ever renders the second.</text>
+      </svg>
+      <figcaption><b>The crossed edge is the diagram's whole point.</b> The content-integrity rule is enforced by the absence of a column, which no code path in any language can violate — strictly stronger than application-layer filtering. Lab Atmosphere Photos live in a separate <code>lab_photos</code> table (Fig. 2) for the same reason: they are not <em>Photo</em> in the <code>CONTEXT.md</code> sense. Note also that <b>Connection needs no table</b> — it is a <code>photobook_items</code> row whose photo belongs to someone other than the book's owner, read off <code>owner_id</code> rather than stored.</figcaption>
+    </figure>
+
+    <h3 class="sub">Decision ledger</h3>
+
+    <div class="decision">
+      <h4><span class="n">01</span>Supabase Postgres + PostGIS, via Drizzle<span class="tag ok">Decided</span></h4>
+      <p><b>Decision —</b> Drizzle rather than Prisma: schema-as-TypeScript, types inferred rather than generated, and it gets out of the way when a query needs raw SQL — which every geospatial query does. Migrations are raw <code>.sql</code> files applied by <code>drizzle-kit</code>, with PostGIS DDL hand-written.</p>
+      <p><b>PostGIS is for correctness, not speed.</b> At tens to low hundreds of labs, haversine over float columns would also run in well under a millisecond. It stays because the usual hand-rolled substitute is a bounding box — which returns a square, so a lab 7km away shows up in a "5km" search — and because hand-written haversine invites an earth-radius constant that differs between the <code>WHERE</code> and the <code>ORDER BY</code>, silently filtering and sorting by different distances. <code>ST_DWithin</code> is one line and correct. Do not cite performance as its justification.</p>
+    </div>
+
+    <div class="decision">
+      <h4><span class="n">02</span>Same-field edit collision<span class="tag prop">Proposed</span></h4>
+      <p><b>Decision —</b> Whole-row optimistic concurrency on <code>labs.version</code>, with per-leaf-path diffs in <code>edit_history</code>. Recorded as proposed rather than decided: cheap to overturn before implementation, but the column has to exist in the first migration, which is the part that cannot be retrofitted cheaply.</p>
+      <p><b>Rationale —</b> Slightly pessimistic: two contributors editing genuinely different fields will collide. At this traffic that is approximately never, and the alternative — per-field version vectors — is a large amount of machinery to avoid a conflict dialog nobody will see. Diffs still record individual leaf values (<code>pricing.c41.135.price_thb</code>) rather than field groups, so the history log stays precise.</p>
+    </div>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 4 — sequence · concurrent lab edits</span>
+      <svg viewBox="0 0 860 280" role="img" aria-label="Sequence diagram of two contributors editing the same lab, resolved by a version check.">
+        <rect class="box" x="30" y="20" width="120" height="40"/>
+        <text class="t-box" x="90" y="45" text-anchor="middle">Contributor A</text>
+        <rect class="box" x="270" y="20" width="120" height="40"/>
+        <text class="t-box" x="330" y="45" text-anchor="middle">Contributor B</text>
+        <rect class="box-sunk" x="600" y="20" width="170" height="40"/>
+        <text class="t-box" x="685" y="45" text-anchor="middle">Postgres</text>
+        <line class="life" x1="90" y1="60" x2="90" y2="260"/>
+        <line class="life" x1="330" y1="60" x2="330" y2="260"/>
+        <line class="life" x1="685" y1="60" x2="685" y2="260"/>
+
+        <line class="ln" x1="90" y1="100" x2="681" y2="100" marker-end="url(#ar)"/>
+        <text class="t-note" x="100" y="94">load lab · version = 4</text>
+        <line class="ln" x1="330" y1="132" x2="681" y2="132" marker-end="url(#ar)"/>
+        <text class="t-note" x="340" y="126">load lab · version = 4</text>
+
+        <line class="ln-f" x1="30" y1="154" x2="830" y2="154"/>
+
+        <line class="ln" x1="90" y1="186" x2="681" y2="186" marker-end="url(#ar)"/>
+        <text class="t-note" x="100" y="180">UPDATE labs SET … WHERE id = ? AND version = 4</text>
+        <text class="t-note" x="500" y="202">→ 1 row · version becomes 5 · one edit_history row</text>
+
+        <line class="ln" x1="330" y1="234" x2="681" y2="234" marker-end="url(#ar)"/>
+        <text class="t-note" x="340" y="228">UPDATE … WHERE version = 4</text>
+        <text class="t-sig" x="452" y="252">→ 0 rows · conflict · the form reloads and shows what moved</text>
+      </svg>
+      <figcaption>The zero-row result <em>is</em> the conflict detection — there is no lock, no retry loop, and no extra read. <code>completeness</code> is recomputed inside the same transaction, and the <code>edit_history</code> CHECK constraint guarantees a row that records at least one changed value, so <b>one lab mutation always produces exactly one history row.</b></figcaption>
+    </figure>
+  </section>
+
+  <!-- ══════════════════════════════════════ 03 ══ -->
+  <section class="pillar" id="p3">
+    <div class="pillar-head"><span class="frame-no">03</span><h2>Hosting &amp; auth</h2><span class="status-pill"><i></i>Decided</span></div>
+
+    <div class="verdict">
+      <span class="eyebrow">The shape, in one paragraph</span>
+      <p><b>Vercel + Supabase, both Singapore. Auth.js v5 with Google. Two environments.</b> Local development connects to the same <code>grains-dev</code> project that Vercel preview deploys use — which deletes docker-compose, deletes "keep PostGIS versions consistent across environments", and deletes a whole class of works-on-my-machine drift. Cost: no offline development, and ~30ms per query from Bangkok.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <caption>The picks</caption>
+        <thead><tr><th>Concern</th><th>Choice</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="key">Hosting</td><td><b>Vercel Hobby</b>, function region <code>sin1</code></td><td><code>export const preferredRegion = 'sin1'</code>. A US default against a Singapore database costs ~400ms per render against a sub-millisecond query. <b>The one setting that must not be got wrong.</b></td></tr>
+          <tr><td class="key">Database</td><td><b>Supabase</b>, <code>ap-southeast-1</code></td><td>Transaction pooler on <code>:6543</code> with <code>prepare: false</code> for the app; direct <code>:5432</code> for migrations.</td></tr>
+          <tr><td class="key">Object storage</td><td><b>Supabase Storage</b></td><td>Signed upload URLs and image transforms in the same SDK, with its CDN in front.</td></tr>
+          <tr><td class="key">Auth</td><td><b>Auth.js v5</b> · Google · JWT · Drizzle adapter</td><td>Google-only is an already-resolved product decision; this is plumbing. Identity lives in <em>our</em> <code>users</code> table, where <code>photos.owner_id</code> already points.</td></tr>
+          <tr><td class="key">Errors</td><td><b>Sentry</b> free tier</td><td>Plus Vercel's own logs. That is the entire observability answer for MVP.</td></tr>
+          <tr><td class="key">Environments</td><td><code>grains-dev</code> + <code>grains-prod</code></td><td>Two Supabase projects, both free. No staging tier.</td></tr>
+          <tr><td class="key">Cost</td><td><b>$0</b> → ~$45/mo at launch</td><td>Supabase Pro $25 (which also ends the 7-day idle pause), Vercel Pro $20 if Hobby's terms become a problem.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 5 — deployment topology</span>
+      <svg viewBox="0 0 860 366" role="img" aria-label="Deployment topology: browser in Bangkok, Vercel and Supabase both in Singapore.">
+        <rect class="box-ghost" x="210" y="40" width="620" height="270"/>
+        <text class="t-cap" x="224" y="62">Singapore</text>
+
+        <rect class="box" x="20" y="130" width="120" height="70"/>
+        <text class="t-box" x="80" y="158" text-anchor="middle">Browser</text>
+        <text class="t-col" x="80" y="176" text-anchor="middle">Bangkok</text>
+
+        <rect class="box" x="240" y="100" width="230" height="120"/>
+        <text class="t-box" x="252" y="126">Vercel · sin1</text>
+        <text class="t-col" x="252" y="148">Next.js App Router</text>
+        <text class="t-col" x="252" y="163">RSC + Server Actions</text>
+        <text class="t-col" x="252" y="178">3 Route Handlers</text>
+        <text class="t-sig-s" x="252" y="199">preferredRegion = 'sin1'</text>
+
+        <rect class="box" x="530" y="90" width="270" height="190"/>
+        <text class="t-box" x="542" y="116">Supabase · ap-southeast-1</text>
+        <rect class="box-sunk" x="546" y="132" width="238" height="62"/>
+        <text class="t-box" x="558" y="154">Postgres 15 + PostGIS</text>
+        <text class="t-col" x="558" y="174">pooler :6543 · prepare: false</text>
+        <rect class="box-sunk" x="546" y="206" width="238" height="62"/>
+        <text class="t-box" x="558" y="228">Storage</text>
+        <text class="t-col" x="558" y="248">signed URLs · CDN</text>
+
+        <line class="ln" x1="140" y1="160" x2="236" y2="160" marker-end="url(#ar)"/>
+        <text class="t-col" x="176" y="152" text-anchor="middle">HTML / RSC</text>
+        <line class="ln" x1="470" y1="163" x2="542" y2="163" marker-end="url(#ar)"/>
+
+        <polyline class="ln-s" points="80,200 80,342 665,342 665,272" marker-end="url(#arS)"/>
+        <text class="t-sig" x="360" y="334">PUT the bytes directly — never transits the app server</text>
+
+        <rect class="box-ghost" x="20" y="40" width="120" height="48"/>
+        <text class="t-box" x="80" y="70" text-anchor="middle">Google OAuth</text>
+        <polyline class="ln-f" points="140,64 190,64 190,120 236,120" marker-end="url(#arF)"/>
+        <rect class="box-ghost" x="20" y="242" width="120" height="48"/>
+        <text class="t-box" x="80" y="272" text-anchor="middle">Sentry</text>
+        <polyline class="ln-f" points="140,266 190,266 190,206 236,206" marker-end="url(#arF)"/>
+      </svg>
+      <figcaption>Region co-location is the one piece of the old nine-topic backlog that was expensive to reverse, and it survives the prune untouched. Everything inside the dashed boundary is in the same region as everything else inside it; the only long link in the system is the user's own connection from Bangkok.</figcaption>
+    </figure>
+
+    <figure class="fig">
+      <span class="fig-no">Fig. 6 — sequence · photo upload</span>
+      <svg viewBox="0 0 860 390" role="img" aria-label="Sequence diagram of the signed-URL photo upload flow.">
+        <rect class="box" x="30" y="20" width="120" height="40"/>
+        <text class="t-box" x="90" y="45" text-anchor="middle">Browser</text>
+        <rect class="box" x="225" y="20" width="150" height="40"/>
+        <text class="t-box" x="300" y="45" text-anchor="middle">Server Action</text>
+        <rect class="box-sunk" x="485" y="20" width="150" height="40"/>
+        <text class="t-box" x="560" y="45" text-anchor="middle">Storage</text>
+        <rect class="box-sunk" x="725" y="20" width="120" height="40"/>
+        <text class="t-box" x="785" y="45" text-anchor="middle">Postgres</text>
+        <line class="life" x1="90" y1="60" x2="90" y2="370"/>
+        <line class="life" x1="300" y1="60" x2="300" y2="370"/>
+        <line class="life" x1="560" y1="60" x2="560" y2="370"/>
+        <line class="life" x1="785" y1="60" x2="785" y2="370"/>
+
+        <line class="ln" x1="90" y1="96" x2="296" y2="96" marker-end="url(#ar)"/>
+        <text class="t-note" x="100" y="90">requestUploadUrl(contentType, bytes)</text>
+
+        <polyline class="ln" points="300,116 352,116 352,140 304,140" marker-end="url(#ar)"/>
+        <text class="t-note" x="362" y="133">auth() · check the per-user upload cap</text>
+
+        <line class="ln" x1="300" y1="172" x2="94" y2="172" marker-end="url(#ar)"/>
+        <text class="t-note" x="100" y="166">signed PUT · pending/{userId}/{uuid} · 10 min TTL</text>
+
+        <line class="ln-s" x1="90" y1="210" x2="556" y2="210" marker-end="url(#arS)"/>
+        <text class="t-sig" x="100" y="204">PUT the bytes</text>
+
+        <rect class="box-sunk" x="60" y="226" width="600" height="40" style="stroke:var(--signal);stroke-dasharray:5 4;"/>
+        <text class="t-note" x="72" y="243">orphan window — a tab closed here leaves a billable object with no row</text>
+        <text class="t-note" x="72" y="258">pointing at it. A weekly cron sweeps pending/ older than 24h. Week two, not day one.</text>
+
+        <line class="ln" x1="90" y1="298" x2="296" y2="298" marker-end="url(#ar)"/>
+        <text class="t-note" x="100" y="292">confirmPhoto(key, metadata)</text>
+        <line class="ln" x1="300" y1="330" x2="556" y2="330" marker-end="url(#ar)"/>
+        <text class="t-note" x="310" y="324">move the object out of pending/</text>
+        <line class="ln" x1="300" y1="362" x2="781" y2="362" marker-end="url(#ar)"/>
+        <text class="t-note" x="310" y="356">INSERT the photos row</text>
+      </svg>
+      <figcaption>Step two has to run on the server because it is the only place that can check the session, enforce the per-user original-upload cap, and constrain content-type and maximum size <em>inside the signature itself</em>. Handing the browser unmediated bucket access would let anyone store anything. Supabase Storage has no lifecycle rules, so the orphan sweep is a cron job rather than a bucket setting — written down here so it is discovered in this document rather than on a bill.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ══════════════════════════════════════ 04 ══ -->
+  <section class="plain" id="api">
+    <h2>API surface</h2>
+    <p class="lede" style="margin-top:10px;">The one rule that places every new piece of behaviour: <b>reads render on the server, writes are Server Actions, and Route Handlers exist only for what the browser fetches after the page has loaded.</b></p>
+
+    <h3 class="sub">Server Component reads — no endpoint, no fetch</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Route</th><th>Query</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">/labs/[id]</td><td class="mono">getLab(id)</td><td>lab + processes + pricing matrix + scanners + services + supplies + contacts + inventory + atmosphere photos + badge counts</td></tr>
+          <tr><td class="mono">/labs?area=</td><td class="mono">searchLabs({ area, filters })</td><td>server-rendered first page for a named area — the geolocated search is the client path below</td></tr>
+          <tr><td class="mono">/films</td><td class="mono">listFilmStocks({ q, iso, format })</td><td>catalog rows + sample-photo counts</td></tr>
+          <tr><td class="mono">/films/[id]</td><td class="mono">getFilmStock · listGalleryPhotos</td><td>stock + its derived gallery</td></tr>
+          <tr><td class="mono">/u/[username]</td><td class="mono">getProfile(username)</td><td>user + their Photobooks (cover, title, artist's note)</td></tr>
+          <tr><td class="mono">/u/[username]/[slug]</td><td class="mono">getPhotobook(username, slug)</td><td>ordered items, each with metadata, <code>via @uploader</code> when the photo's owner differs from the book's, and <code>alsoAppearsIn</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Route Handlers — three, because only three are fetched after load</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Handler</th><th>Backs</th><th>Shape</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">GET /api/labs</td><td>geolocated search, every filter change, map pans, "widen radius", reverse search from a film page</td><td><code>{ labs: LabCard[], total }</code> — one statement, ordered <code>distance_m ASC, completeness DESC</code></td></tr>
+          <tr><td class="mono">GET /api/film-stocks</td><td>typeahead in the inventory picker and the photo metadata form</td><td><code>{ id, name, iso, formats }</code> + an <code>exact_match</code> flag the UI uses to offer "add it"</td></tr>
+          <tr><td class="mono">GET /api/labs/[id]/history</td><td>the edit log, lazily loaded below the fold</td><td>paginated over <code>edit_history</code> where <code>entity = 'lab'</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre class="code">GET /api/labs
+  lat, lng        required, floats
+  radius_m        default 5000
+  process[]       c41 | ecn2 | bw | e6      AND across values
+  scanner[]       model names               OR within
+  service[]       curated keys only         custom entries are not indexed, by design
+  film_stock_id   reverse search from /films/[id]
+  open_now        boolean, evaluated in Asia/Bangkok
+
+  → ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius_m)
+    filtered to status &lt;&gt; 'permanently_closed', EXISTS sub-clause per filter</pre>
+
+    <h3 class="sub">Server Actions — every write</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Action</th><th>Area</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">createLab</td><td>Labs</td><td>gates on name + pin + ≥1 process; writes <code>labs</code> + children + one <code>edit_history</code> row</td></tr>
+          <tr><td class="mono">updateLab</td><td>Labs</td><td><b>The only endpoint with real domain logic.</b> Version check, leaf-path diff, history row, <code>completeness</code> recomputed — all one transaction. 0 rows affected → <code>{ conflict: true }</code></td></tr>
+          <tr><td class="mono">setLabStatus</td><td>Labs</td><td>temporary override and "Mark as Closed" — a flag, never a delete</td></tr>
+          <tr><td class="mono">toggleLabBadge</td><td>Labs</td><td><code>INSERT … ON CONFLICT DO NOTHING</code> / <code>DELETE</code>; retraction <em>is</em> the delete</td></tr>
+          <tr><td class="mono">createFilmStock · updateFilmStock</td><td>Films</td><td>same version + history pattern; callable inline from the lab form</td></tr>
+          <tr><td class="mono">requestUploadUrl</td><td>Photos</td><td>session + cap check, then a signed PUT into <code>pending/</code> with content-type and size baked into the signature</td></tr>
+          <tr><td class="mono">confirmPhoto · confirmLabPhoto</td><td>Photos</td><td>separate actions on purpose — the second writes <code>lab_photos</code>, a different table</td></tr>
+          <tr><td class="mono">updatePhotoMetadata · deletePhoto</td><td>Photos</td><td>owner only. One canonical row, so an edit propagates everywhere it is Connected and a delete cascades</td></tr>
+          <tr><td class="mono">addToPhotobook</td><td>Photobooks</td><td><b>This is the Connection.</b> One insert; whether it counts as a Connection is read off <code>photos.owner_id</code>, not stored. Self-connection rejected</td></tr>
+          <tr><td class="mono">createPhotobook · updatePhotobook · deletePhotobook · removeFromPhotobook · reorderPhotobook</td><td>Photobooks</td><td>thin writes</td></tr>
+          <tr><td class="mono">claimUsername</td><td>Account</td><td>once, at first sign-in, before <code>/u/@username</code> exists</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="struck" style="margin-top:22px;">
+      <h3 class="sub" style="margin-top:0;">Not built for MVP</h3>
+      <ul>
+        <li>No public read API, and no second consumer to justify one.</li>
+        <li>No pagination beyond the edit log and the film gallery.</li>
+        <li>No rate limiting beyond the per-user upload cap.</li>
+        <li>No follow / feed endpoints — deferred post-MVP with the discovery model.</li>
+        <li>No moderation queue; every contribution goes live immediately.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ 05 ══ -->
+  <section class="plain" id="open">
+    <h2>Still open, and the build order</h2>
+
+    <h3 class="sub">Genuinely open — none of it blocks the first commit</h3>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><td class="key">Upload cap value</td><td>50 as a placeholder. A content decision, not an architecture one.</td></tr>
+          <tr><td class="key">Catalog rosters</td><td>Badges, services, supplies and scanner models are seeded in <code>schema.sql</code> as a starting set. They are rows, so changing them is not a migration.</td></tr>
+          <tr><td class="key">Reverse search → map filter</td><td>The schema and <code>/api/labs</code> already support <code>film_stock_id</code>. This is a UI question now.</td></tr>
+          <tr><td class="key">Orphan Photos on a profile</td><td>Where a Photo belonging to no Photobook surfaces on <code>/u/@username</code>. A design question.</td></tr>
+          <tr><td class="key">Bilingual strategy</td><td><code>name_en</code>/<code>name_th</code> are in the schema; the UI-copy approach (next-intl vs. a hand-rolled dictionary) is unresolved and cheap either way.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Build order — a ranking of tickets, not of decisions</h3>
+    <ol class="build">
+      <li><b>Scaffold.</b> <code>create-next-app</code>, Tailwind, shadcn/ui, Drizzle, Auth.js. Two Supabase projects. Deploy an empty page to Vercel on <code>sin1</code> and confirm the region. Update <code>CLAUDE.md</code> with the real commands in the same commit.</li>
+      <li><b>Migration 0001</b> — <code>schema.sql</code> verbatim, seeds included.</li>
+      <li><b>Google sign-in + claimUsername.</b> Everything that writes depends on a user row existing.</li>
+      <li><b>Labs read path.</b> <code>/api/labs</code> with <code>ST_DWithin</code>, then <code>/labs/[id]</code>. Seed ten real Bangkok labs by hand — a discovery product is untestable and unlaunchable without real rows, and ten real ones beat two hundred fake ones.</li>
+      <li><b>Labs write path.</b> <code>createLab</code> / <code>updateLab</code>, one form in two modes, version check, <code>edit_history</code>. The endpoint with actual invariants — give it the most care and the only tests worth writing early.</li>
+      <li><b>Film stocks</b> — catalog, inline add, <code>lab_stock</code> linkage, reverse search.</li>
+      <li class="ship"><b>Photos and Photobooks</b> — the upload flow above, then <code>/u/@username</code>, then Connections. <b style="color:var(--signal);">Ship here.</b></li>
+      <li><b>Badges.</b> One table, one toggle, an afternoon.</li>
+      <li><b>Sentry, then the pending/ cleanup cron.</b></li>
+    </ol>
+  </section>
+
+  <footer>
+    <p><b>Canonical sources —</b> <span class="mono">docs/00_BACKLOG.md</span> (decisions and rationale) · <span class="mono">docs/schema.sql</span> (the initial migration) · <span class="mono">docs/api-surface.md</span> (the full surface). Where this page and those files disagree, the files win.</p>
+    <p>Product requirements live in <span class="mono">docs/prd/</span>; domain vocabulary in <span class="mono">CONTEXT.md</span>. The former nine-topic backlog and its rendered ledger were deleted on 2026-09-06; both are recoverable from commit <span class="mono">5c930d9</span> if the rationale behind a pruned topic is ever wanted.</p>
+  </footer>
+
+</div>
