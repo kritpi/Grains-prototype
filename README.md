@@ -32,13 +32,17 @@ Influenced by street/editorial photographers (Saul Leiter, Cartier-Bresson, Vivi
 
 ## Tech stack
 
-Not yet decided. [docs/Idea.md](docs/Idea.md) suggests Next.js (App Router) + Tailwind + shadcn/ui on the frontend, Go or Next.js Server Actions on the backend, and PostgreSQL (Supabase) + PostGIS for geospatial queries — to be confirmed before scaffolding. See [docs/tech-decisions-backlog.md](docs/tech-decisions-backlog.md) for the ranked list of open decisions.
+**One Next.js application on Vercel, next to Postgres + PostGIS on Supabase — both in Singapore.** Server Components read the database directly, Server Actions handle every write, and SQL lives in one directory. Auth.js with Google sign-in. Photos upload straight to object storage via short-lived signed URLs and never transit the app server. No Redis, no staging tier, no infrastructure-as-code.
+
+Nothing is scaffolded yet. All three architecture decisions are made, with the rationale, the rejected options, and an explicit list of what was cut from the earlier nine-topic backlog — see [docs/00_BACKLOG.md](docs/00_BACKLOG.md).
 
 ## Docs
 
 - [docs/Idea.md](docs/Idea.md) — original product brief
 - [docs/backlog.md](docs/backlog.md) — what's resolved vs. still open across all features
-- [docs/tech-decisions-backlog.md](docs/tech-decisions-backlog.md) — ranked backlog of open infrastructure/architecture decisions
+- [docs/00_BACKLOG.md](docs/00_BACKLOG.md) — the three architecture decisions, what was cut, and the build order
+- [docs/schema.sql](docs/schema.sql) — the initial migration
+- [docs/api-surface.md](docs/api-surface.md) — every read, write and handler needed to put data behind the prototype
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
 - [docs/plans/](docs/plans/) — implementation plans awaiting review/execution
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary

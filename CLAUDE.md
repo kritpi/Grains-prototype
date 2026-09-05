@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository is in the requirements/design stage — no application code has been scaffolded yet, and there is no build system, package manager, linter, or test runner to document. Current docs: [docs/Idea.md](docs/Idea.md) (original product brief), [CONTEXT.md](CONTEXT.md) (domain vocabulary), [docs/backlog.md](docs/backlog.md) (resolved vs. open product decisions), [docs/tech-decisions-backlog.md](docs/tech-decisions-backlog.md) (ranked backlog of open infrastructure/architecture decisions), [docs/prd/](docs/prd/) (per-feature PRDs with decision rationale), and [docs/html-virtualization/](docs/html-virtualization/) (exploratory HTML output). See [README.md](README.md) for the full map. Once the project is scaffolded (frontend/backend/database), update this file with the actual commands (dev server, build, lint, test — including how to run a single test) and remove this section.
+This repository is in the requirements/design stage — no application code has been scaffolded yet, and there is no build system, package manager, linter, or test runner to document. Current docs: [docs/Idea.md](docs/Idea.md) (original product brief), [CONTEXT.md](CONTEXT.md) (domain vocabulary), [docs/backlog.md](docs/backlog.md) (resolved vs. open product decisions), [docs/00_BACKLOG.md](docs/00_BACKLOG.md) (the three architecture decisions, with what was cut and why), [docs/schema.sql](docs/schema.sql) (the initial migration), [docs/api-surface.md](docs/api-surface.md) (Server Components / Server Actions / Route Handlers), [docs/prd/](docs/prd/) (per-feature PRDs with decision rationale), and [docs/html-virtualization/](docs/html-virtualization/) (exploratory HTML output). See [README.md](README.md) for the full map. Once the project is scaffolded (frontend/backend/database), update this file with the actual commands (dev server, build, lint, test — including how to run a single test) and remove this section.
 
 Domain vocabulary (canonical terms and what to avoid) is tracked in [CONTEXT.md](CONTEXT.md), not here — check it before introducing new terminology. Per-feature requirements decisions live in [docs/prd/](docs/prd/), not here — where a PRD and Idea.md disagree, the PRD is canonical.
 
@@ -53,10 +53,16 @@ Grains is a crowdsourced platform for finding film-developing labs ("film labs")
 
 - Google OAuth 2.0 only — no email/password sign-in or account creation flow. The sign-in surface shows a single "Continue with Google" action.
 
-## Suggested tech stack (not yet implemented)
+## Tech stack (decided, not yet scaffolded)
 
-- Frontend: Next.js (App Router), Tailwind CSS, shadcn/ui
-- Backend/API: Go, or Next.js Server Actions / API Routes
-- Database: PostgreSQL (Supabase) + PostGIS extension for distance/proximity queries
+Decided in [docs/00_BACKLOG.md](docs/00_BACKLOG.md), which carries the rationale, the options rejected, and the costs accepted for each. Do not re-litigate these without reading that file first.
 
-This stack is a starting suggestion from Idea.md, not a locked-in decision — confirm with the user before scaffolding.
+- **One Next.js application** — App Router, Tailwind, shadcn/ui. Server Components for reads, Server Actions for writes, Route Handlers only for what the browser fetches after load. No separate backend service, no OpenAPI contract, no codegen.
+- **SQL lives only in `lib/queries/`.** Pages, actions and handlers call those functions; none of them write SQL inline. This is the one layering rule.
+- **Database:** PostgreSQL + PostGIS on Supabase (Singapore), via Drizzle. Migrations are raw `.sql`. PostGIS is kept for query *correctness*, not performance — do not cite speed as its justification. Schema: [docs/schema.sql](docs/schema.sql).
+- **Hosting:** Vercel, function region `sin1`, co-located with the database. Region is the one setting that must not be got wrong.
+- **Auth:** Auth.js v5, Google provider, JWT session, Drizzle adapter — identity lives in our own `users` table.
+- **Photos:** uploaded directly to Supabase Storage via short-lived signed URLs, never through the app server.
+- **No Redis, no staging tier, no Terraform** — all deliberately cut; see the cut table in 00_BACKLOG.md before reintroducing any of them.
+
+Three invariants are enforced by the schema rather than by code, and must stay that way: `photos` has no `lab_id` column; `lab_pricing` foreign-keys to `(lab_id, process)`; only curated services/supplies are indexed.
