@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Instrument_Serif } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { cn } from "@/lib/utils";
@@ -26,8 +27,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={cn(sans.variable, serif.variable)}>
       <body>
-        <SiteHeader />
-        {children}
+        {/* Map viewport and lab filters live in the URL rather than in React
+            state, so a search can be linked to and restored. nuqs needs this
+            adapter above every component that reads or writes a query param. */}
+        <NuqsAdapter>
+          <SiteHeader />
+          {children}
+        </NuqsAdapter>
       </body>
     </html>
   );

@@ -2,6 +2,9 @@
 node_modules/
 pnpm-lock.yaml
 
+# Copied out of node_modules at install time, not authored here.
+public/maplibre/
+
 # Prose and planning artefacts are hand-authored; their line breaks and
 # emphasis style are the author's, not Prettier's.
 *.md

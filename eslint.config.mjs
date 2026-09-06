@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendor bundles copied out of node_modules at install time by
+    // scripts/copy-maplibre-worker.mjs — minified, not ours to lint.
+    "public/maplibre/**",
   ]),
 ]);
 
