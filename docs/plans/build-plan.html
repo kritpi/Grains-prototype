@@ -42,6 +42,15 @@
   ul.check li{padding-left:26px;position:relative}
   ul.check li::before{content:"";position:absolute;left:0;top:5px;width:12px;height:12px;
       border:1px solid var(--ink);background:#fff}
+  ul.check li.ok{color:var(--ash)}
+  ul.check li.ok::before{background:var(--ink)}
+  ul.check li.ok::after{content:"";position:absolute;left:2.5px;top:8px;width:7px;height:3.5px;
+      border-left:1.5px solid var(--paper);border-bottom:1.5px solid var(--paper);
+      transform:rotate(-45deg)}
+  .tag.done{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tag.wip{color:var(--flag);border-color:var(--flag)}
+  .sha{font:400 11px ui-monospace,monospace;color:var(--faint)}
+  p a,li a,td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--hair)}
   .note{border-left:2px solid var(--flag);padding:2px 0 2px 14px;color:var(--ash);
         margin:18px 0;max-width:74ch}
   .phase{border:1px solid var(--hair);padding:18px 20px;margin:0 0 14px;background:#fff}
@@ -69,6 +78,13 @@
 
 <div class="note">The brief arrived truncated between "Data Access Layer (DAL): labs" and "Ticket 2", and it names Phases 1 and 2 only. Tickets 0 and 1 are reconstructed from 00_BACKLOG.md's build order items 1 and 2 (Ticket 2 = item 3). Phases 3 and 4 cover the rest of that build order — film stocks, badges, Sentry, the cleanup cron, launch — so every deliverable has a home. One build-order item the brief leaves unassigned, <strong>film stocks</strong>, is given to Track B (P15). The brief also names MapLibre GL JS, CARTO Positron tiles and nuqs, which the docs don't yet carry; Ticket 0 records them.</div>
 
+<div class="done">
+<h5>Progress · updated 2026-09-06</h5>
+<p><strong>Phase 1 is finished on the laptop but not on Vercel.</strong> The scaffold, the migration, the schema mirror, the invariant tests and Google sign-in with the one-time username claim are all done and merged to <code>develop</code>. What the phase's exit criterion actually asks for — a signed-in user with a claimed username <em>on prod</em> — is unmet, because nothing has been deployed yet. So <code>sin1</code>, the production callback URL and the prod <code>/api/health</code> checks in Ticket 0 and Ticket 1 remain unproven.</p>
+<p><strong>Phase 2 has started, sequenced A and C in parallel with B after,</strong> rather than all three at once: B's pin picker waits on A's <code>BaseMap</code> (P16) and B owns the riskiest artefact in the phase, so it gets undivided attention once the map exists. Worktrees were cut from <code>develop</code>, not <code>origin/main</code> as the mechanics below say — Phase 1 landed on <code>develop</code> and CI runs there.</p>
+<p><strong>Track A is through A4</strong> (<code>claude/track-a-discovery</code>, pushed). A7 is further along than its position implies: radius correctness, filter semantics, closed-lab exclusion and open-now all have tests already. Decisions taken that depart from this plan, the two facts Track B needs before it imports anything, and the failures that cost the most time are recorded in <code>docs/plans/track-a-progress.md</code>, which lives on that branch and arrives here when it merges.</p>
+</div>
+
 <h3>Invariants acknowledged</h3>
 <ol>
   <li><strong>Workspace safety.</strong> Every file lands in this repository; scaffolding goes through an in-repo temporary directory.</li>
@@ -84,8 +100,8 @@
 <h2 id="shape">Shape of the whole build</h2>
 <div class="scroll"><table>
 <tr><th></th><th>Phase</th><th>Goal</th><th>Size <span class="tag est">est.</span></th><th>Exit criterion</th></tr>
-<tr><td class="id">1</td><td><strong>Foundation</strong> — sequential on main</td><td>Deployed empty app, schema applied, Google sign-in</td><td>3–5 days</td><td>A signed-in user with a claimed username exists on prod</td></tr>
-<tr><td class="id">2</td><td><strong>Parallel tracks</strong> — three worktrees</td><td>Labs read (A), labs write + film stocks (B), photos + photobooks (C)</td><td>3–4 weeks wall clock</td><td>All three tracks merged to main</td></tr>
+<tr><td class="id">1</td><td><strong>Foundation</strong> — sequential on main <span class="tag done">done, not deployed</span></td><td>Deployed empty app, schema applied, Google sign-in</td><td>3–5 days</td><td>A signed-in user with a claimed username exists on prod</td></tr>
+<tr><td class="id">2</td><td><strong>Parallel tracks</strong> — three worktrees <span class="tag wip">in progress</span></td><td>Labs read (A), labs write + film stocks (B), photos + photobooks (C)</td><td>3–4 weeks wall clock</td><td>All three tracks merged to main</td></tr>
 <tr><td class="id">3</td><td><strong>Integration &amp; ship</strong> — sequential on main</td><td>Compose film pages, badges, shell, real data, launch</td><td>1–2 weeks</td><td>A stranger can use the production URL end to end</td></tr>
 <tr><td class="id">4</td><td><strong>Post-launch</strong></td><td>Sentry, pending/ cleanup cron, paid tiers when triggered, open product items</td><td>ongoing</td><td>—</td></tr>
 </table></div>
@@ -119,7 +135,7 @@
 <tr><td class="id">P23</td><td><strong><code>next/image</code> custom loader</strong> pointing at Supabase image transforms.</td><td>The true-aspect grid needs width-only resizing.</td></tr>
 </table></div>
 
-<h2 id="p1">Phase 1 — Foundation</h2>
+<h2 id="p1">Phase 1 — Foundation <span class="tag done">done, not deployed</span></h2>
 <p class="lede">Sequential on <code>main</code>. Three tickets, three PRs, three to five days.</p>
 
 <h3>Ticket 0 — Scaffold &amp; deploy <span class="tag est">≈1 day</span></h3>
@@ -406,7 +422,7 @@ pnpm add next-auth@beta @auth/drizzle-adapter</code></pre>
 </ul>
 </div>
 
-<h2 id="p2">Phase 2 — Parallel feature tracks</h2>
+<h2 id="p2">Phase 2 — Parallel feature tracks <span class="tag wip">in progress</span></h2>
 <p class="lede">Three git worktrees cut from <code>main</code> after Ticket 2 merges. Three to four weeks wall clock. Each track ships several PRs; merge order is <strong>A → B → C</strong>.</p>
 
 <div class="phase">
@@ -432,15 +448,15 @@ git worktree add .claude/worktrees/media     -b claude/track-c-media     origin/
 <tr><td class="id">C</td><td>Media &amp; photobooks</td><td><code>lib/storage.ts</code> · <code>lib/image-loader.ts</code> · <code>lib/queries/photos.ts</code> · <code>lib/queries/books.ts</code> · <code>app/photos/actions.ts</code> · <code>app/u/**</code> · <code>components/upload/**</code> · <code>components/photobook/**</code></td></tr>
 </table></div>
 
-<h3>Track A — Lab Discovery &amp; Map <span class="tag est">≈1.5–2 weeks</span></h3>
+<h3>Track A — Lab Discovery &amp; Map <span class="tag est">≈1.5–2 weeks</span> <span class="tag wip">A1–A4 done</span></h3>
 <div class="phase">
 <h4>Steps</h4>
 <div class="who">worktree discovery · build order item 4</div>
 <ul class="check">
-  <li><strong>A1</strong> <code>pnpm add maplibre-gl nuqs</code>; <code>NuqsAdapter</code> in layout. <strong>First PR:</strong> <code>components/map/BaseMap.tsx</code> — client, MapLibre, CARTO Positron style <code>https://basemaps.cartocdn.com/gl/positron-gl-style/style.json</code>, CARTO + OSM attribution. Small and early (P16) so Track B can import it.</li>
-  <li><strong>A2</strong> <code>lib/queries/labs.ts</code>: <code>searchLabs({ lat, lng, radiusM, process[], scanner[], service[], filmStockId, openNow })</code> — one statement: <code>ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius)</code>, <code>status &lt;&gt; 'permanently_closed'</code>, <code>EXISTS</code> per filter (process AND, scanner OR, curated service keys only), <code>open_now</code> evaluated in SQL against <code>Asia/Bangkok</code>, ordered <code>distance_m ASC, completeness DESC</code>, returning <code>LabCard[]</code> + total. <code>getLab(id)</code>: parallel small selects for children; permanently-closed still returned. <code>listLabHistory(id, cursor)</code>.</li>
-  <li><strong>A3</strong> <code>app/api/labs/route.ts</code> (zod-parsed params → <code>searchLabs</code>) and <code>app/api/labs/[id]/history/route.ts</code>.</li>
-  <li><strong>A4</strong> <code>/labs</code>: Server Component first render for <code>?area=</code>; client <code>LabMap</code> + result list bound to nuqs URL state (<code>lat lng r process scanner service open</code>); geolocate button; filter panel; "widen radius" prompt; both PRD empty states (no labs at all → add the first; no match → near-miss list).</li>
+  <li class="ok"><span class="sha">4373ab7</span> <strong>A1</strong> <code>pnpm add maplibre-gl nuqs</code>; <code>NuqsAdapter</code> in layout. <strong>First PR:</strong> <code>components/map/BaseMap.tsx</code> — client, MapLibre, CARTO Positron style <code>https://basemaps.cartocdn.com/gl/positron-gl-style/style.json</code>, CARTO + OSM attribution. Small and early (P16) so Track B can import it.</li>
+  <li class="ok"><span class="sha">39c0fbb</span> <strong>A2</strong> <code>lib/queries/labs.ts</code>: <code>searchLabs({ lat, lng, radiusM, process[], scanner[], service[], filmStockId, openNow })</code> — one statement: <code>ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius)</code>, <code>status &lt;&gt; 'permanently_closed'</code>, <code>EXISTS</code> per filter (process AND, scanner OR, curated service keys only), <code>open_now</code> evaluated in SQL against <code>Asia/Bangkok</code>, ordered <code>distance_m ASC, completeness DESC</code>, returning <code>LabCard[]</code> + total. <code>getLab(id)</code>: parallel small selects for children; permanently-closed still returned. <code>listLabHistory(id, cursor)</code>.</li>
+  <li class="ok"><span class="sha">b9826e3</span> <strong>A3</strong> <code>app/api/labs/route.ts</code> (zod-parsed params → <code>searchLabs</code>) and <code>app/api/labs/[id]/history/route.ts</code>.</li>
+  <li class="ok"><span class="sha">c96a9a8</span> <strong>A4</strong> <code>/labs</code>: Server Component first render for <code>?area=</code>; client <code>LabMap</code> + result list bound to nuqs URL state (<code>lat lng r process scanner service open</code>); geolocate button; filter panel; "widen radius" prompt; both PRD empty states (no labs at all → add the first; no match → near-miss list).</li>
   <li><strong>A5</strong> <code>/labs/[id]</code>: pricing matrix distinguishing blank from not offered; hours + open-now; contacts; curated + custom services and supplies; inventory; atmosphere photos; badge counts (read-only until Phase 3); edit log below the fold via the history handler.</li>
   <li><strong>A6</strong> Seed: <code>db/seed/bangkok-labs.sql</code> — 10 real labs (<span class="tag human">Human</span> supplies names, pins and prices; agent formats), a seed user row, <code>pnpm db:seed</code> script (P21).</li>
   <li><strong>A7</strong> Tests <code>tests/queries/labs.test.ts</code>: radius correctness (4.9 km in, 5.1 km out — the reason PostGIS exists); AND/OR filter semantics; closed-lab exclusion; open-now at a fixed Bangkok time.</li>
@@ -453,7 +469,7 @@ git worktree add .claude/worktrees/media     -b claude/track-c-media     origin/
 </ul></div>
 </div>
 
-<h3>Track B — Curation &amp; Invariants <span class="tag est">≈2 weeks</span></h3>
+<h3>Track B — Curation &amp; Invariants <span class="tag est">≈2 weeks</span> <span class="tag wip">not started</span></h3>
 <div class="phase">
 <h4>Steps</h4>
 <div class="who">worktree directory · build order items 5 and 6</div>
@@ -473,7 +489,7 @@ git worktree add .claude/worktrees/media     -b claude/track-c-media     origin/
 </ul></div>
 </div>
 
-<h3>Track C — Media &amp; Photobooks <span class="tag est">≈2–3 weeks</span></h3>
+<h3>Track C — Media &amp; Photobooks <span class="tag est">≈2–3 weeks</span> <span class="tag wip">not started</span></h3>
 <div class="phase">
 <h4>Steps</h4>
 <div class="who">worktree media · build order item 7</div>
