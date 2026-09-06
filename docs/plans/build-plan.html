@@ -47,6 +47,10 @@
   ul.check li.ok::after{content:"";position:absolute;left:2.5px;top:8px;width:7px;height:3.5px;
       border-left:1.5px solid var(--paper);border-bottom:1.5px solid var(--paper);
       transform:rotate(-45deg)}
+  ul.check li.branch{color:var(--ash)}
+  ul.check li.branch::after{content:"";position:absolute;left:2.5px;top:8px;width:7px;height:3.5px;
+      border-left:1.5px solid var(--flag);border-bottom:1.5px solid var(--flag);
+      transform:rotate(-45deg)}
   .tag.done{background:var(--ink);color:var(--paper);border-color:var(--ink)}
   .tag.wip{color:var(--flag);border-color:var(--flag)}
   .sha{font:400 11px ui-monospace,monospace;color:var(--faint)}
@@ -84,6 +88,8 @@
 <p><strong>Phase 2 has started, sequenced A and C in parallel with B after,</strong> rather than all three at once: B's pin picker waits on A's <code>BaseMap</code> (P16) and B owns the riskiest artefact in the phase, so it gets undivided attention once the map exists. Worktrees were cut from <code>develop</code>, not <code>origin/main</code> as the mechanics below say — Phase 1 landed on <code>develop</code> and CI runs there.</p>
 <p><strong>Track A is through A4</strong> (<code>claude/track-a-discovery</code>, pushed). A7 is further along than its position implies: radius correctness, filter semantics, closed-lab exclusion and open-now all have tests already. Decisions taken that depart from this plan, the two facts Track B needs before it imports anything, and the failures that cost the most time are recorded in <code>docs/plans/track-a-progress.md</code>, which lives on that branch and arrives here when it merges.</p>
 </div>
+
+<p class="lede" style="margin-top:14px"><strong>Reading the checkboxes.</strong> A black tick is merged into <code>develop</code> and present in its tree. A <span style="color:var(--flag)">red</span> tick is finished and pushed on its own branch but <em>not</em> merged here, so the code it describes is not in this checkout. An empty box is not started.</p>
 
 <h3>Invariants acknowledged</h3>
 <ol>
@@ -448,15 +454,15 @@ git worktree add .claude/worktrees/media     -b claude/track-c-media     origin/
 <tr><td class="id">C</td><td>Media &amp; photobooks</td><td><code>lib/storage.ts</code> · <code>lib/image-loader.ts</code> · <code>lib/queries/photos.ts</code> · <code>lib/queries/books.ts</code> · <code>app/photos/actions.ts</code> · <code>app/u/**</code> · <code>components/upload/**</code> · <code>components/photobook/**</code></td></tr>
 </table></div>
 
-<h3>Track A — Lab Discovery &amp; Map <span class="tag est">≈1.5–2 weeks</span> <span class="tag wip">A1–A4 done</span></h3>
+<h3>Track A — Lab Discovery &amp; Map <span class="tag est">≈1.5–2 weeks</span> <span class="tag wip">A1–A4 done · unmerged</span></h3>
 <div class="phase">
 <h4>Steps</h4>
 <div class="who">worktree discovery · build order item 4</div>
 <ul class="check">
-  <li class="ok"><span class="sha">4373ab7</span> <strong>A1</strong> <code>pnpm add maplibre-gl nuqs</code>; <code>NuqsAdapter</code> in layout. <strong>First PR:</strong> <code>components/map/BaseMap.tsx</code> — client, MapLibre, CARTO Positron style <code>https://basemaps.cartocdn.com/gl/positron-gl-style/style.json</code>, CARTO + OSM attribution. Small and early (P16) so Track B can import it.</li>
-  <li class="ok"><span class="sha">39c0fbb</span> <strong>A2</strong> <code>lib/queries/labs.ts</code>: <code>searchLabs({ lat, lng, radiusM, process[], scanner[], service[], filmStockId, openNow })</code> — one statement: <code>ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius)</code>, <code>status &lt;&gt; 'permanently_closed'</code>, <code>EXISTS</code> per filter (process AND, scanner OR, curated service keys only), <code>open_now</code> evaluated in SQL against <code>Asia/Bangkok</code>, ordered <code>distance_m ASC, completeness DESC</code>, returning <code>LabCard[]</code> + total. <code>getLab(id)</code>: parallel small selects for children; permanently-closed still returned. <code>listLabHistory(id, cursor)</code>.</li>
-  <li class="ok"><span class="sha">b9826e3</span> <strong>A3</strong> <code>app/api/labs/route.ts</code> (zod-parsed params → <code>searchLabs</code>) and <code>app/api/labs/[id]/history/route.ts</code>.</li>
-  <li class="ok"><span class="sha">c96a9a8</span> <strong>A4</strong> <code>/labs</code>: Server Component first render for <code>?area=</code>; client <code>LabMap</code> + result list bound to nuqs URL state (<code>lat lng r process scanner service open</code>); geolocate button; filter panel; "widen radius" prompt; both PRD empty states (no labs at all → add the first; no match → near-miss list).</li>
+  <li class="branch"><span class="sha">4373ab7</span> <strong>A1</strong> <code>pnpm add maplibre-gl nuqs</code>; <code>NuqsAdapter</code> in layout. <strong>First PR:</strong> <code>components/map/BaseMap.tsx</code> — client, MapLibre, CARTO Positron style <code>https://basemaps.cartocdn.com/gl/positron-gl-style/style.json</code>, CARTO + OSM attribution. Small and early (P16) so Track B can import it.</li>
+  <li class="branch"><span class="sha">39c0fbb</span> <strong>A2</strong> <code>lib/queries/labs.ts</code>: <code>searchLabs({ lat, lng, radiusM, process[], scanner[], service[], filmStockId, openNow })</code> — one statement: <code>ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius)</code>, <code>status &lt;&gt; 'permanently_closed'</code>, <code>EXISTS</code> per filter (process AND, scanner OR, curated service keys only), <code>open_now</code> evaluated in SQL against <code>Asia/Bangkok</code>, ordered <code>distance_m ASC, completeness DESC</code>, returning <code>LabCard[]</code> + total. <code>getLab(id)</code>: parallel small selects for children; permanently-closed still returned. <code>listLabHistory(id, cursor)</code>.</li>
+  <li class="branch"><span class="sha">b9826e3</span> <strong>A3</strong> <code>app/api/labs/route.ts</code> (zod-parsed params → <code>searchLabs</code>) and <code>app/api/labs/[id]/history/route.ts</code>.</li>
+  <li class="branch"><span class="sha">c96a9a8</span> <strong>A4</strong> <code>/labs</code>: Server Component first render for <code>?area=</code>; client <code>LabMap</code> + result list bound to nuqs URL state (<code>lat lng r process scanner service open</code>); geolocate button; filter panel; "widen radius" prompt; both PRD empty states (no labs at all → add the first; no match → near-miss list).</li>
   <li><strong>A5</strong> <code>/labs/[id]</code>: pricing matrix distinguishing blank from not offered; hours + open-now; contacts; curated + custom services and supplies; inventory; atmosphere photos; badge counts (read-only until Phase 3); edit log below the fold via the history handler.</li>
   <li><strong>A6</strong> Seed: <code>db/seed/bangkok-labs.sql</code> — 10 real labs (<span class="tag human">Human</span> supplies names, pins and prices; agent formats), a seed user row, <code>pnpm db:seed</code> script (P21).</li>
   <li><strong>A7</strong> Tests <code>tests/queries/labs.test.ts</code>: radius correctness (4.9 km in, 5.1 km out — the reason PostGIS exists); AND/OR filter semantics; closed-lab exclusion; open-now at a fixed Bangkok time.</li>
