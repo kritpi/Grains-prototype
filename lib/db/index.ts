@@ -11,18 +11,34 @@ import * as schema from "./schema";
  * Supabase's transaction pooler on port 6543, which hands a different backend
  * to each transaction and so cannot honour named prepared statements.
  *
- * The connection is cached on globalThis in development because Next's dev
- * server re-evaluates modules on every edit, and a fresh pool per edit
- * exhausts the connection limit within a few minutes.
+ * Both the connection and the Drizzle instance are cached on globalThis in
+ * development, because Next's dev server re-evaluates modules on every edit
+ * and a fresh pool per edit exhausts the connection limit within minutes.
  */
+type Database = ReturnType<typeof drizzle<typeof schema>>;
+
 const globalForDb = globalThis as unknown as {
-  grainsClient?: postgres.Sql;
+  grainsDb?: Database;
 };
 
-function client(): postgres.Sql {
-  if (globalForDb.grainsClient) return globalForDb.grainsClient;
+/**
+ * Connecting is deferred to the first call rather than done at import.
+ *
+ * Reading the environment during import would fail any module that merely
+ * imports a query — `next build` runs without a database — and would surface
+ * a missing DATABASE_URL as an opaque 500 instead of an error the caller can
+ * report.
+ *
+ * This is a function rather than a lazily-proxied object on purpose. A proxy
+ * reads more nicely at the call site, but it does not survive the identity
+ * checks libraries make: the Auth.js Drizzle adapter detects the dialect from
+ * the client's class, and a proxy that binds methods hides it, failing with
+ * "Unsupported database type (object)". Explicit is cheaper than clever here.
+ */
+export function getDb(): Database {
+  if (globalForDb.grainsDb) return globalForDb.grainsDb;
 
-  const sql = postgres(env().DATABASE_URL, {
+  const client = postgres(env().DATABASE_URL, {
     prepare: false,
     ssl: "require",
     // Serverless invocations are short-lived; a large pool per instance buys
@@ -30,38 +46,9 @@ function client(): postgres.Sql {
     max: 5,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.grainsClient = sql;
-  }
-
-  return sql;
+  const db = drizzle(client, { schema });
+  globalForDb.grainsDb = db;
+  return db;
 }
-
-type Database = ReturnType<typeof drizzle<typeof schema>>;
-
-let instance: Database | undefined;
-
-function database(): Database {
-  instance ??= drizzle(client(), { schema });
-  return instance;
-}
-
-/**
- * Connecting is deferred to first use rather than done at import.
- *
- * Building the client here at module scope would read the environment during
- * import, so a missing DATABASE_URL would crash any module that merely
- * imports a query — during `next build`, or as an opaque 500 instead of the
- * handled error a caller can report. The proxy keeps `db.select(...)` reading
- * exactly like a normal client while moving that failure inside the request.
- */
-export const db = new Proxy({} as Database, {
-  get(_target, property, receiver) {
-    const value = Reflect.get(database(), property, receiver) as unknown;
-    // Drizzle's methods depend on `this`; hand back a bound copy so the proxy
-    // never becomes the receiver.
-    return typeof value === "function" ? value.bind(database()) : value;
-  },
-});
 
 export type Db = Database;

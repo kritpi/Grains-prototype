@@ -56,6 +56,23 @@ tests/                  Vitest; tests/db/ run against grains-dev
 docs/                   requirements, architecture and plans — see README.md
 ```
 
+## Auth
+
+Google only — there is no email/password path and no account creation flow.
+`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are Auth.js conventions, not ours: it
+auto-discovers `AUTH_<PROVIDER>_ID`/`_SECRET`. `AUTH_SECRET` signs the session
+and comes from `openssl rand -base64 32`.
+
+The session is a JWT carrying the user id and nothing else. Copying the
+username in would freeze it at sign-in, so `currentUser()` reads the row
+instead, cached per request. Authorisation is ownership checks in Server
+Actions; there is no RLS and no policy layer.
+
+Google's authorised redirect URIs must include
+`http://localhost:3000/api/auth/callback/google` for local work, and the
+production domain's equivalent. Preview deployments get a different hostname
+each time and therefore cannot sign in.
+
 ## Environment
 
 Copy `.env.example` to `.env.local` and fill it from the Supabase dashboard.
@@ -94,6 +111,13 @@ infrastructure, not product API; the product Route Handlers are the three in
 - **No dark mode.** The palette is light only and `--radius` is 0. Both are
   enforced in `app/globals.css` rather than per component.
 - **Prose is not formatted.** Markdown and `docs/` are excluded from Prettier.
+- **Every write starts with `requireUser()`** (`lib/auth.ts`). It returns a user
+  who is signed in *and* has claimed a username, so no caller has to handle the
+  half-registered state.
+- **Reach the database through `getDb()`**, not a module-level client. Reading
+  the environment at import breaks `next build`, which runs without one. It is
+  a function rather than a lazily-proxied object because a proxy hides the
+  client's class from libraries that detect the dialect from it.
 
 Domain vocabulary (canonical terms and what to avoid) is tracked in [CONTEXT.md](CONTEXT.md), not here — check it before introducing new terminology. Per-feature requirements decisions live in [docs/prd/](docs/prd/), not here — where a PRD and Idea.md disagree, the PRD is canonical. The build plan, phase by phase, is [docs/plans/build-plan.html](docs/plans/build-plan.html).
 

@@ -20,6 +20,16 @@ const schema = z.object({
    * the direct db.<ref> host is IPv6-only on the free tier.
    */
   DIRECT_URL: z.url(),
+
+  /**
+   * Auth.js v5. The names are its convention, not ours: it auto-discovers
+   * AUTH_<PROVIDER>_ID and AUTH_<PROVIDER>_SECRET, so the Google provider
+   * needs no explicit configuration.
+   */
+  AUTH_GOOGLE_ID: z.string().min(1),
+  AUTH_GOOGLE_SECRET: z.string().min(1),
+  /** Signs the session cookie. `openssl rand -base64 32`. */
+  AUTH_SECRET: z.string().min(32),
 });
 
 export type Env = z.infer<typeof schema>;
