@@ -17,9 +17,21 @@ Database (all read `DIRECT_URL`, the session pooler on port 5432):
 
 ```bash
 pnpm db:generate --name <name>   # creates an EMPTY migration to hand-write; --custom is deliberate
-pnpm db:migrate                  # apply pending migrations
+pnpm db:migrate                  # apply pending migrations to grains-dev
 pnpm db:studio                   # browse the database
 ```
+
+Production is a separate, deliberate command that refuses to run until it is
+told which project it is about to change:
+
+```bash
+GRAINS_CONFIRM_PROD=postgres.<prod-project-ref> pnpm db:migrate:prod
+```
+
+It reads `DIRECT_URL_PROD`. Selecting the target with a variable alone was not
+enough of a guard — one stray value migrated production unintentionally during
+Ticket 1 — so the confirmation token must match the database user, which means
+confirming requires reading which project is named.
 
 Tests:
 
@@ -73,9 +85,12 @@ infrastructure, not product API; the product Route Handlers are the three in
   Nothing generates `lib/db/schema.ts` from a migration or the reverse, so a
   migration and the schema file change in the same pull request — that parity
   is a review item, not something a tool checks.
-- **Production migrations are run by hand**, from a laptop, never on build:
-  `DIRECT_URL=<prod> pnpm db:migrate`. With two databases behind one repository,
-  a build hook that migrates is a footgun.
+- **Production migrations are run by hand**, from a laptop, never on build, and
+  never without the confirmation token above. With two databases behind one
+  repository, a build hook that migrates is a footgun.
+- **The deployed app never reads the `_PROD` variables.** It reads
+  `DATABASE_URL`, which Vercel sets per environment. `DIRECT_URL_PROD` exists
+  only so a laptop can migrate production.
 - **No dark mode.** The palette is light only and `--radius` is 0. Both are
   enforced in `app/globals.css` rather than per component.
 - **Prose is not formatted.** Markdown and `docs/` are excluded from Prettier.

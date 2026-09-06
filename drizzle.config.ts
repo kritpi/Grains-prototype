@@ -24,12 +24,48 @@ if (existsSync(".env.local")) {
   process.loadEnvFile(".env.local");
 }
 
-const url = process.env.DIRECT_URL;
+/**
+ * Which database to migrate. Defaults to development; production is opt-in
+ * through `pnpm db:migrate:prod`, never by editing a variable, so migrating
+ * production is always a deliberate act rather than a consequence of whatever
+ * DIRECT_URL happened to hold.
+ */
+const target = process.env.GRAINS_DB_TARGET === "prod" ? "prod" : "dev";
+const variable = target === "prod" ? "DIRECT_URL_PROD" : "DIRECT_URL";
+const url = process.env[variable];
+
 if (!url) {
   throw new Error(
-    "DIRECT_URL is not set. Copy .env.example to .env.local and fill it in — see CLAUDE.md.",
+    `${variable} is not set. Copy .env.example to .env.local and fill it in — see CLAUDE.md.`,
   );
 }
+
+/**
+ * Production needs a second, explicit confirmation naming the project.
+ *
+ * Selecting the target with an environment variable alone is not enough of a
+ * guard: it takes one stray `GRAINS_DB_TARGET=prod` to migrate production
+ * without meaning to, which is exactly how this file's first version was
+ * written. The token has to match the database user, so confirming requires
+ * looking at which project is about to change rather than pressing through a
+ * prompt.
+ */
+if (target === "prod") {
+  const account = new URL(url).username;
+  if (process.env.GRAINS_CONFIRM_PROD !== account) {
+    throw new Error(
+      `Refusing to touch PRODUCTION (${new URL(url).host}, ${account}).\n` +
+        `Re-run naming the project explicitly:\n\n` +
+        `  GRAINS_CONFIRM_PROD=${account} pnpm db:migrate:prod\n`,
+    );
+  }
+}
+
+// Print the host, never the credentials, so it is obvious which database is
+// about to be changed.
+console.log(
+  `drizzle-kit target: ${target.toUpperCase()} (${new URL(url).host})`,
+);
 
 export default defineConfig({
   dialect: "postgresql",
