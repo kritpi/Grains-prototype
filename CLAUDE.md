@@ -94,6 +94,12 @@ infrastructure, not product API; the product Route Handlers are the three in
 
 ## Working agreements
 
+- **Env files are off limits to the agent.** `.env`, `.env.local` and the rest
+  hold live database and OAuth credentials, so Claude never reads, edits or
+  shells out to them. `.env.example` is the exception — it is committed, lists
+  variable names only, and is the place to learn what the project expects; ask
+  for any actual value. Enforced by `permissions.deny` and a PreToolUse hook in
+  [.claude/settings.json](.claude/settings.json), not by good intentions.
 - **SQL only in `lib/queries/`.** Pages, Server Actions and Route Handlers call
   those functions and never write SQL inline. This is the one layering rule.
 - **Migrations are hand-written.** `pnpm db:generate` produces an empty file on
