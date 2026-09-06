@@ -199,6 +199,93 @@ describe.skipIf(!hasDatabase)("searchLabs", () => {
   });
 });
 
+/**
+ * "Open now" against the clock the database is actually using.
+ *
+ * These fixtures sit far from the searchLabs origin above so they cannot
+ * disturb its exact-match assertions. The hours are built from the current
+ * Asia/Bangkok weekday rather than hard-coded, because the alternative — a
+ * fixed schedule and a fixed expectation — passes or fails depending on what
+ * day the suite happens to run, and a test that is green six days a week is
+ * worse than no test.
+ */
+describe.skipIf(!hasDatabase)("open now", () => {
+  let sql: postgres.Sql;
+  const TAG = "grains-test-hours";
+  // Chiang Mai, ~580 km from the fixtures above.
+  const ORIGIN = { lat: 18.7883, lng: 98.9853 };
+
+  beforeAll(async () => {
+    sql = testClient();
+
+    const [now] = await sql<{ dow: number }[]>`
+      select extract(dow from (now() at time zone 'Asia/Bangkok'))::int as dow
+    `;
+
+    const openAllDay = Array.from({ length: 7 }, (_, i) =>
+      i === now.dow ? { open: "00:00", close: "23:59" } : { closed: true },
+    );
+    const shutAllWeek = Array.from({ length: 7 }, () => ({ closed: true }));
+
+    const [user] = await sql<{ id: string }[]>`
+      insert into users (email, name, username)
+      values (${`${TAG}@example.test`}, ${TAG}, ${TAG.replace(/-/g, "_")})
+      returning id
+    `;
+
+    async function makeLab(name: string, hours: unknown, status = "open") {
+      await sql`
+        insert into labs (name_en, location, hours, status, created_by)
+        values (
+          ${`${TAG} ${name}`},
+          st_setsrid(st_makepoint(${ORIGIN.lng}, ${ORIGIN.lat}), 4326)::geography,
+          ${sql.json(hours as never)},
+          ${status}::lab_status,
+          ${user.id}
+        )
+      `;
+    }
+
+    await makeLab("open", openAllDay);
+    await makeLab("shut", shutAllWeek);
+    await makeLab("no-hours", []);
+    // Open on paper, but the manual status override says otherwise.
+    await makeLab("temporarily-closed", openAllDay, "temporarily_closed");
+  });
+
+  afterAll(async () => {
+    if (!sql) return;
+    await sql`delete from labs where name_en like ${`${TAG}%`}`;
+    await sql`delete from users where email = ${`${TAG}@example.test`}`;
+    await sql.end();
+  });
+
+  it("is true only for a lab whose hours span the current Bangkok time", async () => {
+    const { labs } = await searchLabs({ ...ORIGIN, radiusM: 1000 });
+    const byName = Object.fromEntries(
+      labs
+        .filter((l) => l.nameEn.startsWith(TAG))
+        .map((l) => [l.nameEn.replace(`${TAG} `, ""), l.openNow]),
+    );
+
+    expect(byName).toEqual({
+      open: true,
+      shut: false,
+      "no-hours": false,
+      "temporarily-closed": false,
+    });
+  });
+
+  it("filters to open labs when asked", async () => {
+    const { labs } = await searchLabs({
+      ...ORIGIN,
+      radiusM: 1000,
+      openNow: true,
+    });
+    expect(labs.map((l) => l.nameEn.replace(`${TAG} `, ""))).toEqual(["open"]);
+  });
+});
+
 describe.skipIf(!hasDatabase)("getLab", () => {
   it("returns null for an unknown id", async () => {
     expect(await getLab("00000000-0000-0000-0000-000000000000")).toBeNull();
