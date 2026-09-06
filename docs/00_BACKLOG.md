@@ -37,6 +37,10 @@ Route Handler     →  lib/queries/*.ts  →  Postgres        (only what the bro
 
 One discipline survives from the old hexagonal plan: **SQL exists only in `lib/queries/`**. Pages, actions and handlers call those functions and never write SQL inline. That is the boundary worth having; the other four layers were paying for a database swap that a PostGIS-dependent product can never perform. Full surface in [api-surface.md](api-surface.md).
 
+### Map and URL state — PROPOSED
+
+Added at scaffold time from the build brief rather than argued here: **MapLibre GL JS** with **CARTO Positron** tiles for the map, and **nuqs** for keeping map and filter state in the URL. All three are cheap to overturn before the discovery track starts, since no schema or hosting decision depends on them. They are written down rather than left implicit because otherwise the discovery track picks something on the day and it becomes a decision by accident.
+
 ### Rationale
 
 - **Server Components delete the API for reads.** A lab page, a film gallery and a profile are all server-rendered — which this product needs anyway for SEO, since discovery is the point. Under the split, every one of those renders was Next → Go → Postgres. Now it is a function call. That is not a small saving; it is most of the endpoints.

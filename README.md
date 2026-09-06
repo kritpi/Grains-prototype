@@ -4,7 +4,7 @@ Grains is a crowdsourced platform for discovering film-developing labs and film 
 
 ## Status
 
-Idea and requirements stage — no code has been scaffolded yet. The product requirements (personas, business rules, edge cases) have been walked through in detail for all four MVP feature areas; design direction and tech stack are still open. See [CLAUDE.md](CLAUDE.md) for the current project status and [docs/backlog.md](docs/backlog.md) for what's resolved vs. still open.
+Scaffolded. The Next.js application is in place and deploys to Vercel in Singapore; the schema and the features are not built yet. Commands, layout and environment variables are in [CLAUDE.md](CLAUDE.md); what is resolved vs. still open is in [docs/backlog.md](docs/backlog.md); the phase-by-phase build plan is [docs/plans/build-plan.html](docs/plans/build-plan.html).
 
 ## Concept
 
@@ -28,13 +28,13 @@ Domain vocabulary (canonical terms, retired terms, and what to avoid) is tracked
 
 ## Design direction
 
-Influenced by street/editorial photographers (Saul Leiter, Cartier-Bresson, Vivian Maier). Editorial grid, high negative space, warm fine-art paper in light mode / muted charcoal in dark mode, editorial serif headings paired with a minimal sans or mono for metadata. No forced cropping — original film aspect ratios (3:2, 1:1, 6:7) are respected throughout. Not yet translated into concrete UI decisions — see [docs/backlog.md](docs/backlog.md).
+Influenced by street/editorial photographers (Saul Leiter, Cartier-Bresson, Vivian Maier). Editorial grid, high negative space, warm fine-art paper, light mode only, editorial serif headings paired with a minimal sans for metadata. No forced cropping — original film aspect ratios (3:2, 1:1, 6:7) are respected throughout. Not yet translated into concrete UI decisions — see [docs/backlog.md](docs/backlog.md).
 
 ## Tech stack
 
 **One Next.js application on Vercel, next to Postgres + PostGIS on Supabase — both in Singapore.** Server Components read the database directly, Server Actions handle every write, and SQL lives in one directory. Auth.js with Google sign-in. Photos upload straight to object storage via short-lived signed URLs and never transit the app server. No Redis, no staging tier, no infrastructure-as-code.
 
-Nothing is scaffolded yet. All three architecture decisions are made, with the rationale, the rejected options, and an explicit list of what was cut from the earlier nine-topic backlog — see [docs/00_BACKLOG.md](docs/00_BACKLOG.md).
+All three architecture decisions are made, with the rationale, the rejected options, and an explicit list of what was cut from the earlier nine-topic backlog — see [docs/00_BACKLOG.md](docs/00_BACKLOG.md).
 
 ## Docs
 
@@ -44,6 +44,6 @@ Nothing is scaffolded yet. All three architecture decisions are made, with the r
 - [docs/schema.sql](docs/schema.sql) — the initial migration
 - [docs/api-surface.md](docs/api-surface.md) — every read, write and handler needed to put data behind the prototype
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
-- [docs/plans/](docs/plans/) — implementation plans awaiting review/execution
+- [docs/plans/](docs/plans/) — implementation plans, including the four-phase [build plan](docs/plans/build-plan.html)
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary
 - [CLAUDE.md](CLAUDE.md) — guidance for working in this repo

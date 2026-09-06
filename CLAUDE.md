@@ -2,11 +2,73 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project status
+## Commands
 
-This repository is in the requirements/design stage — no application code has been scaffolded yet, and there is no build system, package manager, linter, or test runner to document. Current docs: [docs/Idea.md](docs/Idea.md) (original product brief), [CONTEXT.md](CONTEXT.md) (domain vocabulary), [docs/backlog.md](docs/backlog.md) (resolved vs. open product decisions), [docs/00_BACKLOG.md](docs/00_BACKLOG.md) (the three architecture decisions, with what was cut and why), [docs/schema.sql](docs/schema.sql) (the initial migration), [docs/api-surface.md](docs/api-surface.md) (Server Components / Server Actions / Route Handlers), [docs/prd/](docs/prd/) (per-feature PRDs with decision rationale), and [docs/html-virtualization/](docs/html-virtualization/) (exploratory HTML output). See [README.md](README.md) for the full map. Once the project is scaffolded (frontend/backend/database), update this file with the actual commands (dev server, build, lint, test — including how to run a single test) and remove this section.
+```bash
+pnpm dev            # dev server on :3000 (Turbopack)
+pnpm build          # production build
+pnpm lint           # eslint
+pnpm typecheck      # next typegen && tsc --noEmit  — typegen must run first on Next 16
+pnpm format         # prettier --write .
+pnpm format:check   # what CI runs
+```
 
-Domain vocabulary (canonical terms and what to avoid) is tracked in [CONTEXT.md](CONTEXT.md), not here — check it before introducing new terminology. Per-feature requirements decisions live in [docs/prd/](docs/prd/), not here — where a PRD and Idea.md disagree, the PRD is canonical.
+Database (all read `DIRECT_URL`, the session pooler on port 5432):
+
+```bash
+pnpm db:generate --name <name>   # creates an EMPTY migration to hand-write; --custom is deliberate
+pnpm db:migrate                  # apply pending migrations
+pnpm db:studio                   # browse the database
+```
+
+There is no test runner yet; Vitest arrives with the first migration. Once it
+does, this section documents running the whole suite and a single test.
+
+## Layout
+
+```
+app/                    routes — Server Components, Server Actions, Route Handlers
+lib/db/schema.ts        Drizzle schema, mirrors the migrations; source of inferred types
+lib/db/index.ts         the client (transaction pooler, prepare: false, lazy)
+lib/queries/            the only place SQL exists
+lib/env.ts              validated environment access
+db/migrations/          hand-written SQL, applied by drizzle-kit
+docs/                   requirements, architecture and plans — see README.md
+```
+
+## Environment
+
+Copy `.env.example` to `.env.local` and fill it from the Supabase dashboard.
+Both variables address the same database and differ only in port, and the
+difference matters:
+
+| Variable | Port | Used by |
+| --- | --- | --- |
+| `DATABASE_URL` | 6543, transaction pooler | the running app; requires `prepare: false` |
+| `DIRECT_URL` | 5432, session pooler | drizzle-kit only; DDL needs a real session |
+
+Local development and Vercel preview deploys both use `grains-dev`. Production
+uses `grains-prod`. Never point a local shell at `grains-prod` except to run a
+migration on purpose — production migrations are run by hand, never on build.
+
+`GET /api/health` reports the deployment region and pings the database. It is
+infrastructure, not product API; the product Route Handlers are the three in
+[docs/api-surface.md](docs/api-surface.md).
+
+## Working agreements
+
+- **SQL only in `lib/queries/`.** Pages, Server Actions and Route Handlers call
+  those functions and never write SQL inline. This is the one layering rule.
+- **Migrations are hand-written.** `pnpm db:generate` produces an empty file on
+  purpose. Nothing generates `lib/db/schema.ts` from a migration or the reverse,
+  so a migration and the schema file change in the same pull request.
+- **No dark mode.** The palette is light only and `--radius` is 0. Both are
+  enforced in `app/globals.css` rather than per component.
+- **Prose is not formatted.** Markdown and `docs/` are excluded from Prettier.
+
+Domain vocabulary (canonical terms and what to avoid) is tracked in [CONTEXT.md](CONTEXT.md), not here — check it before introducing new terminology. Per-feature requirements decisions live in [docs/prd/](docs/prd/), not here — where a PRD and Idea.md disagree, the PRD is canonical. The build plan, phase by phase, is [docs/plans/build-plan.html](docs/plans/build-plan.html).
+
+`AGENTS.md` is written by `next dev` on every run and is committed rather than fought; it points at the Next.js docs bundled in `node_modules`.
 
 ## Product concept
 
@@ -53,7 +115,7 @@ Grains is a crowdsourced platform for finding film-developing labs ("film labs")
 
 - Google OAuth 2.0 only — no email/password sign-in or account creation flow. The sign-in surface shows a single "Continue with Google" action.
 
-## Tech stack (decided, not yet scaffolded)
+## Tech stack (decided)
 
 Decided in [docs/00_BACKLOG.md](docs/00_BACKLOG.md), which carries the rationale, the options rejected, and the costs accepted for each. Do not re-litigate these without reading that file first.
 
@@ -63,6 +125,19 @@ Decided in [docs/00_BACKLOG.md](docs/00_BACKLOG.md), which carries the rationale
 - **Hosting:** Vercel, function region `sin1`, co-located with the database. Region is the one setting that must not be got wrong.
 - **Auth:** Auth.js v5, Google provider, JWT session, Drizzle adapter — identity lives in our own `users` table.
 - **Photos:** uploaded directly to Supabase Storage via short-lived signed URLs, never through the app server.
+- **Map:** MapLibre GL JS with CARTO Positron tiles; map and filter state live in the URL via nuqs. PROPOSED — these three came from the build brief rather than from an argued decision in 00_BACKLOG.md, so they are cheap to overturn before the discovery track starts.
 - **No Redis, no staging tier, no Terraform** — all deliberately cut; see the cut table in 00_BACKLOG.md before reintroducing any of them.
 
 Three invariants are enforced by the schema rather than by code, and must stay that way: `photos` has no `lab_id` column; `lab_pricing` foreign-keys to `(lab_id, process)`; only curated services/supplies are indexed.
+
+## Parallel tracks
+
+Once the foundation is in place the build splits across three git worktrees. File ownership is fixed so two tracks never edit one file:
+
+| Track | Owns |
+| --- | --- |
+| A — discovery | `lib/queries/labs.ts`, `app/api/labs/**`, `app/labs/page.tsx`, `app/labs/[id]/page.tsx`, `components/map/**`, `components/labs/**` |
+| B — curation | `lib/queries/lab-edits.ts`, `lib/queries/films.ts`, `lib/labs/paths.ts`, `app/labs/actions.ts`, `app/labs/new/**`, `app/labs/[id]/edit/**`, `components/lab-form/**`, `app/films/**` |
+| C — media | `lib/storage.ts`, `lib/queries/photos.ts`, `lib/queries/books.ts`, `app/photos/actions.ts`, `app/u/**`, `components/upload/**`, `components/photobook/**` |
+
+`lib/db/schema.ts` and `db/migrations/` are frozen during that phase: they change only through a pull request to `main` that every track then rebases on.
