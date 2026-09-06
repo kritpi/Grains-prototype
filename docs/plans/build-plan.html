@@ -1,0 +1,604 @@
+<title>Grains Build Plan</title>
+<style>
+  :root{
+    --paper:#F9F8F6; --ink:#141412; --ash:#55554F; --faint:#8B8B84;
+    --hair:#D8D7D1; --sunk:#F1F0EC; --flag:#B3402A;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);margin:0;
+       font:400 14px/1.65 ui-sans-serif,-apple-system,"Helvetica Neue",sans-serif}
+  main{max-width:1000px;margin:0 auto;padding:56px 28px 96px}
+  h1{font:400 40px/1.1 "Instrument Serif",Georgia,serif;margin:0 0 10px;letter-spacing:-.01em}
+  h2{font:400 26px/1.2 "Instrument Serif",Georgia,serif;margin:56px 0 6px;
+     border-top:1px solid var(--hair);padding-top:22px}
+  h3{font:600 12px/1.4 ui-sans-serif,sans-serif;letter-spacing:.12em;text-transform:uppercase;
+     color:var(--faint);margin:30px 0 10px}
+  p{margin:0 0 14px;max-width:74ch}
+  .lede{color:var(--ash);font-size:15px;max-width:74ch}
+  .meta{font:400 11.5px ui-monospace,monospace;color:var(--faint);letter-spacing:.04em;
+        text-transform:uppercase;margin-bottom:28px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 8px;font-size:13px}
+  nav.toc a{color:var(--ash);text-decoration:none;border-bottom:1px solid var(--hair)}
+  .scroll{overflow-x:auto;margin:0 0 8px}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+  th{text-align:left;font:600 10.5px ui-sans-serif,sans-serif;letter-spacing:.1em;
+     text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--ink);
+     padding:0 12px 8px 0;vertical-align:bottom}
+  td{border-bottom:1px solid var(--hair);padding:11px 12px 11px 0;vertical-align:top;line-height:1.55}
+  td:first-child,th:first-child{width:52px}
+  .id{font:400 11px ui-monospace,monospace;color:var(--faint)}
+  .tag{font:600 10px ui-sans-serif,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+       white-space:nowrap;padding:2px 6px;border:1px solid var(--ink)}
+  .tag.human{background:var(--ink);color:var(--paper)}
+  .tag.proposed{color:var(--flag);border-color:var(--flag)}
+  .tag.est{color:var(--faint);border-color:var(--hair)}
+  code{font:400 12px ui-monospace,monospace;background:var(--sunk);padding:1px 4px}
+  pre{font:400 12px/1.5 ui-monospace,monospace;background:var(--sunk);padding:12px 14px;
+      overflow-x:auto;margin:0 0 14px;max-width:100%}
+  pre code{background:none;padding:0}
+  ol,ul{max-width:74ch;padding-left:20px}
+  li{margin-bottom:7px}
+  ul.check{list-style:none;padding-left:0}
+  ul.check li{padding-left:26px;position:relative}
+  ul.check li::before{content:"";position:absolute;left:0;top:5px;width:12px;height:12px;
+      border:1px solid var(--ink);background:#fff}
+  .note{border-left:2px solid var(--flag);padding:2px 0 2px 14px;color:var(--ash);
+        margin:18px 0;max-width:74ch}
+  .phase{border:1px solid var(--hair);padding:18px 20px;margin:0 0 14px;background:#fff}
+  .phase h4{margin:0 0 4px;font:400 20px "Instrument Serif",Georgia,serif}
+  .phase .who{font:400 11px ui-monospace,monospace;color:var(--faint);
+              text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .done{border:1px solid var(--ink);padding:14px 18px;margin:18px 0 0;background:var(--sunk)}
+  .done h5{margin:0 0 8px;font:600 11px ui-sans-serif,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+  footer{margin-top:64px;border-top:1px solid var(--hair);padding-top:16px;
+         font-size:12px;color:var(--faint)}
+</style>
+
+<main>
+
+<h1>Grains — build plan, Phase 1 to Phase 4</h1>
+<div class="meta">Execution plan · 2026-09-06 · from docs/00_BACKLOG.md build order + the Phase 1/2 brief · all estimates solo engineer + agent</div>
+
+<nav class="toc">
+  <a href="#shape">Shape</a><a href="#proposed">Defaulted decisions</a><a href="#p1">Phase 1 Foundation</a>
+  <a href="#p2">Phase 2 Tracks</a><a href="#p3">Phase 3 Integration &amp; ship</a><a href="#p4">Phase 4 Post-launch</a>
+  <a href="#questions">Questions for you</a><a href="#gotchas">Gotchas</a><a href="#verify">Verification</a>
+</nav>
+
+<p class="lede">The whole build from a docs-only repository to a launched product, in four phases: a sequential foundation on <code>main</code>, three parallel feature tracks in git worktrees, an integration-and-launch pass, and post-launch hardening. Every step follows the three pillars in <code>docs/00_BACKLOG.md</code>; nothing there is re-litigated. Anything decided here by default rather than by you is tagged <span class="tag proposed">Proposed</span> and is cheap to overturn until the ticket that depends on it merges.</p>
+
+<div class="note">The brief arrived truncated between "Data Access Layer (DAL): labs" and "Ticket 2", and it names Phases 1 and 2 only. Tickets 0 and 1 are reconstructed from 00_BACKLOG.md's build order items 1 and 2 (Ticket 2 = item 3). Phases 3 and 4 cover the rest of that build order — film stocks, badges, Sentry, the cleanup cron, launch — so every deliverable has a home. One build-order item the brief leaves unassigned, <strong>film stocks</strong>, is given to Track B (P15). The brief also names MapLibre GL JS, CARTO Positron tiles and nuqs, which the docs don't yet carry; Ticket 0 records them.</div>
+
+<h3>Invariants acknowledged</h3>
+<ol>
+  <li><strong>Workspace safety.</strong> Every file lands in this repository; scaffolding goes through an in-repo temporary directory.</li>
+  <li><strong>SQL exists only in <code>lib/queries/</code>.</strong> Pages, Server Actions and Route Handlers call those functions; the health check obeys this on day one.</li>
+  <li><strong>Schema-enforced rules stay in the schema.</strong> <code>photos</code> has no <code>lab_id</code>; <code>lab_pricing</code> foreign-keys to <code>(lab_id, process)</code>; only curated services/supplies are indexed. Ticket 1 turns each into a test.</li>
+  <li><strong>Singapore co-location.</strong> Vercel functions on <code>sin1</code>; transaction pooler (<code>:6543</code>, <code>prepare: false</code>) for the app, session pooler (<code>:5432</code>) for migrations.</li>
+  <li><strong>Photos never transit the app server</strong> · <strong>Google-only auth</strong> · no Redis, no staging, no Terraform.</li>
+</ol>
+
+<h3>Environment found</h3>
+<p>Node 26 · pnpm 10.30 · npm 11 · Docker · gh. <em>Not</em> installed: Supabase CLI, Vercel CLI, psql. Steps only a person can do — creating projects, pasting credentials, verifying labs — are tagged <span class="tag human">Human</span>. Local <code>main</code> is two commits behind <code>origin/main</code> (PR #2 merged); every branch below cuts from <code>origin/main</code>.</p>
+
+<h2 id="shape">Shape of the whole build</h2>
+<div class="scroll"><table>
+<tr><th></th><th>Phase</th><th>Goal</th><th>Size <span class="tag est">est.</span></th><th>Exit criterion</th></tr>
+<tr><td class="id">1</td><td><strong>Foundation</strong> — sequential on main</td><td>Deployed empty app, schema applied, Google sign-in</td><td>3–5 days</td><td>A signed-in user with a claimed username exists on prod</td></tr>
+<tr><td class="id">2</td><td><strong>Parallel tracks</strong> — three worktrees</td><td>Labs read (A), labs write + film stocks (B), photos + photobooks (C)</td><td>3–4 weeks wall clock</td><td>All three tracks merged to main</td></tr>
+<tr><td class="id">3</td><td><strong>Integration &amp; ship</strong> — sequential on main</td><td>Compose film pages, badges, shell, real data, launch</td><td>1–2 weeks</td><td>A stranger can use the production URL end to end</td></tr>
+<tr><td class="id">4</td><td><strong>Post-launch</strong></td><td>Sentry, pending/ cleanup cron, paid tiers when triggered, open product items</td><td>ongoing</td><td>—</td></tr>
+</table></div>
+
+<h2 id="proposed">Decisions defaulted, not chosen</h2>
+<p class="lede">Say the word and the plan changes; silence adopts the default.</p>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>Why this default</th></tr>
+<tr><td class="id">P1</td><td><strong>Next.js <code>latest</code> (16.3.x), not 15.</strong></td><td>Current major; Auth.js v5 beta peers <code>^16</code>; starting one major behind on day zero buys nothing. Pin <code>create-next-app@15</code> to overturn.</td></tr>
+<tr><td class="id">P2</td><td><strong>pnpm 10</strong>, pinned via <code>packageManager</code>.</td><td>Installed; lockfile committed.</td></tr>
+<tr><td class="id">P3</td><td><strong>One branch and one PR per ticket</strong> from <code>origin/main</code>.</td><td>Matches PR #1 and #2.</td></tr>
+<tr><td class="id">P4</td><td><strong>Migration file <code>db/migrations/0000_init.sql</code></strong>, drizzle-kit numbering.</td><td>Don't fight the tool; schema.sql's header gets corrected.</td></tr>
+<tr><td class="id">P5</td><td><strong>Env <code>DATABASE_URL</code> (6543) and <code>DIRECT_URL</code> (5432).</strong></td><td>App and migrator need different ports.</td></tr>
+<tr><td class="id">P6</td><td><strong>Region via <code>vercel.json</code> <code>{"regions":["sin1"]}</code></strong> plus <code>GET /api/health</code> reporting <code>VERCEL_REGION</code> and a DB ping.</td><td>Project-wide, can't be forgotten per route; "confirm the region" becomes a curl. The one Route Handler outside api-surface.md's three — infra, not product.</td></tr>
+<tr><td class="id">P7</td><td><strong>Design tokens at scaffold time:</strong> paper <code>#F9F8F6</code>, ink <code>#141412</code>, <code>--radius: 0</code>, Instrument Serif + Geist Sans, dark block deleted.</td><td>Cheaper before any component exists.</td></tr>
+<tr><td class="id">P8</td><td><strong>ESLint + Prettier</strong> (Tailwind plugin); <code>typecheck</code> = <code>next typegen &amp;&amp; tsc --noEmit</code>.</td><td>Next 16 dropped <code>next lint</code>; typegen must precede tsc.</td></tr>
+<tr><td class="id">P9</td><td><strong>Vitest arrives in Ticket 1</strong> with a real test.</td><td>No empty test runner.</td></tr>
+<tr><td class="id">P10</td><td><strong>CI = lint + typecheck + format check.</strong></td><td>Vercel does the real build with real env; CI never needs a database.</td></tr>
+<tr><td class="id">P11</td><td><strong>Prod migrations run by hand from the laptop</strong>, never on build.</td><td>Migrate-on-build with two databases is a footgun.</td></tr>
+<tr><td class="id">P12</td><td><strong><code>CREATE EXTENSION postgis</code> stays verbatim</strong> (public schema); <code>extensionsFilters: ['postgis']</code> in drizzle config.</td><td>Lowest risk; the filter hides <code>spatial_ref_sys</code> from drizzle-kit.</td></tr>
+<tr><td class="id">P13</td><td><strong><code>schema.ts</code> uses explicit snake_case columns with the Auth.js adapter's JS keys</strong> (<code>emailVerified</code>, <code>userId</code>, <code>providerAccountId</code>, <code>refresh_token</code>, <code>expires_at</code> …); no <code>sessions</code>, no <code>verification_tokens</code>.</td><td>Ticket 2 needs zero migrations; JWT strategy never touches the absent tables.</td></tr>
+<tr><td class="id">P14</td><td><strong>Track A reads in <code>lib/queries/labs.ts</code>; Track B writes in <code>lib/queries/lab-edits.ts</code>.</strong></td><td>Two worktrees on one file guarantees a conflict.</td></tr>
+<tr><td class="id">P15</td><td><strong>Track B owns film stocks end to end</strong> — <code>lib/queries/films.ts</code>, the typeahead handler, actions, <code>/films</code> pages, seed. Track C owns only <code>listGalleryPhotos</code>; <code>/films/[id]</code> is composed in Phase 3.</td><td>The lab form's inventory picker is the first consumer; the gallery is derived from photos.</td></tr>
+<tr><td class="id">P16</td><td><strong>Track A lands <code>components/map/BaseMap.tsx</code> in its first PR</strong>, within days.</td><td>The one cross-track dependency (Track B's pin picker). Make it early and small.</td></tr>
+<tr><td class="id">P17</td><td><strong>JWT carries only <code>sub</code>;</strong> <code>currentUser()</code> reads the user row per request via <code>React.cache</code>.</td><td>Username stays fresh after <code>claimUsername</code>; one indexed query, co-located.</td></tr>
+<tr><td class="id">P18</td><td><strong>No middleware/proxy file.</strong> <code>requireUser()</code> in <code>lib/auth.ts</code> guards Server Actions and owner pages.</td><td>Next 16 renamed middleware to <code>proxy</code>; we need neither.</td></tr>
+<tr><td class="id">P19</td><td><strong>Upload limits enforced by bucket config</strong> (<code>allowed_mime_types</code>, <code>file_size_limit</code>), not the signed URL.</td><td>Supabase signed upload URLs can't carry limits. 00_BACKLOG's wording gets corrected when Track C lands.</td></tr>
+<tr><td class="id">P20</td><td><strong>Public-read bucket <code>photos</code></strong>; writes only via signed URLs; <code>pending/</code> prefix.</td><td>Photos are public content; the CDN serves reads.</td></tr>
+<tr><td class="id">P21</td><td><strong>Seeds are SQL files under <code>db/seed/</code></strong> run by <code>pnpm db:seed &lt;file&gt;</code> (a postgres.js script).</td><td>No psql installed; seeds stay reviewable in PRs.</td></tr>
+<tr><td class="id">P22</td><td><strong>Bilingual UI via a hand-rolled dictionary</strong> (<code>lib/i18n.ts</code>, <code>?lang</code> → cookie), not next-intl.</td><td>The schema already carries <code>name_en/name_th</code>; two languages, one engineer.</td></tr>
+<tr><td class="id">P23</td><td><strong><code>next/image</code> custom loader</strong> pointing at Supabase image transforms.</td><td>The true-aspect grid needs width-only resizing.</td></tr>
+</table></div>
+
+<h2 id="p1">Phase 1 — Foundation</h2>
+<p class="lede">Sequential on <code>main</code>. Three tickets, three PRs, three to five days.</p>
+
+<h3>Ticket 0 — Scaffold &amp; deploy <span class="tag est">≈1 day</span></h3>
+<p>Goal: an empty, editorially-styled Next app deployed on Vercel <code>sin1</code>, connected to <code>grains-dev</code>, with CLAUDE.md carrying the commands that actually run.</p>
+
+<div class="phase">
+<h4>0.1 Branch</h4>
+<div class="who">agent</div>
+<pre><code>git fetch origin &amp;&amp; git switch -c claude/ticket-0-scaffold origin/main</code></pre>
+</div>
+
+<div class="phase">
+<h4>0.2 Supabase projects <span class="tag human">Human</span></h4>
+<div class="who">you · dashboard</div>
+<ul class="check">
+  <li>Create <code>grains-dev</code> and <code>grains-prod</code>, region Southeast Asia (Singapore). Supabase provisions Postgres 17 today; nothing in schema.sql depends on the major.</li>
+  <li>From each project's Connect dialog copy the <strong>transaction pooler URI (6543)</strong> → <code>DATABASE_URL</code> and the <strong>session pooler URI (5432)</strong> → <code>DIRECT_URL</code>.</li>
+  <li>Put the dev pair in <code>.env.local</code> yourself — never in chat. The direct <code>db.&lt;ref&gt;.supabase.co</code> host is IPv6-only on the free tier; the session pooler is the IPv4-safe migration target.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.3 Scaffold through an in-repo temporary directory</h4>
+<div class="who">agent</div>
+<p><code>create-next-app</code> refuses a directory containing <code>README.md</code>, <code>CLAUDE.md</code> or <code>CONTEXT.md</code> (its allow-list is <code>docs</code>, <code>.claude</code>, <code>.git</code>, <code>.gitignore</code> and a few dotfiles), so scaffold into <code>grains-scaffold/</code> and hoist. <code>--empty</code> skips the Vercel boilerplate page.</p>
+<pre><code>pnpm create next-app@latest grains-scaffold --ts --tailwind --eslint --app --no-src-dir \
+  --import-alias "@/*" --turbopack --empty --use-pnpm --skip-install
+rsync -a --exclude README.md --exclude .gitignore grains-scaffold/ ./
+cat grains-scaffold/.gitignore &gt;&gt; .gitignore
+rm -rf grains-scaffold
+pnpm install</code></pre>
+<ul class="check">
+  <li>If a flag is rejected (Next 16 asks about React Compiler), answer interactively: React Compiler <strong>no</strong>.</li>
+  <li>Keep our README; the merged <code>.gitignore</code> already ignores <code>.env*</code>.</li>
+  <li>Add <code>"packageManager": "pnpm@10.30.1"</code> and <code>"engines": {"node": "&gt;=22"}</code>.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.4 shadcn/ui and design tokens</h4>
+<div class="who">agent</div>
+<pre><code>pnpm dlx shadcn@latest init      # base colour neutral · CSS variables yes
+pnpm dlx shadcn@latest add button</code></pre>
+<ul class="check">
+  <li><code>app/globals.css</code>: <code>--background: #F9F8F6</code>, foreground <code>#141412</code>, <code>--radius: 0rem</code>; delete the <code>.dark</code> block and <code>@custom-variant dark</code>. Light only.</li>
+  <li><code>app/layout.tsx</code>: <code>Instrument_Serif</code> (400) and <code>Geist</code> via <code>next/font/google</code>, exposed as <code>--font-serif</code> / <code>--font-sans</code>. Drop Geist Mono.</li>
+  <li><code>app/page.tsx</code>: one serif "Grains" on paper. No copy, no hero.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.5 Drizzle client, env, config</h4>
+<div class="who">agent</div>
+<pre><code>pnpm add drizzle-orm postgres zod &amp;&amp; pnpm add -D drizzle-kit</code></pre>
+<ul class="check">
+  <li><code>lib/env.ts</code> — lazy, memoised zod parse of <code>DATABASE_URL</code> and <code>DIRECT_URL</code>, so <code>next build</code> without env never throws at import.</li>
+  <li><code>lib/db/index.ts</code> — <code>postgres(url, { prepare: false, ssl: 'require' })</code>, cached on <code>globalThis</code> in dev; <code>drizzle(client, { schema })</code>.</li>
+  <li><code>lib/db/schema.ts</code> — empty placeholder; Ticket 1 fills it.</li>
+  <li><code>drizzle.config.ts</code> — <code>dialect: 'postgresql'</code>, <code>schema: './lib/db/schema.ts'</code>, <code>out: './db/migrations'</code>, <code>dbCredentials.url = DIRECT_URL</code>, <code>extensionsFilters: ['postgis']</code>, <code>strict</code>, <code>verbose</code>.</li>
+  <li><code>.env.example</code> committed with both keys and placeholders.</li>
+  <li><code>lib/queries/health.ts</code> — <code>pingDatabase()</code> runs <code>select now()</code>: the only SQL in the ticket, in the only directory allowed to hold it.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.6 Region and health</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>vercel.json</code>: <code>{ "regions": ["sin1"] }</code>.</li>
+  <li><code>app/api/health/route.ts</code>: <code>force-dynamic</code>; returns <code>{ ok, region: process.env.VERCEL_REGION ?? 'local', db }</code>.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.7 Scripts, Prettier, CI</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li>Scripts: <code>dev</code> · <code>build</code> · <code>start</code> · <code>lint</code> (<code>eslint .</code>) · <code>typecheck</code> (<code>next typegen &amp;&amp; tsc --noEmit</code>) · <code>format</code> · <code>format:check</code> · <code>db:generate</code> (<code>drizzle-kit generate --custom</code>) · <code>db:migrate</code> · <code>db:studio</code>.</li>
+  <li><code>prettier</code> + <code>prettier-plugin-tailwindcss</code>, <code>.prettierrc</code>.</li>
+  <li><code>.github/workflows/ci.yml</code>: on push and PR — <code>pnpm install --frozen-lockfile</code>, lint, typecheck, format:check. No build, no database.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.8 Vercel project <span class="tag human">Human</span></h4>
+<div class="who">you · dashboard</div>
+<ul class="check">
+  <li>Add New Project → import <code>kritpi/Grains</code> (Hobby). Framework auto-detects Next.js. Production branch <code>main</code>.</li>
+  <li>Env: <code>DATABASE_URL</code> / <code>DIRECT_URL</code> — Production ← grains-prod, Preview + Development ← grains-dev.</li>
+  <li>Settings → Functions → Region shows <strong>Singapore (sin1)</strong>. <code>vercel.json</code> sets it; Hobby allows exactly one region.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.9 Docs, in the same PR</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><strong>CLAUDE.md</strong>: replace "Project status" with the real commands, the layout (<code>app/</code>, <code>lib/db/</code>, <code>lib/queries/</code>, <code>db/migrations/</code>), env list, migration workflow, and the track file-ownership table below (P14, P15). Add MapLibre GL JS + CARTO Positron + nuqs to the stack list.</li>
+  <li><strong>00_BACKLOG.md</strong> Pillar 1: one line recording the map and URL-state choices as PROPOSED.</li>
+  <li><strong>README.md</strong> status → "scaffolded; see CLAUDE.md for commands".</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>0.10 Commits <span class="tag proposed">Proposed</span></h4>
+<div class="who">agent · six commits, one PR</div>
+<ol>
+  <li>Scaffold Next.js app with Tailwind and shadcn/ui</li>
+  <li>Apply editorial design tokens: paper, serif, no radius, light only</li>
+  <li>Add Drizzle client, env validation and drizzle-kit config</li>
+  <li>Pin Vercel functions to sin1 and add health route</li>
+  <li>Add Prettier and CI workflow</li>
+  <li>Update CLAUDE.md, README and 00_BACKLOG with real commands and map/URL-state decisions</li>
+</ol>
+</div>
+
+<div class="done">
+<h5>Ticket 0 is done when</h5>
+<ul class="check">
+  <li><code>pnpm dev</code> renders the paper page; <code>curl localhost:3000/api/health</code> → <code>db.ok: true</code>, <code>region: "local"</code>.</li>
+  <li><code>pnpm lint &amp;&amp; pnpm typecheck &amp;&amp; pnpm format:check</code> clean; CI green on the PR.</li>
+  <li>Production <code>/api/health</code> returns <code>region: "sin1"</code>, header <code>x-vercel-id</code> starts <code>sin1::</code>, <code>db.ok: true</code> against grains-prod.</li>
+  <li>Every command in CLAUDE.md copy-pastes and runs.</li>
+</ul>
+</div>
+
+<h3>Ticket 1 — Migration 0000_init + Drizzle schema <span class="tag est">≈1 day</span></h3>
+<p>Goal: <code>docs/schema.sql</code> applied to grains-dev and grains-prod through drizzle-kit; <code>lib/db/schema.ts</code> mirrors it as the source of inferred types; the three invariants become tests.</p>
+
+<div class="phase">
+<h4>1.1 Branch</h4>
+<div class="who">agent · after Ticket 0 merges</div>
+<pre><code>git fetch origin &amp;&amp; git switch -c claude/ticket-1-migration origin/main</code></pre>
+</div>
+
+<div class="phase">
+<h4>1.2 Drizzle schema first, so the custom migration's snapshot matches</h4>
+<div class="who">agent · lib/db/schema.ts, one file</div>
+<ul class="check">
+  <li><code>pgEnum</code> × 5: <code>chem_process</code>, <code>film_format</code>, <code>lab_status</code>, <code>contact_channel</code>, <code>edit_entity</code>.</li>
+  <li><code>lib/db/types.ts</code>: <code>customType</code> <code>geographyPoint</code> with <code>dataType() =&gt; 'geography(Point,4326)'</code>. Queries write <code>ST_SetSRID(ST_MakePoint(lng,lat),4326)::geography</code> and read <code>ST_X</code>/<code>ST_Y</code> through <code>sql</code>; the type never parses WKB.</li>
+  <li>Functional unique indexes via <code>uniqueIndex().on(sql`lower(${t.email})`)</code>; partial indexes via <code>.where(sql`service_key is not null`)</code>; composite FK via <code>foreignKey()</code>; <code>check()</code> constraints; <code>bigint … generatedAlwaysAsIdentity()</code>; <code>.array()</code> for <code>film_format[]</code>; GIST via <code>.using('gist', t.location)</code>.</li>
+  <li><code>users</code> / <code>accounts</code> JS keys per P13. No <code>relations()</code> — queries are SQL in <code>lib/queries/</code>.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>1.3 Generate the empty custom migration, then paste</h4>
+<div class="who">agent</div>
+<pre><code>pnpm db:generate --name init
+# → db/migrations/0000_init.sql (empty) · meta/_journal.json · meta/0000_snapshot.json</code></pre>
+<p>Paste <code>docs/schema.sql</code> into <code>0000_init.sql</code> with exactly three mechanical edits:</p>
+<ol>
+  <li>Remove <code>BEGIN;</code> / <code>COMMIT;</code> — the migrator wraps the run in its own transaction.</li>
+  <li>Append <code>--&gt; statement-breakpoint</code> after every top-level <code>;</code>, so a failure names the statement.</li>
+  <li>Nothing else. Seeds stay in; <code>CREATE EXTENSION</code> stays verbatim (P12).</li>
+</ol>
+</div>
+
+<div class="phase">
+<h4>1.4 Migrate dev</h4>
+<div class="who">agent · DIRECT_URL from .env.local</div>
+<ul class="check">
+  <li><code>pnpm db:migrate</code>.</li>
+  <li>Verify: <code>drizzle.__drizzle_migrations</code> has one row · <code>select postgis_full_version()</code> answers · seed counts are 4 / 6 / 4 / 4.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>1.5 Vitest and the schema-invariant test</h4>
+<div class="who">agent · tests/db/schema-invariants.test.ts</div>
+<pre><code>pnpm add -D vitest</code></pre>
+<ul class="check">
+  <li><code>vitest.config.ts</code>: <code>environment: 'node'</code>, <code>include: ['tests/**/*.test.ts']</code>, <code>setupFiles: ['tests/setup.ts']</code> which calls <code>process.loadEnvFile('.env.local')</code> when present. <code>describe.skipIf(!process.env.DATABASE_URL)</code>.</li>
+  <li><code>photos</code> has no <code>lab_id</code> column.</li>
+  <li><code>lab_pricing</code>'s FK references <code>lab_processes (lab_id, process)</code>.</li>
+  <li><code>lab_services_filter_idx</code>, <code>lab_services_curated_idx</code>, <code>lab_supplies_curated_idx</code> are partial on <code>… IS NOT NULL</code>; nothing indexes <code>custom_label</code>.</li>
+  <li><code>labs.location</code> is <code>geography(Point,4326)</code>; <code>labs.version</code> and <code>film_stocks.version</code> default to 1.</li>
+  <li>Seed counts 4 / 6 / 4 / 4.</li>
+  <li>Behavioural, inside a rolled-back transaction: a lab offering only <code>c41</code> cannot take <code>lab_pricing</code> for <code>e6</code> (SQLSTATE 23503); <code>edit_history</code> rejects <code>changes: []</code> (23514).</li>
+  <li>Scripts: <code>test</code> = <code>vitest run</code>. Single test: <code>pnpm vitest run tests/db/schema-invariants.test.ts -t "no lab_id"</code>.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>1.6 Parity check, once</h4>
+<div class="who">agent</div>
+<p><code>pnpm drizzle-kit pull</code> into <code>db/introspect/</code> (gitignored), compare against <code>schema.ts</code>, delete. Future migrations are hand-written, so schema.ts parity becomes a PR review item — CLAUDE.md says so.</p>
+</div>
+
+<div class="phase">
+<h4>1.7 Health and docs</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>lib/queries/health.ts</code>: add <code>postgisVersion()</code>; <code>/api/health</code> reports it.</li>
+  <li><code>docs/schema.sql</code> → a five-line stub pointing at <code>db/migrations/0000_init.sql</code>. One copy, not two. Fix links in CLAUDE.md, README, 00_BACKLOG.md.</li>
+  <li>CLAUDE.md: test commands (all / single), migration workflow (<code>pnpm db:generate --name x</code> → hand-write SQL → <code>pnpm db:migrate</code>; prod by hand per P11), and "schema.ts changes in the same PR as any migration".</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>1.8 Migrate prod <span class="tag human">Human</span></h4>
+<div class="who">you · laptop</div>
+<pre><code>DIRECT_URL=&lt;grains-prod session URI&gt; pnpm db:migrate
+curl -s https://&lt;prod&gt;/api/health     # shows the PostGIS version</code></pre>
+</div>
+
+<div class="done">
+<h5>Ticket 1 is done when</h5>
+<ul class="check">
+  <li>Migration applied to grains-dev and grains-prod; <code>__drizzle_migrations</code> has one row in each.</li>
+  <li><code>pnpm test</code> green against grains-dev — seven tests including the two behavioural ones.</li>
+  <li><code>pnpm typecheck</code> clean with the full schema.</li>
+  <li>Prod <code>/api/health</code> shows the PostGIS version.</li>
+</ul>
+</div>
+
+<h3>Ticket 2 — Auth.js v5 baseline <span class="tag est">≈1–2 days</span></h3>
+<p>Goal: "Continue with Google" creates <code>users</code> and <code>accounts</code> rows through the Drizzle adapter, a one-time <code>claimUsername</code> follows, and <code>requireUser()</code> is usable by everything that writes.</p>
+
+<div class="phase">
+<h4>2.1 Branch and packages</h4>
+<div class="who">agent</div>
+<pre><code>git fetch origin &amp;&amp; git switch -c claude/ticket-2-auth origin/main
+pnpm add next-auth@beta @auth/drizzle-adapter</code></pre>
+</div>
+
+<div class="phase">
+<h4>2.2 Google Cloud OAuth client <span class="tag human">Human</span></h4>
+<div class="who">you · console</div>
+<ul class="check">
+  <li>OAuth consent screen: External, app name Grains, scopes <code>openid</code> <code>email</code> <code>profile</code>.</li>
+  <li>Web client with redirect URIs <code>http://localhost:3000/api/auth/callback/google</code> and <code>https://&lt;prod&gt;/api/auth/callback/google</code>. Preview deploys can't sign in — accepted for one engineer.</li>
+  <li><code>AUTH_GOOGLE_ID</code>, <code>AUTH_GOOGLE_SECRET</code>, and <code>AUTH_SECRET</code> (<code>openssl rand -base64 32</code>) into <code>.env.local</code> and Vercel yourself.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>2.3 <code>lib/auth.ts</code></h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>NextAuth({ adapter: DrizzleAdapter(db, { usersTable: users, accountsTable: accounts }), providers: [Google], session: { strategy: 'jwt' }, callbacks: { jwt → keep sub only; session → session.user.id = token.sub }, pages: { signIn: '/sign-in' } })</code>; export <code>handlers, auth, signIn, signOut</code>.</li>
+  <li><code>currentUser()</code> = <code>auth()</code> + <code>lib/queries/users.ts</code> <code>getUserById</code>, wrapped in <code>React.cache</code> (P17).</li>
+  <li><code>requireUser()</code> redirects to <code>/sign-in?next=</code> when signed out and to <code>/welcome</code> when <code>username</code> is null. No middleware (P18).</li>
+  <li><code>lib/env.ts</code> gains the three <code>AUTH_*</code> keys.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>2.4 Routes and surfaces</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>app/api/auth/[...nextauth]/route.ts</code> exports <code>handlers</code>.</li>
+  <li><code>/sign-in</code>: a single "Continue with Google" button (Server Action <code>signIn('google', { redirectTo })</code>). Nothing else on the page.</li>
+  <li>Header shows avatar + username or "Sign in"; a sign-out action.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>2.5 <code>claimUsername</code></h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>/welcome</code> page + <code>app/(account)/actions.ts</code> → <code>lib/queries/users.ts</code> <code>setUsername(userId, username)</code>.</li>
+  <li>Rules: 3–30 chars <code>[a-z0-9_.]</code>, stored as typed, uniqueness via the <code>lower(username)</code> index (catch 23505 → "taken"), reserved list (<code>admin labs films api u sign-in welcome</code>), one-shot (refuse if already set).</li>
+  <li><code>/u/[username]</code> reserved as a stub 404 until Track C.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>2.6 Tests and docs</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>tests/db/users.test.ts</code>: case-insensitive collision rejected; second claim refused; reserved names refused. Rolled-back transactions.</li>
+  <li>CLAUDE.md auth section: env keys, "every Server Action starts with <code>requireUser()</code>", how to sign in locally.</li>
+</ul>
+</div>
+
+<div class="done">
+<h5>Ticket 2 is done when</h5>
+<ul class="check">
+  <li>Google sign-in locally and on prod creates <code>users</code> + <code>accounts</code> rows.</li>
+  <li>Username claimed once; a second attempt is refused; sign-out works.</li>
+  <li>A throwaway Server Action behind <code>requireUser()</code> proves the gate, then is deleted.</li>
+</ul>
+</div>
+
+<h2 id="p2">Phase 2 — Parallel feature tracks</h2>
+<p class="lede">Three git worktrees cut from <code>main</code> after Ticket 2 merges. Three to four weeks wall clock. Each track ships several PRs; merge order is <strong>A → B → C</strong>.</p>
+
+<div class="phase">
+<h4>Mechanics</h4>
+<div class="who">agent + you</div>
+<pre><code>git worktree prune                      # both .claude/worktrees/* branches are merged — remove them first
+git worktree add .claude/worktrees/discovery -b claude/track-a-discovery origin/main
+git worktree add .claude/worktrees/directory -b claude/track-b-directory origin/main
+git worktree add .claude/worktrees/media     -b claude/track-c-media     origin/main</code></pre>
+<ul class="check">
+  <li>Each worktree: <code>pnpm install</code>, copy <code>.env.local</code> (gitignored files don't follow worktrees), own dev port (<code>next dev -p 3001 / 3002 / 3003</code>).</li>
+  <li>All three share <code>grains-dev</code>; tests run in rolled-back transactions so they never collide.</li>
+  <li>PRs ≤ ~600 lines, several per track; rebase on main weekly.</li>
+  <li><strong>Frozen:</strong> <code>lib/db/schema.ts</code> and <code>db/migrations/</code> change only via a PR to main that every track rebases on. Each track adds its own keys to <code>lib/env.ts</code> and <code>.env.example</code>.</li>
+</ul>
+</div>
+
+<h3>File ownership</h3>
+<div class="scroll"><table>
+<tr><th></th><th>Track</th><th>Owns</th></tr>
+<tr><td class="id">A</td><td>Discovery &amp; map</td><td><code>lib/queries/labs.ts</code> · <code>app/api/labs/route.ts</code> · <code>app/api/labs/[id]/history/route.ts</code> · <code>app/labs/page.tsx</code> · <code>app/labs/[id]/page.tsx</code> · <code>components/map/**</code> · <code>components/labs/**</code> · the <code>NuqsAdapter</code> line in layout · <code>db/seed/bangkok-labs.sql</code></td></tr>
+<tr><td class="id">B</td><td>Curation &amp; invariants</td><td><code>lib/queries/lab-edits.ts</code> · <code>lib/queries/films.ts</code> · <code>lib/queries/film-edits.ts</code> · <code>lib/labs/paths.ts</code> · <code>app/labs/actions.ts</code> · <code>app/labs/new/**</code> · <code>app/labs/[id]/edit/**</code> · <code>components/lab-form/**</code> · <code>app/api/film-stocks/route.ts</code> · <code>app/films/**</code> · <code>db/seed/film-stocks.sql</code></td></tr>
+<tr><td class="id">C</td><td>Media &amp; photobooks</td><td><code>lib/storage.ts</code> · <code>lib/image-loader.ts</code> · <code>lib/queries/photos.ts</code> · <code>lib/queries/books.ts</code> · <code>app/photos/actions.ts</code> · <code>app/u/**</code> · <code>components/upload/**</code> · <code>components/photobook/**</code></td></tr>
+</table></div>
+
+<h3>Track A — Lab Discovery &amp; Map <span class="tag est">≈1.5–2 weeks</span></h3>
+<div class="phase">
+<h4>Steps</h4>
+<div class="who">worktree discovery · build order item 4</div>
+<ul class="check">
+  <li><strong>A1</strong> <code>pnpm add maplibre-gl nuqs</code>; <code>NuqsAdapter</code> in layout. <strong>First PR:</strong> <code>components/map/BaseMap.tsx</code> — client, MapLibre, CARTO Positron style <code>https://basemaps.cartocdn.com/gl/positron-gl-style/style.json</code>, CARTO + OSM attribution. Small and early (P16) so Track B can import it.</li>
+  <li><strong>A2</strong> <code>lib/queries/labs.ts</code>: <code>searchLabs({ lat, lng, radiusM, process[], scanner[], service[], filmStockId, openNow })</code> — one statement: <code>ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius)</code>, <code>status &lt;&gt; 'permanently_closed'</code>, <code>EXISTS</code> per filter (process AND, scanner OR, curated service keys only), <code>open_now</code> evaluated in SQL against <code>Asia/Bangkok</code>, ordered <code>distance_m ASC, completeness DESC</code>, returning <code>LabCard[]</code> + total. <code>getLab(id)</code>: parallel small selects for children; permanently-closed still returned. <code>listLabHistory(id, cursor)</code>.</li>
+  <li><strong>A3</strong> <code>app/api/labs/route.ts</code> (zod-parsed params → <code>searchLabs</code>) and <code>app/api/labs/[id]/history/route.ts</code>.</li>
+  <li><strong>A4</strong> <code>/labs</code>: Server Component first render for <code>?area=</code>; client <code>LabMap</code> + result list bound to nuqs URL state (<code>lat lng r process scanner service open</code>); geolocate button; filter panel; "widen radius" prompt; both PRD empty states (no labs at all → add the first; no match → near-miss list).</li>
+  <li><strong>A5</strong> <code>/labs/[id]</code>: pricing matrix distinguishing blank from not offered; hours + open-now; contacts; curated + custom services and supplies; inventory; atmosphere photos; badge counts (read-only until Phase 3); edit log below the fold via the history handler.</li>
+  <li><strong>A6</strong> Seed: <code>db/seed/bangkok-labs.sql</code> — 10 real labs (<span class="tag human">Human</span> supplies names, pins and prices; agent formats), a seed user row, <code>pnpm db:seed</code> script (P21).</li>
+  <li><strong>A7</strong> Tests <code>tests/queries/labs.test.ts</code>: radius correctness (4.9 km in, 5.1 km out — the reason PostGIS exists); AND/OR filter semantics; closed-lab exclusion; open-now at a fixed Bangkok time.</li>
+</ul>
+<div class="done"><h5>Track A is done when</h5>
+<ul class="check">
+  <li>Geolocated search with the seeded labs works locally and on a Vercel preview.</li>
+  <li>The URL restores every filter and the viewport; map and list agree.</li>
+  <li>The detail page renders every section from real rows.</li>
+</ul></div>
+</div>
+
+<h3>Track B — Curation &amp; Invariants <span class="tag est">≈2 weeks</span></h3>
+<div class="phase">
+<h4>Steps</h4>
+<div class="who">worktree directory · build order items 5 and 6</div>
+<ul class="check">
+  <li><strong>B1 first:</strong> <code>lib/labs/paths.ts</code> — the leaf-path diff grammar and zod schema for <code>changes[]</code> (<code>name_en</code>, <code>hours.3.open</code>, <code>pricing.c41.135.price_thb</code>, <code>processes.e6</code>, <code>scanners.Noritsu</code>, <code>services.dropbox.note</code>, <code>contacts.&lt;id&gt;.value</code>, <code>stock.&lt;film_stock_id&gt;.formats</code> …). The riskiest design artefact in Phase 2; review it before the form.</li>
+  <li><strong>B2</strong> <code>lib/queries/lab-edits.ts</code>: <code>insertLab(tx, …)</code>, <code>applyLabChanges(tx, id, version, changes)</code> (<code>UPDATE … WHERE id AND version</code>; 0 rows = conflict), <code>recomputeCompleteness(tx, id)</code>, <code>appendEditHistory(tx, …)</code>. Every function takes <code>tx</code> so tests can roll back.</li>
+  <li><strong>B3</strong> <code>app/labs/actions.ts</code>: <code>createLab</code> (gates: name + pin + ≥1 process), <code>updateLab(id, version, changes, note?)</code> → <code>{ conflict: true, current }</code> on a stale version, <code>setLabStatus</code>. Each: <code>requireUser()</code> → one transaction → completeness → exactly one <code>edit_history</code> row → <code>revalidatePath</code>.</li>
+  <li><strong>B4</strong> <code>components/lab-form/**</code>: one form, two modes (react-hook-form + zod). Sections: identity; location (pin on <code>BaseMap</code>, nearby labs shown via <code>/api/labs</code> for soft duplicate prevention); processes + pricing matrix; scanners; services (curated toggles + custom rows); supplies; contacts (typed, repeatable); 7-day hours editor; landmark note; status + note; inventory picker (film-stock typeahead with inline "add it"). Edit mode diffs initial vs current into leaf changes + version; the conflict dialog shows what moved. Atmosphere-photo slot left for Phase 3.</li>
+  <li><strong>B5</strong> Film stocks (P15): <code>lib/queries/films.ts</code> (<code>listFilmStocks({ q, iso, format })</code>, <code>getFilmStock</code>, <code>searchFilmStocks(q)</code> with <code>exact_match</code>), <code>film-edits.ts</code>, <code>app/api/film-stocks/route.ts</code>, actions <code>createFilmStock</code> / <code>updateFilmStock</code> (same version + history pattern), <code>/films</code> catalog, <code>/films/[id]</code> with stock info + "labs nearby carrying it" via <code>/api/labs?film_stock_id</code> (gallery slot left for Phase 3), <code>db/seed/film-stocks.sql</code> (~30 common stocks including ECN-2 Vision3).</li>
+  <li><strong>B6</strong> Tests — the ones 00_BACKLOG says are worth writing early: stale version → conflict and zero writes; exactly one history row per mutation; disjoint leaf edits by two users both land; unoffered-process pricing rejected; completeness recomputed; <code>setLabStatus</code> logs history; film-stock identity uniqueness.</li>
+</ul>
+<div class="done"><h5>Track B is done when</h5>
+<ul class="check">
+  <li>A lab can be created and edited from the browser; a stale edit shows the conflict dialog.</li>
+  <li>The edit log shows leaf diffs with the contributor's note.</li>
+  <li>Film stocks are addable inline from the lab form and browsable at <code>/films</code>.</li>
+</ul></div>
+</div>
+
+<h3>Track C — Media &amp; Photobooks <span class="tag est">≈2–3 weeks</span></h3>
+<div class="phase">
+<h4>Steps</h4>
+<div class="who">worktree media · build order item 7</div>
+<ul class="check">
+  <li><strong>C1</strong> <span class="tag human">Human</span> Supabase Storage on grains-dev: bucket <code>photos</code> (public read, P20), <code>allowed_mime_types</code> image/jpeg, png, webp, <code>file_size_limit</code> 15 MB (P19), image transforms on. <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> (server-only) into env. Repeat on prod at launch.</li>
+  <li><strong>C2</strong> <code>lib/storage.ts</code>: server-only supabase-js admin client — <code>createSignedUpload(key)</code>, <code>moveObject</code>, <code>deleteObject</code>, <code>publicUrl</code>. <code>lib/image-loader.ts</code> (P23).</li>
+  <li><strong>C3</strong> <code>app/photos/actions.ts</code>: <code>requestUploadUrl({ kind, contentType, bytes })</code> (<code>requireUser</code>, cap check via <code>countOriginals</code>, key <code>pending/{userId}/{uuid}</code>); <code>confirmPhoto({ key, width, height, metadata, photobookId? })</code> (move to <code>photos/{userId}/{uuid}</code>, insert, optional append); <code>confirmLabPhoto</code>; <code>updatePhotoMetadata</code> (owner only); <code>deletePhoto</code> (row cascade + object delete). <code>components/upload/PhotoUploader.tsx</code> reads dimensions client-side, PUTs directly, confirms. Metadata form: film stock (uses the <code>/api/film-stocks</code> contract; a fixture until B merges), format, frame_size, camera, scanner_model, chemistry.</li>
+  <li><strong>C4</strong> <code>lib/queries/photos.ts</code> (<code>insertPhoto</code>, <code>countOriginals</code>, <code>getPhoto</code>, <code>listGalleryPhotos(filmStockId, cursor)</code>, <code>alsoAppearsIn</code>) and <code>lib/queries/books.ts</code> (<code>getProfile</code>, <code>getPhotobook</code>, CRUD, <code>addItem</code> rejecting self-connection and nonexistent photos, <code>removeItem</code>, <code>reorder</code>).</li>
+  <li><strong>C5</strong> <code>app/u/actions.ts</code>: photobook CRUD, <code>addToPhotobook</code> (the Connection), remove, reorder.</li>
+  <li><strong>C6</strong> Pages, per <code>docs/plans/photobook-prototype-gap-plan.html</code>: <code>/u/[username]</code> (visitor vs owner, cap meter for the owner, both empty states, 3-up mosaic covers, artist's note on cards, upload entry point); <code>/u/[username]/[slug]</code> (true-aspect grid — single column mobile, 2-col masonry desktop; <code>via @uploader</code> only on connected photos; artist's note once); photo detail in book context (prev/next, metadata rail Film Stock / Format / Camera / Scanner / Chemistry, "Also appears in · N", Connect sheet with multi-select for others' photos, Edit / Delete with the cascade count for your own).</li>
+  <li><strong>C7</strong> Tests: cap counts originals only; self-connection rejected; delete cascades items; <code>alsoAppearsIn</code> counts across users; <code>confirmPhoto</code> refuses a key outside the caller's <code>pending/</code> prefix.</li>
+</ul>
+<div class="done"><h5>Track C is done when</h5>
+<ul class="check">
+  <li>Upload → Photobook → a second user connects it → "via @" and "also appears in 2" → delete removes it everywhere.</li>
+  <li>No <code>pending/</code> object remains after a confirmed upload.</li>
+</ul></div>
+</div>
+
+<h2 id="p3">Phase 3 — Integration &amp; ship</h2>
+<p class="lede">Sequential on <code>main</code> after all three tracks merge. One to two weeks. Build order items 6 (composition), 8, and launch.</p>
+
+<div class="phase">
+<h4>3.1 Compose what the tracks left as slots</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li><code>/films/[id]</code> = catalog info (B) + gallery grid (C's <code>listGalleryPhotos</code>, reusing the book grid) + nearby labs (A's <code>/api/labs?film_stock_id</code>, reusing <code>LabMap</code> and the list) + "widen radius".</li>
+  <li>Photo metadata form → B's real typeahead; drop the fixture.</li>
+  <li>Lab form's atmosphere-photo slot → C's <code>requestUploadUrl({ kind: 'lab_atmosphere' })</code> + <code>confirmLabPhoto</code>.</li>
+  <li>Correct the signed-URL wording in 00_BACKLOG (P19).</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>3.2 Badges</h4>
+<div class="who">agent · build order item 8 · an afternoon</div>
+<ul class="check">
+  <li><code>toggleLabBadge</code> action: <code>INSERT … ON CONFLICT DO NOTHING</code> / <code>DELETE</code>; retraction is the delete.</li>
+  <li>Badge chips with counts on the lab card and detail; sign-in gate on the toggle.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>3.3 Shell and polish</h4>
+<div class="who">agent</div>
+<ul class="check">
+  <li>Nav (Labs / Films / Profile), sign-in state, 404 and 500 pages.</li>
+  <li><code>generateMetadata</code> for labs, films and profiles; sitemap + robots. Discovery is the point, so this is not optional.</li>
+  <li>Bilingual copy via <code>lib/i18n.ts</code> (P22); Thai fallback font (<code>Noto Sans Thai</code> via next/font, <span class="tag proposed">Proposed</span>); <code>&lt;html lang&gt;</code> follows the chosen language.</li>
+  <li>Keyboard-accessible list alternative to the map.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>3.4 Real data <span class="tag human">Human</span></h4>
+<div class="who">you, with the agent formatting</div>
+<ul class="check">
+  <li>Verify the 10 seeded labs (call or visit).</li>
+  <li>Review the film-stock seed.</li>
+  <li>Upload your own first Photobook — dogfood the whole path.</li>
+  <li>Decide the upload cap number (open item; 50 is the placeholder).</li>
+</ul>
+</div>
+
+<div class="phase">
+<h4>3.5 Launch checklist</h4>
+<div class="who">agent + you</div>
+<ul class="check">
+  <li><span class="tag human">Human</span> Google consent screen published; custom domain + HTTPS on Vercel; prod bucket + limits; prod env complete including storage keys.</li>
+  <li><code>/api/health</code> green on prod; a full stranger journey on the production URL.</li>
+  <li><code>docs/runbook.md</code>: un-pause a Supabase project, migrate prod, rotate keys, restore from Supabase's daily backup.</li>
+  <li>Tag <code>v0.1.0</code>. Ship — per 00_BACKLOG, badges and cleanup can follow real users.</li>
+</ul>
+</div>
+
+<div class="done">
+<h5>Phase 3 is done when</h5>
+<ul class="check">
+  <li>A stranger can find a lab, view a film's gallery, sign in, add a lab, upload a photo and connect one — on the production URL.</li>
+</ul>
+</div>
+
+<h2 id="p4">Phase 4 — Post-launch hardening</h2>
+<p class="lede">Small PRs as the triggers fire. Build order item 9 plus the open items 00_BACKLOG leaves.</p>
+<div class="phase">
+<h4>Tickets</h4>
+<div class="who">agent, as needed</div>
+<ul class="check">
+  <li><strong>4.1 Sentry</strong> — <code>@sentry/nextjs</code>, free tier, both runtimes. Verify with a planted error from each.</li>
+  <li><strong>4.2 Cleanup cron</strong> — weekly Vercel Cron <code>app/api/cron/cleanup-pending/route.ts</code> (<code>CRON_SECRET</code>) deleting <code>pending/</code> objects older than 24 h. The orphan gap from Pillar 3.</li>
+  <li><strong>4.3 Paid tiers when triggered</strong> — Supabase Pro ends the 7-day pause (first real users); Vercel Pro if Hobby terms bite.</li>
+  <li><strong>4.4 Open product items as they surface</strong> — reverse-search → map filter UI (already supported by <code>/api/labs</code>); where a book-less Photo surfaces on the profile (a design decision); following/feed stays deferred.</li>
+  <li><strong>4.5 Revisit triggers, unchanged</strong> — Redis only for a measurably slow query; docker-compose only if offline work matters; a storage/CDN split at the first stinging egress bill.</li>
+</ul>
+</div>
+
+<h2 id="questions">Questions only you can answer</h2>
+<p class="lede">None block the start. Each has a default the plan already assumes.</p>
+<ol>
+  <li><strong>Which 10 Bangkok labs</strong> seed Track A, and can you verify their prices? <em>Default: the agent drafts from public sources, you correct.</em></li>
+  <li><strong>Is anyone else joining Phase 2?</strong> <em>Default: solo — three worktrees run by one person with an agent each, merged A → B → C.</em></li>
+  <li><strong>Target launch window?</strong> <em>Default estimate: 6–8 weeks from Ticket 0.</em></li>
+  <li><strong>The upload cap number.</strong> <em>Default: 50.</em></li>
+</ol>
+
+<h2 id="gotchas">Gotchas to expect</h2>
+<ul>
+  <li><strong>Supabase free tier pauses a project after 7 idle days.</strong> Un-pause grains-dev before debugging a failing health check.</li>
+  <li><strong>Pooler on 6543 requires <code>prepare: false</code>;</strong> both poolers require SSL (<code>ssl: 'require'</code>).</li>
+  <li><strong>Next 16:</strong> Turbopack by default; <code>middleware.ts</code> deprecated for <code>proxy.ts</code> — moot under P18.</li>
+  <li><strong>Instrument Serif has no Thai glyphs.</strong> System fallback (Thonburi on Apple) until 3.3.</li>
+  <li><strong><code>tsc</code> needs <code>next typegen</code> first</strong> on a fresh Next 16 tree (P8).</li>
+  <li><strong>Worktrees don't carry gitignored files.</strong> Copy <code>.env.local</code> into each one.</li>
+  <li><strong>Signed upload URLs can't carry size or type limits.</strong> Bucket config does (P19).</li>
+</ul>
+
+<h2 id="verify">Verification, per phase</h2>
+<div class="scroll"><table>
+<tr><th></th><th>Phase</th><th>Evidence</th></tr>
+<tr><td class="id">1</td><td>Foundation</td><td>Local and prod <code>/api/health</code> (<code>region: "sin1"</code>, <code>x-vercel-id: sin1::…</code>, PostGIS version) · <code>pnpm test</code> green on grains-dev · Google sign-in creates rows on prod · username claim is one-shot · every CLAUDE.md command runs.</td></tr>
+<tr><td class="id">2</td><td>Tracks</td><td>Each track's Vitest suite green on grains-dev · each "done when" demonstrated on a Vercel preview · <code>pnpm lint &amp;&amp; pnpm typecheck</code> clean on every PR · CI green.</td></tr>
+<tr><td class="id">3</td><td>Integration &amp; ship</td><td>The stranger journey on the production URL · sitemap resolves · OG previews render · Thai/English toggle works on labs, films and profile.</td></tr>
+<tr><td class="id">4</td><td>Post-launch</td><td>Sentry receives a test error from both runtimes · the cron deletes a planted stale <code>pending/</code> object and nothing else.</td></tr>
+</table></div>
+
+<footer>Sources: docs/00_BACKLOG.md (three pillars, build order 1–9) · docs/schema.sql · docs/api-surface.md · docs/prd/* · docs/plans/photobook-prototype-gap-plan.html · CLAUDE.md · CONTEXT.md · the Phase 1/2 brief received 2026-09-06 (truncated; Tickets 0–1 reconstructed from the build order, film stocks assigned to Track B). Package versions checked against the npm registry on 2026-09-06: next 16.3.4 · drizzle-orm 0.45.2 · drizzle-kit 0.31.10 · postgres 3.4.9 · next-auth 5.0.0-beta.32 · @auth/drizzle-adapter 1.11.3 · shadcn 4.21.0 · tailwindcss 4.3.3 · vitest 5.0.0 · zod 4.5.4 · maplibre-gl 6.7.0 · nuqs 2.10.1 · @supabase/supabase-js 2.115.0.</footer>
+
+</main>
