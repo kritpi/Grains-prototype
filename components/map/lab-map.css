@@ -1,0 +1,39 @@
+/* Lab pins.
+ *
+ * Squares, not teardrops. The design direction is sharp, flat rectangles with
+ * no rounded corners and no drop shadows, and a conventional map pin would be
+ * the one place the whole product breaks that rule. On the near-monochrome
+ * Positron basemap a filled square reads as a mark on paper rather than as
+ * borrowed map furniture.
+ *
+ * Styled here rather than with utility classes because MapLibre owns the
+ * marker element: it is created in script and inserted into the map's own DOM.
+ */
+
+.grains-pin {
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1px solid var(--background);
+  border-radius: 0;
+  background: var(--foreground);
+  cursor: pointer;
+  /* The hit target a finger needs, without inflating the mark itself. */
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px transparent;
+}
+
+.grains-pin:hover {
+  background: var(--destructive);
+}
+
+.grains-pin[data-selected="true"] {
+  width: 17px;
+  height: 17px;
+  background: var(--destructive);
+  border-color: var(--background);
+}
+
+.grains-pin:focus-visible {
+  outline: 2px solid var(--ring);
+}

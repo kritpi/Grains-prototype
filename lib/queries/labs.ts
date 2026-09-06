@@ -1,22 +1,25 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
-import type { chemProcess, contactChannel, labStatus } from "@/lib/db/schema";
+import type { contactChannel, labStatus } from "@/lib/db/schema";
 
-export type ChemProcess = (typeof chemProcess.enumValues)[number];
+// Re-exported so server callers have one import for the whole search contract.
+// They live in lib/labs/search-params.ts because the browser needs them too,
+// and importing them from here would pull the database driver into the client
+// bundle — see the comment in that file.
+export {
+  CHEM_PROCESSES,
+  DEFAULT_LIMIT,
+  DEFAULT_RADIUS_M,
+  type ChemProcess,
+} from "@/lib/labs/search-params";
+
+import { DEFAULT_LIMIT, DEFAULT_RADIUS_M } from "@/lib/labs/search-params";
+import type { ChemProcess } from "@/lib/labs/search-params";
+
 export type LabStatus = (typeof labStatus.enumValues)[number];
 export type ContactChannel = (typeof contactChannel.enumValues)[number];
 export type FilmFormat = "135" | "120";
-
-/**
- * 5 km, and the same 5 km everywhere a radius is used — the initial search, the
- * "widen radius" prompt, and reverse search from a film page (PRD A).
- */
-export const DEFAULT_RADIUS_M = 5000;
-
-/** One page of results. The map and the list render the same page, so this is
- *  also the cap on how many pins a single search can drop. */
-export const DEFAULT_LIMIT = 50;
 
 export type LabSearchInput = {
   lat: number;
@@ -265,6 +268,125 @@ export async function searchLabs(input: LabSearchInput): Promise<{
     // rather than zero when the page is empty.
     total: rows.length > 0 ? Number(rows[0].total) : 0,
   };
+}
+
+export type FilterOptions = {
+  scanners: string[];
+  services: { key: string; labelEn: string; labelTh: string }[];
+};
+
+/**
+ * The values the filter control may offer.
+ *
+ * Read from the catalog tables rather than hard-coded in the component,
+ * because those rosters are content: 00_BACKLOG calls them "expandable without
+ * a migration", and a filter listing a scanner nobody stocks — or missing one
+ * that was just added — is the failure that hard-coding produces.
+ *
+ * Services are the curated set only. That is not a filter over `lab_services`:
+ * a contributor's freeform entry has no catalog key, is unindexed, and must
+ * never appear here (PRD A, Decision Ledger #2).
+ */
+export async function listFilterOptions(): Promise<FilterOptions> {
+  // One statement, not two in parallel. The app runs on a small transaction
+  // pool (lib/db/index.ts caps it at 5), and /labs already needs a connection
+  // for the areas, one for the search, and one for the header's user lookup.
+  // Fanning two more out per request is how two overlapping renders end up
+  // each holding connections the other is waiting for.
+  const rows = await getDb().execute<{
+    kind: "scanner" | "service";
+    key: string;
+    label_en: string | null;
+    label_th: string | null;
+  }>(sql`
+    select 'scanner' as kind, model as key,
+           null as label_en, null as label_th, sort_order
+    from scanner_models
+    union all
+    select 'service', key, label_en, label_th, sort_order
+    from service_catalog
+    order by kind, sort_order, key
+  `);
+
+  return {
+    scanners: rows.filter((r) => r.kind === "scanner").map((r) => r.key),
+    services: rows
+      .filter((r) => r.kind === "service")
+      .map((r) => ({
+        key: r.key,
+        labelEn: r.label_en ?? r.key,
+        labelTh: r.label_th ?? r.key,
+      })),
+  };
+}
+
+export type LabArea = {
+  nameEn: string;
+  nameTh: string | null;
+  lat: number;
+  lng: number;
+  labCount: number;
+};
+
+/**
+ * The named areas labs are listed in, with a centre to search from.
+ *
+ * There is no gazetteer and no geocoder: an area is whatever contributors have
+ * typed into `area_en`, and its location is the centroid of the labs in it.
+ * That is circular by construction — the area exists because labs are there —
+ * but it is exactly right for what it feeds, which is a crawlable
+ * `/labs?area=Phaya+Thai` entry point and a starting viewport for someone who
+ * declines to share their location.
+ *
+ * The centroid is computed on the planar cast rather than on the geography.
+ * Areas span a neighbourhood, and over a few kilometres at Bangkok's latitude
+ * the difference is metres — far below the precision of "somewhere around
+ * here", and not worth a spheroid mean.
+ */
+export async function listAreas(): Promise<LabArea[]> {
+  const rows = await getDb().execute<{
+    name_en: string;
+    name_th: string | null;
+    lat: number;
+    lng: number;
+    lab_count: number;
+  }>(sql`
+    select
+      l.area_en                                        as name_en,
+      max(l.area_th)                                   as name_th,
+      st_y(st_centroid(st_collect(l.location::geometry))) as lat,
+      st_x(st_centroid(st_collect(l.location::geometry))) as lng,
+      count(*)::int                                    as lab_count
+    from labs l
+    where l.status <> 'permanently_closed'
+      and l.area_en is not null
+      and l.area_en <> ''
+    group by l.area_en
+    order by lab_count desc, l.area_en
+  `);
+
+  return rows.map((r) => ({
+    nameEn: r.name_en,
+    nameTh: r.name_th,
+    lat: Number(r.lat),
+    lng: Number(r.lng),
+    labCount: r.lab_count,
+  }));
+}
+
+/**
+ * One named area out of an already-loaded list, matched case-insensitively so
+ * a URL somebody typed still resolves.
+ *
+ * Takes the areas rather than fetching them because every caller already has
+ * them — /labs renders the list and resolves one from it, and querying twice
+ * for the same aggregate is a second round trip for an answer in hand.
+ * Returns null for an unknown name, which the page turns into a 404 rather
+ * than a silent search of somewhere else.
+ */
+export function findArea(areas: LabArea[], name: string): LabArea | null {
+  const wanted = name.trim().toLowerCase();
+  return areas.find((a) => a.nameEn.toLowerCase() === wanted) ?? null;
 }
 
 function toLabCard(row: {
