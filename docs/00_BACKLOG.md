@@ -71,7 +71,7 @@ Everything else in this document — the schema, the data layer, hosting, the bu
 
 **Decision: PostgreSQL 15 + PostGIS on Supabase, Singapore (`ap-southeast-1`). Drizzle ORM. Raw SQL migrations. No cache.**
 
-Full DDL: [schema.sql](schema.sql).
+Full DDL: [db/migrations/0000_init.sql](../db/migrations/0000_init.sql), mirrored by `lib/db/schema.ts`.
 
 ### The pieces
 
@@ -145,7 +145,7 @@ $0 through build and launch. Roughly $45/month when the free tiers stop being ap
 Short, and none of it blocks the first commit.
 
 - **Numeric value of the per-user upload cap.** 50 as a placeholder (PRD D #12). A content decision, not an architecture one.
-- **Badge and service catalog rosters.** Seeded in [schema.sql](schema.sql) as a starting set; they are rows, so changing them is not a migration.
+- **Badge and service catalog rosters.** Seeded in [the first migration](../db/migrations/0000_init.sql) as a starting set; they are rows, so changing them is not a migration.
 - **Reverse search → lab map filter.** Cross-feature dependency flagged in PRD A; the schema and the `/api/labs` handler already support `film_stock_id`, so this is a UI question now.
 - **Where a Photo belonging to no Photobook surfaces on `/u/@username`** (PRD D #10). A design question.
 - **Bilingual strategy.** `name_en`/`name_th` are in the schema; the UI-copy approach (next-intl vs. a hand-rolled dictionary) is unresolved and cheap either way.
@@ -155,7 +155,7 @@ Short, and none of it blocks the first commit.
 Not a ranking of decisions — a ranking of tickets.
 
 1. **Scaffold.** `create-next-app`, Tailwind, shadcn/ui, Drizzle, Auth.js. Two Supabase projects. Deploy an empty page to Vercel on `sin1` and confirm the region. Update [CLAUDE.md](../CLAUDE.md) with the real commands in the same commit.
-2. **Migration 0001** — [schema.sql](schema.sql) verbatim, seeds included.
+2. **Migration 0000** — the design-stage `schema.sql` verbatim, seeds included. Done: [db/migrations/0000_init.sql](../db/migrations/0000_init.sql).
 3. **Google sign-in + `claimUsername`.** Everything that writes depends on a user row existing.
 4. **Labs read path.** `/api/labs` with `ST_DWithin`, `/labs/[id]`. Seed 10 real Bangkok labs by hand — the discovery product is untestable and unlaunchable without real rows, and 10 real ones beat 200 fake ones.
 5. **Labs write path.** `createLab` / `updateLab`, one form two modes, version check, `edit_history`. The endpoint with actual invariants; give it the most care and the only tests worth writing early.

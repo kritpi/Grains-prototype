@@ -21,8 +21,15 @@ pnpm db:migrate                  # apply pending migrations
 pnpm db:studio                   # browse the database
 ```
 
-There is no test runner yet; Vitest arrives with the first migration. Once it
-does, this section documents running the whole suite and a single test.
+Tests:
+
+```bash
+pnpm test                                        # whole suite (Vitest)
+pnpm vitest run tests/db/schema-invariants.test.ts -t "no lab_id column"
+```
+
+The schema tests read `DIRECT_URL` and skip themselves when it is absent, which
+is how CI runs them without holding credentials.
 
 ## Layout
 
@@ -33,6 +40,7 @@ lib/db/index.ts         the client (transaction pooler, prepare: false, lazy)
 lib/queries/            the only place SQL exists
 lib/env.ts              validated environment access
 db/migrations/          hand-written SQL, applied by drizzle-kit
+tests/                  Vitest; tests/db/ run against grains-dev
 docs/                   requirements, architecture and plans — see README.md
 ```
 
@@ -60,8 +68,14 @@ infrastructure, not product API; the product Route Handlers are the three in
 - **SQL only in `lib/queries/`.** Pages, Server Actions and Route Handlers call
   those functions and never write SQL inline. This is the one layering rule.
 - **Migrations are hand-written.** `pnpm db:generate` produces an empty file on
-  purpose. Nothing generates `lib/db/schema.ts` from a migration or the reverse,
-  so a migration and the schema file change in the same pull request.
+  purpose: drizzle renders the PostGIS geography type as a quoted identifier,
+  which Postgres rejects, so generated DDL cannot be trusted for this schema.
+  Nothing generates `lib/db/schema.ts` from a migration or the reverse, so a
+  migration and the schema file change in the same pull request — that parity
+  is a review item, not something a tool checks.
+- **Production migrations are run by hand**, from a laptop, never on build:
+  `DIRECT_URL=<prod> pnpm db:migrate`. With two databases behind one repository,
+  a build hook that migrates is a footgun.
 - **No dark mode.** The palette is light only and `--radius` is 0. Both are
   enforced in `app/globals.css` rather than per component.
 - **Prose is not formatted.** Markdown and `docs/` are excluded from Prettier.
@@ -121,14 +135,14 @@ Decided in [docs/00_BACKLOG.md](docs/00_BACKLOG.md), which carries the rationale
 
 - **One Next.js application** — App Router, Tailwind, shadcn/ui. Server Components for reads, Server Actions for writes, Route Handlers only for what the browser fetches after load. No separate backend service, no OpenAPI contract, no codegen.
 - **SQL lives only in `lib/queries/`.** Pages, actions and handlers call those functions; none of them write SQL inline. This is the one layering rule.
-- **Database:** PostgreSQL + PostGIS on Supabase (Singapore), via Drizzle. Migrations are raw `.sql`. PostGIS is kept for query *correctness*, not performance — do not cite speed as its justification. Schema: [docs/schema.sql](docs/schema.sql).
+- **Database:** PostgreSQL + PostGIS on Supabase (Singapore), via Drizzle. Migrations are raw `.sql`. PostGIS is kept for query *correctness*, not performance — do not cite speed as its justification. Schema: [db/migrations/0000_init.sql](db/migrations/0000_init.sql), mirrored by [lib/db/schema.ts](lib/db/schema.ts).
 - **Hosting:** Vercel, function region `sin1`, co-located with the database. Region is the one setting that must not be got wrong.
 - **Auth:** Auth.js v5, Google provider, JWT session, Drizzle adapter — identity lives in our own `users` table.
 - **Photos:** uploaded directly to Supabase Storage via short-lived signed URLs, never through the app server.
 - **Map:** MapLibre GL JS with CARTO Positron tiles; map and filter state live in the URL via nuqs. PROPOSED — these three came from the build brief rather than from an argued decision in 00_BACKLOG.md, so they are cheap to overturn before the discovery track starts.
 - **No Redis, no staging tier, no Terraform** — all deliberately cut; see the cut table in 00_BACKLOG.md before reintroducing any of them.
 
-Three invariants are enforced by the schema rather than by code, and must stay that way: `photos` has no `lab_id` column; `lab_pricing` foreign-keys to `(lab_id, process)`; only curated services/supplies are indexed.
+Three invariants are enforced by the schema rather than by code, and must stay that way: `photos` has no `lab_id` column; `lab_pricing` foreign-keys to `(lab_id, process)`; only curated services/supplies are indexed. [tests/db/schema-invariants.test.ts](tests/db/schema-invariants.test.ts) asserts all three against a real database — both that the constraint exists and that the database actually rejects the write.
 
 ## Parallel tracks
 

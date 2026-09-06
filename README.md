@@ -41,7 +41,7 @@ All three architecture decisions are made, with the rationale, the rejected opti
 - [docs/Idea.md](docs/Idea.md) — original product brief
 - [docs/backlog.md](docs/backlog.md) — what's resolved vs. still open across all features
 - [docs/00_BACKLOG.md](docs/00_BACKLOG.md) — the three architecture decisions, what was cut, and the build order
-- [docs/schema.sql](docs/schema.sql) — the initial migration
+- [db/migrations/0000_init.sql](db/migrations/0000_init.sql) — the initial migration, mirrored by [lib/db/schema.ts](lib/db/schema.ts)
 - [docs/api-surface.md](docs/api-surface.md) — every read, write and handler needed to put data behind the prototype
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
 - [docs/plans/](docs/plans/) — implementation plans, including the four-phase [build plan](docs/plans/build-plan.html)
