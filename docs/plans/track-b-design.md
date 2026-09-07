@@ -213,8 +213,16 @@ reader nothing about the four price cells that vanished — the log lies by
 omission, on the most volatile data in the schema.
 
 So: **a change set that sets a process to `false` must also carry the
-`pricing.<process>.*` leaves going to `null`.** Enforced as a cross-field
-refinement in the zod schema, not left to the form to remember.
+`pricing.<process>.*` leaves going to `null`.**
+
+That rule splits in two, and only half of it can live in the grammar. The zod
+schema is pure — it sees the diff and not the lab — so it can reject a set that
+*contradicts itself* (drops E-6 and prices it in the same save) but cannot know
+which cells exist to be accounted for. The other half is a precondition inside
+`applyLabChanges`, which has the transaction: it reads the affected
+`lab_pricing` rows and refuses a set that leaves any of them unmentioned. Stated
+here because the split is not obvious from either side alone, and each half
+passes its own tests while the log still ends up lying.
 
 ### 5. Scanners
 ```
@@ -322,8 +330,35 @@ the log prints `Service · 7c9e1f30-4a2b-… · Label`.
 Adding two strings to that set is the whole fix, it is additive and
 display-only, and Track A's own note says the formatter is built to render paths
 it has never seen. It is the single change Track B needs in a file it does not
-own — worth doing in B1's PR, where the reason is visible, rather than
-discovering it during B4.
+own, and it landed in B1's commit where the reason is visible. A curated key is
+not uuid-shaped, so `services.dropbox.note` still prints its key; only the
+freeform rows lose an id nobody could have used.
+
+---
+
+---
+
+# What B1 shipped
+
+`lib/labs/paths.ts` — the enum literals with their compile-time proofs against
+the schema, `parseLabPath` returning a reason rather than throwing, a `labPath`
+builder per family so the form never hand-writes a string, a value schema per
+leaf, and `labChangesSchema` with the set-level rules. `tests/labs/paths.test.ts`
+covers every family, every rejection, and asserts that the path shapes already
+written to `edit_history` by both seed files still parse — the failure mode this
+module exists to prevent is history that can no longer be read.
+
+Three things the writing of it settled:
+
+- **Empty string is never a value.** Null is the only way to say "nothing here",
+  because two spellings of absent would have to be understood by the detail
+  page and the log, and the log already prints them identically.
+- **`from` is validated too**, though nothing writes it. It is what the log
+  renders forever, and a malformed one is a lie recorded permanently.
+- **The value schema stops at shape.** `lab_pricing`'s check constraints and the
+  composite foreign key are the database's, and restating them here would create
+  a second opinion that eventually disagrees with the first. B3 turns the
+  constraint violation into a message.
 
 ---
 

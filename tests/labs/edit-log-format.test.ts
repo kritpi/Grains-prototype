@@ -47,6 +47,17 @@ describe("formatChangePath", () => {
     expect(
       formatChangePath("contacts.3f1a9c2e-1b7d-4c8a-9f2e-5d6c7b8a9e01.value"),
     ).toBe("Contact · Value");
+
+    // A contributor's freeform service or supply is addressed by its row uuid,
+    // there being no curated key to name it by.
+    expect(
+      formatChangePath("services.3f1a9c2e-1b7d-4c8a-9f2e-5d6c7b8a9e01.note"),
+    ).toBe("Service · Note");
+    expect(
+      formatChangePath(
+        "supplies.3f1a9c2e-1b7d-4c8a-9f2e-5d6c7b8a9e01.custom_label",
+      ),
+    ).toBe("Supplies · Label");
   });
 
   it("keeps a non-uuid key, which is a name rather than an id", () => {
