@@ -20,8 +20,22 @@ import { PROCESS_LABELS } from "./search-state";
  * imperfectly. Worst case a reader sees the raw leaf name, which is still true.
  */
 
-/** Path heads that name a collection keyed by something opaque. */
-const OPAQUE_KEYED = new Set(["contacts", "stock", "photos"]);
+/**
+ * Path heads that name a collection keyed by something opaque.
+ *
+ * `services` and `supplies` are here because a contributor's freeform row has
+ * no curated key to be named by and is addressed by its uuid instead
+ * (lib/labs/paths.ts). A curated key is not a uuid and so is still printed —
+ * "Service · Dropbox · Note" survives, while a custom one reads
+ * "Service · Label" rather than carrying a uuid into the log.
+ */
+const OPAQUE_KEYED = new Set([
+  "contacts",
+  "stock",
+  "photos",
+  "services",
+  "supplies",
+]);
 
 const HEAD_LABELS: Record<string, string> = {
   name_en: "Name (EN)",

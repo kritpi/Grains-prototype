@@ -1,0 +1,238 @@
+/* Film stocks — catalog and detail.
+ *
+ * The counterpart to components/labs/lab-detail.css, and deliberately a
+ * different temperature: labs are information-first and read as a table, films
+ * are inspiration-first and read as a grid of images. That difference is the
+ * product's first principle, so it is visible even in the placeholders.
+ *
+ * Colours map onto app/globals.css. The duotone gradients are copied exactly
+ * from the prototype because they are content vocabulary rather than palette —
+ * a process is identified by its colour everywhere it appears.
+ */
+
+.grains-films {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 20px 34px;
+}
+
+.grains-films-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.grains-films-title {
+  margin: 0;
+  font: 500 30px/1.1 var(--font-serif);
+}
+
+.grains-films-count {
+  font: 400 12.5px var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 6px;
+}
+
+.grains-films-search {
+  border: 2px solid var(--foreground);
+  padding: 9px 12px;
+  font: 400 13px var(--font-sans);
+  width: 220px;
+  max-width: 100%;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.grains-facets {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.grains-facet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.grains-facet {
+  border: 1.5px solid var(--foreground);
+  padding: 7px 12px;
+  font: 700 12px var(--font-sans);
+  color: var(--foreground);
+  background: transparent;
+  cursor: pointer;
+}
+
+.grains-facet[data-on="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.grains-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 18px;
+}
+
+.grains-stock-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+/* display:block on every one of these: the tile is a <Link>, so its parts are
+ * spans, and an inline box ignores width and aspect-ratio entirely — the
+ * duotone collapses to a hairline. */
+.grains-stock-art {
+  position: relative;
+  display: block;
+}
+
+/* The duotone stands in for a sample photo that does not exist yet. It is
+ * reserved for film content: lab content gets the diagonal hatch instead, so
+ * even the placeholders keep "labs are read, films are felt" visible. */
+.grains-duo {
+  display: block;
+  border: 2px solid var(--foreground);
+  width: 100%;
+}
+
+[data-ratio="1/1"] {
+  aspect-ratio: 1/1;
+}
+[data-ratio="3/2"] {
+  aspect-ratio: 3/2;
+}
+[data-ratio="6/7"] {
+  aspect-ratio: 6/7;
+}
+
+[data-duo="c41"] {
+  background: linear-gradient(155deg, #f0b570, #3a2308 78%);
+}
+[data-duo="ecn2"] {
+  background: linear-gradient(165deg, #5fd6c2, #082623 80%);
+}
+[data-duo="e6"] {
+  background: linear-gradient(155deg, #6e8cff, #050a2e 80%);
+}
+[data-duo="bw"] {
+  background: linear-gradient(155deg, #f4f4f2, #0d0d0c 82%);
+}
+
+.grains-stock-count {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  background: var(--background);
+  border: 1.5px solid var(--foreground);
+  padding: 1px 6px;
+  font: 700 9px var(--font-sans);
+}
+
+.grains-stock-name {
+  display: block;
+  font: 500 16px var(--font-serif);
+}
+
+.grains-stock-meta {
+  display: block;
+  font: 400 10.5px var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* Detail */
+
+.grains-stock {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px 20px 34px;
+}
+
+.grains-stock-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  align-items: flex-start;
+}
+
+.grains-stock-hero > .grains-duo {
+  flex: 1 1 320px;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.grains-stock-facts {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grains-stock-facts h1 {
+  margin: 0;
+  font: 500 32px/1.08 var(--font-serif);
+}
+
+.grains-spec {
+  border: 1.5px solid var(--foreground);
+  padding: 5px 10px;
+  font: 400 11.5px var(--font-sans);
+}
+
+.grains-stock-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.grains-stock-label {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  color: var(--ring);
+}
+
+.grains-stock-empty {
+  font: 400 12.5px/1.7 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-nearby-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.grains-nearby-name {
+  flex: 1;
+  min-width: 0;
+  font: 500 14px/1.3 var(--font-serif);
+}
+
+.grains-nearby-dist {
+  font: 400 11px var(--font-sans);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* The prototype gives this button flex:1 because it shares a row with a second
+ * one. On its own, a full-width bar reads as a banner rather than an action. */
+.grains-stock-facts .grains-facet {
+  align-self: flex-start;
+  text-decoration: none;
+}

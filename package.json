@@ -20,6 +20,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "node db/seed/run.mjs",
     "db:seed:dev": "node db/seed/dev-labs.mjs",
+    "db:backfill:completeness": "node scripts/backfill-completeness.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate:prod": "GRAINS_DB_TARGET=prod drizzle-kit migrate"

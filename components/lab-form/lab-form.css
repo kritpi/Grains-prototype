@@ -1,0 +1,466 @@
+/* Add Lab / Suggest Edit — the contribution form.
+ *
+ * The design system's rule for this screen is that every field mirrors its
+ * read-view component 1:1 — the same pricing grid, the same seven-row hours
+ * grid, the same process chips — so filling the form previews the final page.
+ * These rules are therefore deliberately close to components/labs/lab-detail.css,
+ * and differ only where an input differs from a value: two input weights, and a
+ * chip that toggles rather than reports.
+ *
+ * Colours map onto app/globals.css rather than restating the prototype's own
+ * palette, which runs a shade lighter (#FDFDFC paper against our #F9F8F6). The
+ * palette is a foundation decision (P7) and is not this track's to move. The
+ * process colours are the exception and are copied exactly, because a process is
+ * identified by its colour everywhere it appears — that is data vocabulary, not
+ * theme.
+ */
+
+/* Process identity, same values as the detail page. Repeated rather than
+ * imported: this stylesheet loads on /labs/new, where nothing else on the page
+ * needs the detail view's rules. */
+/* C-41's ink pairing is dark, not paper: the component library pairs #C97112
+ * with #0D0D0C, and white on that amber is the weaker of the two. */
+[data-process="c41"] {
+  --proc: #c97112;
+  --proc-ink: #0d0d0c;
+}
+[data-process="ecn2"] {
+  --proc: #0e8c7d;
+  --proc-ink: #ffffff;
+}
+[data-process="e6"] {
+  --proc: #1d4fd8;
+  --proc-ink: #ffffff;
+}
+[data-process="bw"] {
+  --proc: var(--foreground);
+  --proc-ink: var(--background);
+}
+
+.grains-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 720px;
+  padding: 24px 20px 34px;
+}
+
+/* An eyebrow, a serif title, and the promise the form makes. */
+.grains-form-eyebrow {
+  font: 700 11px var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.grains-form-title {
+  margin: 6px 0 0;
+  font: 500 26px/1.15 var(--font-serif);
+}
+
+.grains-form-lede {
+  margin: 8px 0 0;
+  font: 400 12.5px/1.7 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-form section {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Every section and every field is announced the same way. */
+.grains-form-label {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.1em;
+  color: var(--ring);
+}
+
+.grains-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.grains-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Two input weights, and the difference is load-bearing. A primary field is
+ * filled once by a contributor who came to fill it; a grid cell IS the table
+ * cell, so the shape of the data is the shape of the field. */
+.grains-input {
+  border: 2px solid var(--foreground);
+  padding: 10px 12px;
+  font: 400 14px var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  width: 100%;
+}
+
+.grains-input-cell {
+  border: 1.5px solid var(--border);
+  padding: 8px 10px;
+  font: 400 13px var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  width: 100%;
+}
+
+.grains-input::placeholder,
+.grains-input-cell::placeholder {
+  color: var(--ring);
+}
+
+.grains-input:focus-visible,
+.grains-input-cell:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 1px;
+}
+
+/* Toggle chips. Unselected is border only; selected fills with the process
+ * colour and flips the text to its ink pairing — data-on, everywhere. */
+.grains-toggle {
+  border: 1.5px solid var(--foreground);
+  padding: 8px 13px;
+  font: 700 12.5px var(--font-sans);
+  color: var(--foreground);
+  background: transparent;
+  cursor: pointer;
+}
+
+.grains-toggle[data-process] {
+  border-color: var(--proc);
+  color: var(--proc);
+}
+
+.grains-toggle[data-on="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.grains-toggle[data-process][data-on="true"] {
+  background: var(--proc);
+  color: var(--proc-ink);
+  border-color: var(--proc);
+}
+
+.grains-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+/* The pricing matrix, as an editable version of the read view's table. */
+.grains-matrix {
+  border: 2px solid var(--foreground);
+  overflow: hidden;
+}
+
+.grains-matrix-head {
+  display: flex;
+  font: 700 9px var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--ring);
+  padding: 8px 12px;
+  border-bottom: 1.5px solid var(--foreground);
+  background: var(--secondary);
+}
+
+.grains-matrix-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px dotted var(--border);
+}
+
+.grains-matrix-row:last-child {
+  border-bottom: 0;
+}
+
+.grains-matrix-process {
+  flex: 1.3;
+  font: 700 12px var(--font-sans);
+}
+
+.grains-matrix-cell {
+  width: 96px;
+  flex: none;
+  text-align: center;
+}
+
+.grains-matrix-turn {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grains-matrix-turn label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+  font: 700 9px var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--ring);
+}
+
+.grains-matrix-turn input {
+  width: 74px;
+  padding: 4px 7px;
+  font-size: 12px;
+  text-align: right;
+}
+
+/* Services read as a checklist here too, so an un-offered service is an
+ * unticked box rather than a missing line. */
+.grains-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 400 12.5px var(--font-sans);
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.grains-svbox {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 1.5px solid var(--foreground);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  line-height: 1;
+}
+
+[data-svstate="no"] {
+  color: var(--muted-foreground);
+}
+
+.grains-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.grains-check-row input {
+  width: 140px;
+  font-size: 11.5px;
+  padding: 5px 8px;
+}
+
+.grains-row-remove {
+  font: 700 11px var(--font-sans);
+  color: var(--ring);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* The pin picker: a hatched grid standing in until the basemap paints, and the
+ * teardrop the prototype draws — the one signal-coloured thing on the screen. */
+.grains-pin-map {
+  position: relative;
+  height: 220px;
+  border: 2px solid var(--foreground);
+  background:
+    repeating-linear-gradient(
+      0deg,
+      var(--secondary) 0 22px,
+      var(--background) 22px 23px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--secondary) 0 22px,
+      var(--background) 22px 23px
+    );
+}
+
+/* Above the map rather than below it: MapLibre's attribution owns the bottom
+ * edge, and at 375px the two sit on top of each other. */
+.grains-pin-hint {
+  position: absolute;
+  inset: 0 0 auto 0;
+  padding: 6px 8px;
+  font: 400 11px var(--font-sans);
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  border-bottom: 1px solid var(--border);
+  pointer-events: none;
+}
+
+/* A dashed note is the system's shape for "here is a caveat", used for the
+ * nearby-duplicate warning and the hours explainer alike. */
+.grains-note {
+  border: 1px dashed var(--ring);
+  padding: 8px 10px;
+  font: 400 11px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+/* Seven rows, one per day, in the same order the read view lists them. */
+.grains-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--border);
+}
+
+.grains-hours-row:last-child {
+  border-bottom: 0;
+}
+
+.grains-hours-day {
+  width: 84px;
+  flex: none;
+  font: 400 12.5px var(--font-sans);
+}
+
+.grains-hours-row input {
+  width: 88px;
+  text-align: center;
+}
+
+.grains-hours-closed {
+  font: 400 11.5px var(--font-sans);
+  color: var(--ring);
+}
+
+/* The one signal-coloured action on the screen, and the only one anywhere in
+ * this form: saving is the thing this page exists for. */
+.grains-save {
+  border: 1.5px solid var(--destructive);
+  background: var(--destructive);
+  color: #fdfdfc;
+  padding: 12px 20px;
+  font: 700 14px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-save:disabled {
+  background: transparent;
+  color: var(--ring);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+.grains-secondary {
+  border: 1.5px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  padding: 8px 13px;
+  font: 700 12px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+/* Problems the save came back with. Signal is reserved for exactly this. */
+.grains-problem {
+  border: 1.5px solid var(--destructive);
+  padding: 10px 12px;
+  font: 400 12px/1.6 var(--font-sans);
+  color: var(--destructive);
+}
+
+.grains-problem ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+
+/* The dropped pin: a teardrop in the one signal colour this screen is allowed.
+ *
+ * `.grains-drop-pin` rather than `.grains-pin`, which components/map/lab-map.css
+ * already uses for a search result. Two stylesheets are never loaded together
+ * today, and naming both the same is how that stops being true quietly.
+ *
+ * `rotate` rather than `transform: rotate()`: MapLibre positions a marker by
+ * writing `transform: translate(...)` onto the element inline, so a transform
+ * here is overwritten and the teardrop renders as an unrotated blob. The
+ * standalone property composes with it instead of competing. */
+.grains-drop-pin {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--foreground);
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  background: var(--destructive);
+}
+
+/* Atmosphere photos: a 45° hairline hatch, the texture reserved for lab content.
+ * Film samples get the duotone instead — even the placeholders keep "labs are
+ * read, films are felt" visible. */
+.grains-photo-slot {
+  width: 84px;
+  height: 84px;
+  border: 1.5px solid var(--foreground);
+}
+
+[data-stripe] {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--secondary) 0 6px,
+    var(--background) 6px 12px
+  );
+}
+
+.grains-photo-add {
+  width: 84px;
+  height: 84px;
+  border: 1.5px dashed var(--foreground);
+  display: grid;
+  place-items: center;
+  font: 700 18px var(--font-sans);
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.grains-photo-add:disabled {
+  border-color: var(--border);
+  color: var(--ring);
+}
+
+/* The film stock picker: a search box, its matches, and the way to add one. */
+.grains-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grains-picker-match {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  padding: 7px 10px;
+  font: 400 12.5px var(--font-sans);
+  color: var(--foreground);
+  cursor: pointer;
+  text-align: left;
+}
+
+.grains-picker-match:hover {
+  border-color: var(--foreground);
+}

@@ -15,9 +15,11 @@
  */
 
 /* Chemical process identity colours, straight from the prototype. */
+/* C-41 pairs with dark ink, not paper — the one process colour light enough
+ * that the component library specifies #0D0D0C on it. */
 [data-process="c41"] {
   --proc: #c97112;
-  --proc-ink: #ffffff;
+  --proc-ink: #0d0d0c;
 }
 [data-process="ecn2"] {
   --proc: #0e8c7d;

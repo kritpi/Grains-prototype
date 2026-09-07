@@ -213,8 +213,16 @@ reader nothing about the four price cells that vanished — the log lies by
 omission, on the most volatile data in the schema.
 
 So: **a change set that sets a process to `false` must also carry the
-`pricing.<process>.*` leaves going to `null`.** Enforced as a cross-field
-refinement in the zod schema, not left to the form to remember.
+`pricing.<process>.*` leaves going to `null`.**
+
+That rule splits in two, and only half of it can live in the grammar. The zod
+schema is pure — it sees the diff and not the lab — so it can reject a set that
+*contradicts itself* (drops E-6 and prices it in the same save) but cannot know
+which cells exist to be accounted for. The other half is a precondition inside
+`applyLabChanges`, which has the transaction: it reads the affected
+`lab_pricing` rows and refuses a set that leaves any of them unmentioned. Stated
+here because the split is not obvious from either side alone, and each half
+passes its own tests while the log still ends up lying.
 
 ### 5. Scanners
 ```
@@ -322,8 +330,240 @@ the log prints `Service · 7c9e1f30-4a2b-… · Label`.
 Adding two strings to that set is the whole fix, it is additive and
 display-only, and Track A's own note says the formatter is built to render paths
 it has never seen. It is the single change Track B needs in a file it does not
-own — worth doing in B1's PR, where the reason is visible, rather than
-discovering it during B4.
+own, and it landed in B1's commit where the reason is visible. A curated key is
+not uuid-shaped, so `services.dropbox.note` still prints its key; only the
+freeform rows lose an id nobody could have used.
+
+---
+
+---
+
+# What B1 shipped
+
+`lib/labs/paths.ts` — the enum literals with their compile-time proofs against
+the schema, `parseLabPath` returning a reason rather than throwing, a `labPath`
+builder per family so the form never hand-writes a string, a value schema per
+leaf, and `labChangesSchema` with the set-level rules. `tests/labs/paths.test.ts`
+covers every family, every rejection, and asserts that the path shapes already
+written to `edit_history` by both seed files still parse — the failure mode this
+module exists to prevent is history that can no longer be read.
+
+Three things the writing of it settled:
+
+- **Empty string is never a value.** Null is the only way to say "nothing here",
+  because two spellings of absent would have to be understood by the detail
+  page and the log, and the log already prints them identically.
+- **`from` is validated too**, though nothing writes it. It is what the log
+  renders forever, and a malformed one is a lie recorded permanently. It admits
+  null for *every* leaf, including booleans, enums and NOT NULL columns — null
+  on the way in does not mean "cleared", it means the leaf did not exist yet.
+  B2's tests found this: a contact being added has no previous channel, a day
+  has no previous `closed` until the week is materialised, and a lab's own name
+  begins at null in the entry recording its creation. Requiring a typed `from`
+  made adding anything unrepresentable.
+- **The value schema stops at shape.** `lab_pricing`'s check constraints and the
+  composite foreign key are the database's, and restating them here would create
+  a second opinion that eventually disagrees with the first. B3 turns the
+  constraint violation into a message.
+
+---
+
+# What B2 shipped
+
+`lib/queries/lab-edits.ts` — `insertLab`, `applyLabChanges`,
+`recomputeCompleteness`, `recomputeAllCompleteness` and `appendEditHistory`,
+each taking the caller's transaction. `tests/db/tx.ts` is the rollback helper the
+suite did not have: the schema invariants use a raw postgres.js client because
+they assert on error codes, but the write layer takes a drizzle transaction
+precisely so a test can run the real function and leave nothing behind.
+`tests/queries/lab-edits.test.ts` covers all of it against `grains-dev`.
+
+**Creation takes a document, not a diff** — the deliberate asymmetry with
+`applyLabChanges`. There is no prior state to address leaves against, and
+forcing creation through the diff path would land a new lab at version 2 with a
+founding dump of forty leaves burying every real edit that follows.
+
+Three things the database decided rather than the design:
+
+- **Pricing reads before it writes.** `lab_pricing_not_empty` forbids an all-null
+  row, so clearing the last value in a cell is a DELETE and not an UPDATE, and
+  no upsert can tell which without knowing the other two columns.
+- **The version check and the scalar writes are one statement.** A stale caller
+  writes nothing at all rather than writing and then being told, and the same
+  UPDATE takes the row lock that serialises two editors for the rest of the
+  transaction.
+- **A cleared time is removed, not nulled.** A shut day stores exactly
+  `{"closed": true}`, never `{"closed": true, "open": null}` — a shape every
+  reader would otherwise have to learn to ignore.
+
+The backfill has run: **seven labs recomputed**, and the spread is what a
+tiebreaker needs — 20 to 60 across the real Bangkok seven, with the
+fully-populated `mock-lab.sql` fixture at 100. No clustering, no accidental
+ceiling. That is also the first evidence the weight table discriminates on real
+data rather than only on a fixture built to satisfy it.
+
+---
+
+# What B3 shipped
+
+`app/labs/actions.ts` — `createLab`, `updateLab`, `setLabStatus`, each the same
+four steps in the same order: `requireUser()`, one transaction, exactly one
+`edit_history` row, `revalidatePath`. `lib/labs/lab-input.ts` holds the create
+gate as a zod schema the form validates against too, and
+`lib/constraint-messages.ts` turns a database rule into a sentence.
+
+`setLabStatus` goes through the diff path rather than writing the two columns
+directly, which is what gives it a `from` and a `to` in the log like every other
+edit, and the same conflict semantics for free.
+
+An empty save is `unchanged`, not an error — the contributor opened the form,
+changed their mind, and pressed save. Nothing is wrong, and nothing is recorded.
+
+## The constraint names do not match the schema mirror
+
+`db/migrations/0000_init.sql` declares its CHECK constraints anonymously, so
+Postgres named them itself. Single-column ones came out sensibly
+(`labs_hours_check`); `lab_pricing`'s three came out **positionally** —
+`lab_pricing_check`, `_check1`, `_check2`. `lib/db/schema.ts` calls those three
+`lab_pricing_not_empty`, `lab_pricing_turnaround_min_present` and
+`lab_pricing_turnaround_order`, names that exist in no database.
+
+The migration is what ran, so the migration wins and the mirror's names are
+documentation. This is exactly the parity CLAUDE.md says is a review item and
+not something a tool checks — and nothing caught it until a message had to be
+keyed on one. Naming them properly is a migration, and migrations are frozen for
+Phase 2, so it belongs in a foundation PR to `main`.
+
+Positional names can be reordered without anybody noticing, and the failure
+would be silent — the wrong sentence attached to the wrong rule, which is worse
+than no sentence. `tests/actions/constraint-names.test.ts` asserts every mapped
+name exists in the live database, which makes that loud instead.
+
+Two more things the tests found, both of which would have shipped:
+
+- **Drizzle wraps driver errors**, so `constraint_name` is never on the error
+  that is thrown — it is on `cause`. The mapping silently did nothing until the
+  chain was walked, and every mapped rule would have surfaced as a 500.
+- **Postgres reports the first constraint a row violates**, so which sentence
+  comes back depends on the row and not only on the mistake. A cell with an
+  upper turnaround bound and nothing else fails the not-empty rule before it
+  reaches the one about bounds.
+
+---
+
+# What B4 shipped
+
+`components/lab-form/**` — one form, two modes, and `components/lab-form/draft.ts`,
+which is the half that had to be right: the contributor's typing becoming the
+set of leaves they actually touched. Everything is held as a string the way a
+form holds it, and parsed once at diff time, so `"180"`, `" ฿180 "` and a stored
+`180` all produce no change at all. `tests/lab-form/draft.test.ts` asserts that
+every diff it emits is one `labChangesSchema` accepts — the contract between the
+two halves of this track, checked rather than assumed.
+
+Built against the prototype's own `edit` screen via the `prototype-fidelity`
+skill: same section order, the two input weights, `data-on` chips, the checklist
+boxes, the dashed caveat notes, and the signal-coloured save whose copy carries
+the promise ("Save — goes live now"). Four things the diff-against-the-design
+turned up, none of which a test would have:
+
+- **C-41 pairs with dark ink, not paper.** The component library says so and
+  both this stylesheet and Track A's had `#ffffff`. Fixed in both.
+- **The save button is the one signal-coloured thing on the screen.** It was ink.
+- **The pin hint sat on top of MapLibre's attribution** at 375px.
+- **The atmosphere-photo slot is drawn, not omitted** — zero is an invitation.
+  It is disabled until Track C gives it something to upload.
+
+## The bug that only a browser could find
+
+The dropped pin never appeared. Nothing threw, nothing logged, and `addTo(map)`
+ran with a real `Marker`: React mounts effects twice in development, so BaseMap
+builds a map, discards it and builds another, and a marker held across that
+lands on the discarded one — attached to a real canvas container that is not in
+the document. The marker's life is now tied to the effect that made it, so it
+always belongs to the map on screen.
+
+Its class was also `.grains-pin`, which `components/map/lab-map.css` already
+uses for a search result. Renamed to `.grains-drop-pin`. And the teardrop needs
+`rotate: -45deg` rather than `transform: rotate()`, because MapLibre positions a
+marker by writing `transform: translate(...)` inline and a transform here is
+simply overwritten.
+
+## Deviations, recorded rather than invented
+
+- **Turnaround gets one input per format**, in the prototype's TURNAROUND column
+  and at its width. The prototype gives a process one input; the schema stores
+  turnaround per `(process, format)`. This is P25 again, resolved the way Track
+  A resolved it on the read view.
+- **Status is not on this form.** The plan's B4 lists "status + note", the
+  prototype's screen does not draw it, and `setLabStatus` already exists as its
+  own action reached from the lab page — which is where "Mark as closed"
+  belongs. Putting it in both places would mean two ways to do one thing.
+- **The inventory picker lists and edits, but cannot search.** A lab may only
+  carry a catalog entry (PRD A #3), so adding one needs the film-stock typeahead,
+  and that is B5. The section renders what a lab already has.
+- **Back links.** Every page now says where it came from — `/labs` → `/`,
+  `/labs/new` → `/labs`, `/labs/[id]/edit` → that lab. Written as links to known
+  places rather than `history.back()`, which does nothing for somebody arriving
+  from a bookmark or a post-sign-in redirect. `components/layout/back-link.tsx`
+  matches the breadcrumb the lab detail page already carried.
+
+---
+
+# What B5 shipped
+
+Film stocks end to end (P15): `lib/queries/films.ts`, `lib/films/paths.ts`,
+`lib/queries/film-edits.ts`, `app/films/actions.ts`,
+`app/api/film-stocks/route.ts`, `/films`, `/films/[id]`, `/films/new`,
+`/films/[id]/edit`, `db/seed/film-stocks.sql` — and the typeahead wired back
+into the lab form, which is what B4 was waiting on.
+
+The catalog write path is the lab write path in miniature and deliberately so:
+optimistic concurrency in the statement that writes, exactly one `edit_history`
+row per mutation, the same leaf-path shape so one log renders both entities. It
+differs in one place — `updateFilmStock` takes the whole entry and diffs it
+inside the transaction, because three columns on one row are small enough that a
+person edits all of them at once, and the transaction is the only place that can
+see what somebody else changed a second ago.
+
+**Reverse search runs on `/api/labs` with `film_stock_id`.** No second endpoint
+and no second query: "labs near me carrying X" is lab search with one more
+filter, and giving it its own implementation would mean two versions of the
+radius rule.
+
+## The gap the design assumes and the schema does not have
+
+The prototype keys every film tile and spec chip by **chemical process** — a
+C-41 stock gets the amber duotone, an E-6 stock the blue. `film_stocks` has
+`name`, `iso`, `formats` and no process column.
+
+Rendered hueless rather than guessed. Deriving a process from a stock's name
+would be inventing data of exactly the kind the Decision Ledger was written
+about, and the cost of not having it is visible on `/films`: thirty-two
+identical grey tiles where the design has a spread of colour. Adding the column
+is a migration, and migrations are frozen for Phase 2, so it belongs in the same
+foundation PR as the constraint names.
+
+## What the seed got wrong, and what caught it
+
+`db/seed/film-stocks.sql` first went in with "Ilford HP5 Plus 400", "Ilford FP4
+Plus 125" and three more of the same shape. HP5 Plus is the product's name; the
+400 is the `iso` column. The error surfaced because `db/seed/mock-lab.sql` had
+already created "Ilford HP5 Plus" — the catalog ended up with two entries for
+one film, which is precisely what the name + ISO identity rule exists to
+prevent, and it took a collision with somebody else's fixture to notice. Names
+corrected, duplicates removed, and the reasoning is now a comment in the seed.
+
+## Two things the browser found
+
+- **A tile's parts must be block-level.** The tile is a `<Link>`, so its pieces
+  are spans, and an inline box ignores `width` and `aspect-ratio` entirely — the
+  duotone collapsed to a hairline.
+- **Clearing typeahead results in the effect that noticed the box was empty**
+  is a synchronous `setState` in an effect, which cascades renders. Results now
+  carry the query they answer and are rendered only while that is still what the
+  box says — which also removes the stale-response race, since an answer to a
+  query nobody is asking any more is simply not shown.
 
 ---
 
@@ -336,3 +576,7 @@ thorough four-process lab and a thorough one-process lab score the same on
 price. The alternative is a cap that scales with `count(lab_processes)`, which
 reintroduces the moving denominator and its bug. Recommendation: keep the flat
 cap, and revisit only if search results visibly rank a stub above a rich lab.
+
+The seeded spread above is the first real evidence either way, and it does not
+show the failure this cap could produce: no stub outranks a rich lab. Revisit if
+one ever does.
