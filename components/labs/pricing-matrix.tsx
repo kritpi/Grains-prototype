@@ -1,31 +1,41 @@
 import { CHEM_PROCESSES, PROCESS_LABELS } from "./search-state";
-import type { ChemProcess, LabDetail } from "@/lib/queries/labs";
-import { cn } from "@/lib/utils";
+import { SectionLabel, SectionNote } from "./lab-section";
+import type {
+  ChemProcess,
+  LabDetail,
+  LabPricingCell,
+} from "@/lib/queries/labs";
 
 /**
- * Pricing and turnaround, per process and per format.
+ * Pricing and turnaround, laid out as the prototype has it:
+ * PROCESS | 135 | 120 | TURNAROUND, right-aligned, one row per process.
  *
- * The distinction this table exists to make (PRD A, Decision Ledger #1):
+ * The distinction the table exists to make (PRD A, Decision Ledger #1):
  *
- *   "—"               the lab does not offer this process at all
- *   "Not entered"     it does, and nobody has said what it costs
+ *   "—"            the lab does not offer this process at all
+ *   "not entered"  it does, and nobody has said what it costs
  *
- * Collapsing those two into one blank cell is what the prototype did, and it
- * is why the ledger entry exists: a reader cannot tell "they don't do E-6"
- * from "we don't know their E-6 price", and a contributor cannot tell which
- * gap is theirs to fill. So every process in the roster gets a row — including
- * the ones this lab does not offer — because "not offered" is information too,
- * and a row that is simply missing states nothing.
+ * Collapsing those into one blank cell is what the prototype's own predecessor
+ * did, and it is why the ledger entry was written: a reader cannot tell "they
+ * don't do E-6" from "we don't know their E-6 price", and a contributor cannot
+ * tell which gap is theirs to fill. So every process keeps a row.
  *
- * Turnaround sits inside each cell rather than in a column of its own. The
- * wireframe gives it one column per process, which assumed a single turnaround
- * per process; the schema stores it per (process, format), and a 135 that comes
- * back next day while 120 goes out to a partner lab for a week is exactly the
- * case that shape exists for. Rendering one number for both would be inventing
- * data — the same failure the ledger entry was written about.
+ * THE TURNAROUND COLUMN
+ *
+ * This is the one place the prototype's layout and the schema disagree. A single
+ * TURNAROUND column per row assumes one turnaround per process; the schema
+ * stores it per (process, format), which is the shape that exists because a 135
+ * can come back next day while 120 goes out to a partner lab for a week.
+ *
+ * Resolved by rendering what is true rather than by picking a side: when the
+ * formats agree — the ordinary case, and the only case in the real seed — the
+ * column shows one value, exactly as the prototype draws it. When they genuinely
+ * differ it shows both, labelled by format, stacked in the same narrow column.
+ * Flattening them to a single span would say a 135 might take a week.
  */
 
 const FORMATS = ["135", "120"] as const;
+type Format = (typeof FORMATS)[number];
 
 function formatTurnaround(
   min: number | null,
@@ -43,115 +53,151 @@ function formatTurnaround(
     : `up to ${single} day${single === 1 ? "" : "s"}`;
 }
 
+/** The turnaround column for one process: one line, or one line per format. */
+function turnaroundLines(
+  cells: Map<Format, LabPricingCell>,
+): { format: Format | null; text: string }[] {
+  const byFormat = FORMATS.map((format) => {
+    const cell = cells.get(format);
+    return {
+      format,
+      text: cell
+        ? formatTurnaround(cell.turnaroundMinD, cell.turnaroundMaxD)
+        : null,
+    };
+  }).filter(
+    (entry): entry is { format: Format; text: string } => entry.text !== null,
+  );
+
+  if (byFormat.length === 0) return [];
+
+  const distinct = new Set(byFormat.map((entry) => entry.text));
+  return distinct.size === 1
+    ? [{ format: null, text: byFormat[0].text }]
+    : byFormat;
+}
+
 export function PricingMatrix({
   processes,
   pricing,
 }: Pick<LabDetail, "processes" | "pricing">) {
   const offered = new Set<ChemProcess>(processes);
 
-  // Keyed lookup rather than a find() per cell: eight cells, four processes,
-  // and the table reads better when the cell knows nothing about the list.
-  const cells = new Map(
+  const cells = new Map<string, LabPricingCell>(
     pricing.map((cell) => [`${cell.process}:${cell.format}`, cell]),
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[22rem] border-collapse text-sm">
-        <caption className="sr-only">
-          Price and turnaround by chemical process and film format
-        </caption>
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className="border-b border-foreground pr-3 pb-2 text-left font-sans text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase"
-            >
-              Process
-            </th>
-            {FORMATS.map((format) => (
-              <th
-                key={format}
-                scope="col"
-                className="border-b border-foreground px-3 pb-2 text-left font-sans text-[10px] font-semibold tracking-[0.1em] text-muted-foreground uppercase"
-              >
-                {format}
+    <section>
+      <SectionLabel>Pricing per process</SectionLabel>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[20rem] border-collapse">
+          <caption className="sr-only">
+            Price and turnaround by chemical process and film format
+          </caption>
+          <thead>
+            <tr className="border-b-[1.5px] border-foreground font-sans text-[9px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+              <th scope="col" className="pb-1.5 text-left font-bold">
+                Process
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {CHEM_PROCESSES.map((process) => {
-            const isOffered = offered.has(process);
-
-            return (
-              <tr
-                key={process}
-                className={cn(!isOffered && "text-muted-foreground")}
-              >
+              {FORMATS.map((format) => (
                 <th
-                  scope="row"
-                  className="border-b border-border py-3 pr-3 text-left font-sans text-xs font-normal"
+                  key={format}
+                  scope="col"
+                  className="w-16 pb-1.5 text-right font-bold"
                 >
-                  {/* The process code stays Latin in both languages — it is a
-                      standard, like a film format, not a translatable word. */}
-                  {PROCESS_LABELS[process]}
+                  {format}
                 </th>
+              ))}
+              <th scope="col" className="w-24 pb-1.5 text-right font-bold">
+                Turnaround
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {CHEM_PROCESSES.map((process) => {
+              const isOffered = offered.has(process);
+              const processCells = new Map<Format, LabPricingCell>();
+              for (const format of FORMATS) {
+                const cell = cells.get(`${process}:${format}`);
+                if (cell) processCells.set(format, cell);
+              }
+              const turnaround = turnaroundLines(processCells);
 
-                {isOffered ? (
-                  FORMATS.map((format) => {
-                    const cell = cells.get(`${process}:${format}`);
-                    const turnaround = cell
-                      ? formatTurnaround(
-                          cell.turnaroundMinD,
-                          cell.turnaroundMaxD,
-                        )
-                      : null;
+              return (
+                <tr
+                  key={process}
+                  className="border-b border-border font-sans text-[13px]"
+                >
+                  <th
+                    scope="row"
+                    className="py-2.5 text-left align-baseline font-normal"
+                  >
+                    {/* The process code stays Latin in both languages — it is a
+                        standard, like a film format, not a translatable word. */}
+                    {PROCESS_LABELS[process]}
+                  </th>
 
+                  {FORMATS.map((format) => {
+                    const cell = processCells.get(format);
                     return (
                       <td
                         key={format}
-                        className="border-b border-border px-3 py-3 align-top"
+                        className="py-2.5 text-right align-baseline tabular-nums"
                       >
-                        {cell?.priceThb != null ? (
-                          <span className="tabular-nums">
-                            ฿{cell.priceThb.toLocaleString("en-US")}
-                          </span>
+                        {!isOffered ? (
+                          <>
+                            <span
+                              aria-hidden="true"
+                              className="text-muted-foreground"
+                            >
+                              —
+                            </span>
+                            <span className="sr-only">Not offered</span>
+                          </>
+                        ) : cell?.priceThb != null ? (
+                          `฿${cell.priceThb.toLocaleString("en-US")}`
                         ) : (
-                          <span className="font-sans text-xs text-muted-foreground">
-                            Not entered
+                          <span className="text-[11px] text-muted-foreground italic">
+                            not entered
                           </span>
                         )}
-                        {turnaround ? (
-                          <span className="mt-0.5 block font-sans text-[11px] text-muted-foreground">
-                            {turnaround}
-                          </span>
-                        ) : null}
                       </td>
                     );
-                  })
-                ) : (
-                  <td
-                    colSpan={FORMATS.length}
-                    className="border-b border-border px-3 py-3 font-sans text-xs"
-                  >
-                    {/* An em dash, spelt out for a screen reader, which would
-                        otherwise read the glyph as silence. */}
-                    <span aria-hidden="true">—</span>
-                    <span className="sr-only">Not offered</span>
-                    <span className="ml-2">Not offered here</span>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  })}
 
-      <p className="mt-3 font-sans text-[11px] text-muted-foreground">
-        Prices are entered by contributors, not by the labs, and are a guide
-        rather than a quote.
-      </p>
-    </div>
+                  <td className="py-2.5 text-right align-baseline text-muted-foreground">
+                    {!isOffered ? (
+                      <span aria-hidden="true">—</span>
+                    ) : turnaround.length === 0 ? (
+                      <span className="text-[11px] italic">not entered</span>
+                    ) : (
+                      turnaround.map((line) => (
+                        <span
+                          key={line.format ?? "all"}
+                          className="block text-xs"
+                        >
+                          {line.format ? (
+                            <span className="text-[10px] opacity-70">
+                              {line.format}{" "}
+                            </span>
+                          ) : null}
+                          {line.text}
+                        </span>
+                      ))
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <SectionNote className="mt-2">
+        &ldquo;—&rdquo; = not offered · price is community-entered, not live
+      </SectionNote>
+    </section>
   );
 }

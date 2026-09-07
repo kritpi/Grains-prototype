@@ -227,15 +227,30 @@ describe.skipIf(!hasDatabase)("getLab", () => {
   });
 
   describe("services and supplies", () => {
-    it("puts curated entries first and carries both kinds", async () => {
+    it("returns the whole curated roster, offered or not", async () => {
+      // The page renders an un-offered service as an unticked box rather than
+      // omitting it, so the roster has to come back whole — the same argument
+      // as the badge list and the pricing matrix's rows.
       const lab = await getLab(labId);
-      expect(lab?.services.map((s) => s.labelEn ?? s.customLabel)).toEqual([
+      const curated = lab!.services.filter((s) => !s.custom);
+      expect(curated).toHaveLength(6);
+      expect(curated.filter((s) => s.offered).map((s) => s.labelEn)).toEqual([
         "Storefront drop-box",
-        "Scans burned to CD",
       ]);
-      // The freeform row keeps its note and has no catalog key.
-      expect(lab?.services[1].key).toBeNull();
-      expect(lab?.services[1].note).toBe("add ฿50");
+      expect(curated.filter((s) => !s.offered).length).toBe(5);
+    });
+
+    it("puts curated entries first and keeps the contributor's own last", async () => {
+      const lab = await getLab(labId);
+      const custom = lab!.services.filter((s) => s.custom);
+      expect(custom.map((s) => s.customLabel)).toEqual(["Scans burned to CD"]);
+      // A freeform row has no catalog key, is always offered — it exists only
+      // because somebody added it — and keeps its note.
+      expect(custom[0].key).toBeNull();
+      expect(custom[0].offered).toBe(true);
+      expect(custom[0].note).toBe("add ฿50");
+      // Curated first, so every lab's list opens the same way.
+      expect(lab!.services.at(-1)?.custom).toBe(true);
     });
 
     it("resolves supply labels from the catalog", async () => {

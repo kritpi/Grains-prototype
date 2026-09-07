@@ -494,6 +494,14 @@ export type LabBadge = {
   labelEn: string;
   labelTh: string;
   count: number;
+  /**
+   * Whether the person reading the page has endorsed this one.
+   *
+   * Always false for a signed-out reader, which is the honest answer rather
+   * than an absent one: the control still renders, it just sends them to sign
+   * in. The count is public; who voted is not exposed beyond your own vote.
+   */
+  endorsedByViewer: boolean;
 };
 
 export type LabDetail = {
@@ -535,13 +543,29 @@ export type LabDetail = {
    */
   pricing: LabPricingCell[];
   scanners: string[];
+  /**
+   * The whole curated service roster, offered or not, followed by whatever a
+   * contributor has added freehand.
+   *
+   * Un-offered curated services come back too, with `offered: false`, because
+   * the page renders them as an unticked box rather than omitting them: a
+   * service the lab does not do is an answer, and an absent row is a question
+   * nobody asked. It is the same argument as the badge roster, and the same
+   * reason the pricing matrix keeps a row for a process the lab does not run.
+   *
+   * `offered` is what the page reads. `id` is null for a roster entry nobody
+   * has ticked, because there is no `lab_services` row behind it yet.
+   */
   services: {
-    id: string;
+    id: string | null;
     key: string | null;
     labelEn: string | null;
     labelTh: string | null;
     customLabel: string | null;
     note: string | null;
+    offered: boolean;
+    /** Contributor freeform rather than a catalog entry (Decision Ledger #2). */
+    custom: boolean;
   }[];
   supplies: {
     id: string;
@@ -585,7 +609,15 @@ export type LabDetail = {
  * A permanently-closed lab is returned. It is hidden from search, not deleted —
  * "Mark as Closed" is a status flag that preserves history (PRD A).
  */
-export async function getLab(id: string): Promise<LabDetail | null> {
+export async function getLab(
+  id: string,
+  /**
+   * The signed-in reader, when there is one. Only used to answer "have I
+   * endorsed this badge" — it never filters or hides anything, so passing
+   * nothing simply yields a page with no vote marked.
+   */
+  viewerId?: string | null,
+): Promise<LabDetail | null> {
   const db = getDb();
 
   const [
@@ -676,23 +708,46 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       order by sm.sort_order, ls.model
     `),
 
-    // Curated rows carry their catalog labels; freeform rows carry the
-    // contributor's own text. Ordering puts the curated set first, in catalog
-    // order, so the page reads the same way for every lab.
+    // Two halves in one statement. The first is the curated roster driven from
+    // the catalog, so a service this lab does not offer still comes back — the
+    // page renders it unticked rather than dropping it. The second is the
+    // contributor's freeform rows, which by definition only exist when somebody
+    // added them.
+    //
+    // Ordering keeps the curated set first, in catalog order, so every lab's
+    // list opens the same way and the comparable part is comparable.
     db.execute<{
-      id: string;
+      id: string | null;
       service_key: string | null;
       label_en: string | null;
       label_th: string | null;
       custom_label: string | null;
       note: string | null;
+      offered: boolean;
+      custom: boolean;
     }>(sql`
-      select lsv.id, lsv.service_key, sc.label_en, sc.label_th,
-             lsv.custom_label, lsv.note
+      select
+        lsv.id, sc.key as service_key, sc.label_en, sc.label_th,
+        null::text as custom_label, lsv.note,
+        (lsv.id is not null) as offered,
+        false as custom,
+        sc.sort_order, null::text as sort_label
+      from service_catalog sc
+      left join lab_services lsv
+        on lsv.service_key = sc.key and lsv.lab_id = ${id}::uuid
+
+      union all
+
+      select
+        lsv.id, null, null, null,
+        lsv.custom_label, lsv.note,
+        true as offered,
+        true as custom,
+        9999 as sort_order, lsv.custom_label as sort_label
       from lab_services lsv
-      left join service_catalog sc on sc.key = lsv.service_key
-      where lsv.lab_id = ${id}::uuid
-      order by (lsv.service_key is null), sc.sort_order, lsv.custom_label
+      where lsv.lab_id = ${id}::uuid and lsv.service_key is null
+
+      order by sort_order, sort_label
     `),
 
     db.execute<{
@@ -740,13 +795,24 @@ export async function getLab(id: string): Promise<LabDetail | null> {
     // Driven from the catalog, not from the votes, so a badge nobody has
     // endorsed still comes back — with a zero — and the roster is the same
     // four rows on every lab.
+    //
+    // The viewer's own vote rides along in the same aggregate rather than as a
+    // second query: `count(*) filter (where …)` over the rows already joined
+    // costs nothing extra, and the button needs both numbers to render.
     db.execute<{
       key: string;
       label_en: string;
       label_th: string;
       n: number;
+      mine: number;
     }>(sql`
-      select bc.key, bc.label_en, bc.label_th, count(v.user_id)::int as n
+      select
+        bc.key, bc.label_en, bc.label_th,
+        count(v.user_id)::int as n,
+        count(*) filter (
+          where ${viewerId ?? null}::uuid is not null
+            and v.user_id = ${viewerId ?? null}::uuid
+        )::int as mine
       from badge_catalog bc
       left join lab_badge_votes v
         on v.badge_key = bc.key and v.lab_id = ${id}::uuid
@@ -796,6 +862,8 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       labelTh: r.label_th,
       customLabel: r.custom_label,
       note: r.note,
+      offered: r.offered,
+      custom: r.custom,
     })),
     supplies: supplyRows.map((r) => ({
       id: r.id,
@@ -826,6 +894,7 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       labelEn: r.label_en,
       labelTh: r.label_th,
       count: r.n,
+      endorsedByViewer: r.mine > 0,
     })),
   };
 }

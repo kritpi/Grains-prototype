@@ -33,7 +33,14 @@ export function LabCard({ lab, selected, onSelect }: LabCardProps) {
       data-lab-id={lab.id}
       onClick={() => onSelect(lab.id)}
       className={cn(
-        "cursor-pointer border-b border-border px-5 py-4 transition-colors",
+        // `relative` is load-bearing, not cosmetic. The visually-hidden <dt>
+        // labels below are `position:absolute` (that is how Tailwind's sr-only
+        // works), so without a positioned ancestor they resolve against the
+        // initial containing block — escaping the result list's scroll
+        // container and stretching the document itself. The symptom is the
+        // whole page scrolling behind a list that was supposed to scroll
+        // inside itself, caused by text nobody can see.
+        "relative cursor-pointer border-b border-border px-5 py-4 transition-colors",
         selected ? "bg-secondary" : "hover:bg-secondary/60",
       )}
     >

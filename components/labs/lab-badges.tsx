@@ -1,76 +1,134 @@
+"use client";
+
+import { useOptimistic, useTransition } from "react";
+import Link from "next/link";
+
+import { toggleLabBadge } from "@/app/labs/[id]/actions";
 import type { LabBadge } from "@/lib/queries/labs";
-import { cn } from "@/lib/utils";
+
+import { SectionLabel, SectionNote } from "./lab-section";
 
 /**
- * Community badges — read-only here, endorsable in Phase 3.
+ * Community badges — a row of chips you can press to endorse.
  *
- * Three properties of the roster are load-bearing and all come from PRD C #1:
- * it is fixed and product-defined, so nobody can propose a new badge name and
- * there is no freeform namespace to moderate; it is identical on every lab, so
- * a badge with no endorsements stays listed rather than disappearing; and the
- * count is the live number of endorsements, never a historical total, so it can
- * fall as well as rise when people retract.
+ * Four properties of the roster are load-bearing, all from PRD C #1:
  *
- * The bar is relative within this lab only. There is no cross-lab score, and
- * the widths here must never be read as one — which is why the count is printed
- * next to it rather than left to the bar to imply.
+ *   The roster is fixed and product-defined. Nobody proposes a new badge name,
+ *   so there is no freeform namespace and nothing to moderate.
  *
- * `toggleLabBadge` is Phase 3 (build plan 3.2). Until it exists these are
- * static rows and not disabled buttons: a control that cannot do anything is
- * worse than no control, and the endorsement affordance arrives with the action
- * behind it.
+ *   It is identical on every lab, so a badge with no endorsements keeps its slot
+ *   rather than disappearing. The prototype says why on the page itself, and the
+ *   sentence is worth keeping: it reads as an invitation, not an absence.
+ *
+ *   The count is the live number of active endorsements, never a historical
+ *   total, so it falls when people retract. A badge can go back to zero.
+ *
+ *   Each vote is one binary (you, this lab, this badge). That is why this is a
+ *   toggle rather than an up/down pair or a counter you can press repeatedly.
+ *
+ * The endorsed state is filled ink, straight from the prototype's
+ * `[data-endorsed="true"]`. It has to be visible on the chip itself because it
+ * is the only way to answer "did I already do this" — the count cannot tell you,
+ * since it moves for everyone.
+ *
+ * Optimistic rather than awaiting the round trip. These are chips people press
+ * two or three of in a row, the page is `force-dynamic` so a revalidate
+ * re-renders all of it, and a toggle that lags feels broken in a way that a
+ * toggle which occasionally corrects itself does not. `useOptimistic` discards
+ * the local guess when the server's answer arrives, so a rejected vote snaps
+ * back rather than lying.
  */
-export function LabBadges({ badges }: { badges: LabBadge[] }) {
-  const total = badges.reduce((sum, badge) => sum + badge.count, 0);
-  const strongest = Math.max(...badges.map((badge) => badge.count), 0);
 
-  if (total === 0) {
-    return (
-      <p className="border border-dashed border-border px-3 py-2 font-sans text-xs text-muted-foreground">
-        No endorsements yet. Once sign-in reaches this page, any signed-in
-        visitor can say what this lab is good at.
-      </p>
-    );
-  }
+type OptimisticToggle = { key: string };
+
+export function LabBadges({
+  badges,
+  labId,
+  signedIn,
+}: {
+  badges: LabBadge[];
+  labId: string;
+  signedIn: boolean;
+}) {
+  const [, startTransition] = useTransition();
+
+  const [shown, applyToggle] = useOptimistic(
+    badges,
+    (current: LabBadge[], { key }: OptimisticToggle) =>
+      current.map((badge) =>
+        badge.key === key
+          ? {
+              ...badge,
+              endorsedByViewer: !badge.endorsedByViewer,
+              // The count moves with the vote, so the chip stays internally
+              // consistent while the request is in flight.
+              count: badge.count + (badge.endorsedByViewer ? -1 : 1),
+            }
+          : badge,
+      ),
+  );
+
+  const total = shown.reduce((sum, badge) => sum + badge.count, 0);
 
   return (
-    <ul className="font-sans text-sm">
-      {badges.map((badge) => {
-        const empty = badge.count === 0;
+    <section>
+      <SectionLabel>
+        Community badges{signedIn ? " · tap to endorse" : ""}
+      </SectionLabel>
 
-        return (
-          <li
-            key={badge.key}
-            className={cn(
-              "flex items-baseline gap-3 border-b py-2",
-              // Dashed and greyed at zero, so the roster reads as comparable
-              // across labs without a zero looking like content.
-              empty
-                ? "border-dashed border-border text-muted-foreground"
-                : "border-border",
-            )}
-          >
-            <span className="min-w-0 flex-1 truncate">{badge.labelEn}</span>
+      <ul className="flex flex-wrap gap-2.5">
+        {shown.map((badge) => {
+          const content = (
+            <>
+              <i aria-hidden="true" />
+              <span>{badge.labelEn}</span>
+              <span className="text-[11px] tabular-nums opacity-70">
+                {badge.count}
+              </span>
+            </>
+          );
 
-            <span
-              aria-hidden="true"
-              className="hidden h-px w-24 shrink-0 bg-border sm:block"
-            >
-              <span
-                className="block h-px bg-foreground"
-                style={{
-                  width:
-                    strongest > 0
-                      ? `${(badge.count / strongest) * 100}%`
-                      : "0%",
-                }}
-              />
-            </span>
+          return (
+            <li key={badge.key}>
+              {signedIn ? (
+                <button
+                  type="button"
+                  className="grains-badge"
+                  data-zero={badge.count === 0}
+                  data-endorsed={badge.endorsedByViewer}
+                  // The pressed state is the whole point of the control, and a
+                  // screen reader gets it from here rather than from the fill.
+                  aria-pressed={badge.endorsedByViewer}
+                  onClick={() =>
+                    startTransition(async () => {
+                      applyToggle({ key: badge.key });
+                      await toggleLabBadge(labId, badge.key);
+                    })
+                  }
+                >
+                  {content}
+                </button>
+              ) : (
+                <Link
+                  href={`/sign-in?next=${encodeURIComponent(`/labs/${labId}`)}`}
+                  className="grains-badge"
+                  data-zero={badge.count === 0}
+                  data-endorsed={false}
+                  title="Sign in to endorse"
+                >
+                  {content}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
-            <span className="shrink-0 tabular-nums">{badge.count}</span>
-          </li>
-        );
-      })}
-    </ul>
+      <SectionNote className="mt-2.5">
+        {total === 0
+          ? "No endorsements yet. Every badge keeps its slot — it reads as an invitation, not an absence."
+          : "A badge with no endorsements keeps its slot — it reads as an invitation, not an absence."}
+      </SectionNote>
+    </section>
   );
 }

@@ -6,8 +6,18 @@ import { currentUser, signOut } from "@/lib/auth";
 export async function SiteHeader() {
   const user = await currentUser();
 
+  // Sticky, and h-16 rather than padding-derived.
+  //
+  // /labs is a fixed viewport frame — the map holds still while the result list
+  // scrolls inside itself — and it sizes that frame as `calc(100vh-4rem)`. That
+  // arithmetic is only correct if the header is exactly 4rem tall, so the height
+  // is stated here rather than left to emerge from padding and the line box of
+  // whatever happens to be inside.
+  //
+  // `bg-background` is not decoration: without it the page scrolls through a
+  // transparent header.
   return (
-    <header className="flex items-center justify-between border-b border-border px-6 py-4">
+    <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6">
       <Link href="/" className="text-xl">
         Grains
       </Link>

@@ -66,7 +66,9 @@ export function LabLocationMap({
       zoom={15}
       interactive={false}
       onReady={handleReady}
-      className="h-56 border border-border"
+      // 150px, as the prototype sizes it: enough to place the lab on its
+      // street, not so much that it competes with the photographs above.
+      className="h-[150px] border border-border"
     />
   );
 }

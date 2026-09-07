@@ -5,38 +5,49 @@ import { notFound } from "next/navigation";
 
 import { LabBadges } from "@/components/labs/lab-badges";
 import { LabContacts, LabQuickActions } from "@/components/labs/lab-contacts";
+import {
+  LabContribution,
+  SuggestEditButton,
+} from "@/components/labs/lab-contribution";
 import { LabEditLog } from "@/components/labs/lab-edit-log";
 import { LabHoursTable } from "@/components/labs/lab-hours-table";
 import { LabInventory } from "@/components/labs/lab-inventory";
-import { LabLocationMap } from "@/components/labs/lab-location-map";
+import { LabLocation } from "@/components/labs/lab-location";
 import { LabPhotos } from "@/components/labs/lab-photos";
-import { LabSection, NotEntered } from "@/components/labs/lab-section";
 import { LabServices, LabSupplies } from "@/components/labs/lab-services";
-import { LabStatusBanner, LabStatusLine } from "@/components/labs/lab-status";
+import {
+  LabMetaLine,
+  LabStatus,
+  LabStatusBanner,
+} from "@/components/labs/lab-status";
 import { PricingMatrix } from "@/components/labs/pricing-matrix";
-import { formatEditAge } from "@/components/labs/edit-log-format";
+import { PROCESS_LABELS } from "@/components/labs/search-state";
+import { currentUser } from "@/lib/auth";
+import { bangkokNow } from "@/lib/labs/hours";
 import { labPhotoUrl } from "@/lib/labs/photo-url";
-import { getLab } from "@/lib/queries/labs";
+import { CHEM_PROCESSES, getLab } from "@/lib/queries/labs";
+
+import "@/components/labs/lab-detail.css";
 
 /**
- * "Open now" is a function of the clock, so there is nothing here to prerender
- * — the same reason /labs is dynamic. Everything else on the page would cache
- * happily; the status pill is what stops it.
+ * "Open now" is a function of the clock, so there is nothing here to prerender —
+ * the same reason /labs is dynamic. Everything else on the page would cache
+ * happily; the status dot is what stops it.
  */
 export const dynamic = "force-dynamic";
 
 /**
  * `generateMetadata` and the page body both need the lab, and `getLab` is ten
- * statements. Cached per request so it is fetched once: without this the pool
- * — five connections, and small enough to have deadlocked this page's sibling
- * once already — serves twenty statements to render one page.
+ * statements. Cached per request so it is fetched once: without this the pool —
+ * five connections, and small enough to have deadlocked this page's sibling once
+ * already — serves twenty statements to render one page.
  */
 const loadLab = cache(getLab);
 
 /**
  * A bad id must not reach the query. `getLab` casts to uuid in SQL, so a
- * hand-typed path segment would raise 22P02 and surface as a 500 rather than
- * the 404 it actually is.
+ * hand-typed path segment would raise 22P02 and surface as a 500 rather than the
+ * 404 it actually is.
  */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,7 +63,7 @@ export async function generateMetadata({
   const where = lab.areaEn ? ` in ${lab.areaEn}` : "";
   const processes =
     lab.processes.length > 0
-      ? ` Develops ${lab.processes.map((p) => p.toUpperCase()).join(", ")}.`
+      ? ` Develops ${lab.processes.map((p) => PROCESS_LABELS[p]).join(", ")}.`
       : "";
 
   return {
@@ -68,24 +79,34 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
 
-  const lab = await loadLab(id);
+  // The reader, if there is one — used only to mark their own endorsements and
+  // to decide whether a badge is a button or a link to sign in. currentUser()
+  // is React.cached, so the header's own lookup does not cost a second query.
+  const viewer = await currentUser();
+
+  const lab = await loadLab(id, viewer?.id);
   if (!lab) notFound();
 
-  // Resolvable only once Track C's bucket exists; until then the section is
-  // absent rather than a row of broken frames.
+  // Resolvable only once Track C's bucket exists; until then the mosaic renders
+  // as empty hatched slots rather than disappearing.
   const photos = lab.photos
     .map((photo) => ({ ...photo, url: labPhotoUrl(photo.storageKey) }))
     .filter(
       (photo): photo is typeof photo & { url: string } => photo.url !== null,
     );
 
-  const address = [lab.street, lab.areaEn].filter(Boolean).join(", ");
+  const offered = new Set(lab.processes);
+
+  // Bangkok's today, computed here rather than in the hours component: that one
+  // is a client component for its collapse toggle, and the browser's clock is
+  // not the lab's.
+  const todayDow = bangkokNow().dow;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
+    <main>
       <nav
         aria-label="Breadcrumb"
-        className="font-sans text-xs text-muted-foreground"
+        className="border-b border-border px-5 py-2.5 font-sans text-xs text-muted-foreground"
       >
         <Link href="/labs" className="hover:underline">
           Labs
@@ -107,150 +128,141 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
         <span className="text-foreground">{lab.nameEn}</span>
       </nav>
 
-      {lab.status !== "open" ? (
-        <div className="mt-5">
-          <LabStatusBanner
-            status={lab.status}
-            statusNote={lab.statusNote}
-            openNow={lab.openNow}
-            hours={lab.hours}
-          />
-        </div>
-      ) : null}
+      <LabPhotos photos={photos} nameEn={lab.nameEn} />
 
-      <header className="mt-5">
-        <h1 className="text-4xl leading-tight">{lab.nameEn}</h1>
-        {lab.nameTh ? (
-          <p className="mt-1 text-lg text-muted-foreground">{lab.nameTh}</p>
-        ) : null}
+      {/* Wraps to one column below ~780px: the rail's content is the "where and
+          how do I reach it" half and reads perfectly well underneath. */}
+      <div className="flex flex-wrap items-start">
+        <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5 px-5 pt-5 pb-8">
+          {lab.status !== "open" ? (
+            <LabStatusBanner
+              status={lab.status}
+              statusNote={lab.statusNote}
+              openNow={lab.openNow}
+              hours={lab.hours}
+            />
+          ) : null}
 
-        <div className="mt-4">
-          <LabStatusLine
-            status={lab.status}
-            statusNote={lab.statusNote}
-            openNow={lab.openNow}
-            hours={lab.hours}
-          />
-        </div>
+          <header className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-start gap-3.5">
+              <div className="min-w-[200px] flex-1">
+                <h1 className="font-serif text-[32px] leading-[1.08]">
+                  {lab.nameEn}
+                </h1>
+                {lab.nameTh ? (
+                  <p className="mt-1 text-[17px] text-muted-foreground">
+                    {lab.nameTh}
+                  </p>
+                ) : null}
+              </div>
+              <div className="mt-1">
+                <LabStatus
+                  status={lab.status}
+                  statusNote={lab.statusNote}
+                  openNow={lab.openNow}
+                  hours={lab.hours}
+                />
+              </div>
+            </div>
 
-        <div className="mt-4">
+            <LabMetaLine
+              areaEn={lab.areaEn}
+              status={lab.status}
+              openNow={lab.openNow}
+              hours={lab.hours}
+            />
+
+            {/* Process chips carry their own colour, which is the product's
+                shorthand for a process everywhere it appears. An unoffered one
+                is outlined rather than absent, for the same reason its pricing
+                row stays. */}
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {CHEM_PROCESSES.map((process) => (
+                <span
+                  key={process}
+                  className="grains-proc"
+                  data-process={process}
+                  data-on={offered.has(process)}
+                >
+                  {PROCESS_LABELS[process]}
+                </span>
+              ))}
+              {/* One chip per scanner rather than one chip listing them all.
+                  A scanner is an independent fact about the lab in the same way
+                  a process is — it is a filter value on /labs, and people pick
+                  a lab for a Frontier the way they pick one for E-6. Joining
+                  them into "Noritsu · SP-3000" made a set look like a sentence.
+                  Outlined rather than colour-coded: the process palette is a
+                  fixed roster of four, while the scanner roster is content and
+                  grows without a migration. */}
+              {lab.scanners.map((model) => (
+                <span
+                  key={model}
+                  className="border border-ring px-2.5 py-[3px] font-sans text-xs text-muted-foreground"
+                >
+                  {model}
+                </span>
+              ))}
+            </div>
+          </header>
+
           <LabQuickActions
             lat={lab.lat}
             lng={lab.lng}
             nameEn={lab.nameEn}
             contacts={lab.contacts}
           />
-        </div>
-      </header>
 
-      {photos.length > 0 ? (
-        <div className="mt-8">
-          <LabPhotos photos={photos} nameEn={lab.nameEn} />
-        </div>
-      ) : null}
+          <LabBadges
+            badges={lab.badges}
+            labId={lab.id}
+            signedIn={Boolean(viewer?.username)}
+          />
 
-      {/* Two columns on desktop, one on a phone. The rail is the "where and
-          how do I reach it" half; the main column is the "what does it cost
-          and what can it do" half. */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[1fr_20rem]">
-        <div className="flex flex-col gap-8">
-          <LabSection title="Pricing per process">
-            <PricingMatrix processes={lab.processes} pricing={lab.pricing} />
-          </LabSection>
+          <PricingMatrix processes={lab.processes} pricing={lab.pricing} />
 
-          <LabSection title="Scanners">
-            {lab.scanners.length > 0 ? (
-              <p className="font-sans text-sm">{lab.scanners.join(" · ")}</p>
-            ) : (
-              <NotEntered>No scanner listed yet.</NotEntered>
-            )}
-          </LabSection>
-
-          <LabSection title="Services">
+          <div className="flex flex-wrap gap-7">
             <LabServices services={lab.services} />
-          </LabSection>
+            <LabContribution
+              labId={lab.id}
+              editCount={lab.editCount}
+              lastEditedAt={lab.lastEditedAt}
+              lastEditorUsername={lab.lastEditorUsername}
+              status={lab.status}
+            />
+          </div>
 
-          <LabSection
-            title="Community badges"
-            aside={
-              lab.badges.reduce((sum, b) => sum + b.count, 0) > 0
-                ? `${lab.badges.reduce((sum, b) => sum + b.count, 0)} endorsements`
-                : undefined
-            }
-          >
-            <LabBadges badges={lab.badges} />
-          </LabSection>
+          <LabInventory stock={lab.stock} />
+          <LabSupplies supplies={lab.supplies} />
+
+          <SuggestEditButton labId={lab.id} />
         </div>
 
-        <aside className="flex flex-col gap-8 lg:sticky lg:top-8 lg:self-start">
-          <LabSection title="Location">
-            <LabLocationMap lat={lab.lat} lng={lab.lng} nameEn={lab.nameEn} />
+        <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-5 border-border px-5 pt-5 pb-8 md:border-l">
+          <LabLocation
+            lat={lab.lat}
+            lng={lab.lng}
+            nameEn={lab.nameEn}
+            street={lab.street}
+            areaEn={lab.areaEn}
+            landmarkNote={lab.landmarkNote}
+          />
 
-            {address ? (
-              <p className="mt-3 font-sans text-sm">{address}</p>
-            ) : null}
+          <LabHoursTable
+            hours={lab.hours}
+            todayDow={todayDow}
+            overridden={lab.status !== "open"}
+          />
 
-            {/* How a person finds this in practice — "above the 7-Eleven,
-                unmarked door" — which a formal address does not carry, and
-                which matters for a lab down a soi (Decision Ledger #4). */}
-            {lab.landmarkNote ? (
-              <p className="mt-2 font-sans text-sm text-muted-foreground">
-                {lab.landmarkNote}
-              </p>
-            ) : null}
-          </LabSection>
-
-          <LabSection title="Hours">
-            <LabHoursTable
-              hours={lab.hours}
-              overridden={lab.status !== "open"}
-            />
-          </LabSection>
-
-          <LabSection title="Contact">
-            <LabContacts contacts={lab.contacts} />
-          </LabSection>
-
-          <LabSection title="In store · film stock">
-            <LabInventory stock={lab.stock} />
-          </LabSection>
-
-          <LabSection title="Darkroom supplies">
-            <LabSupplies supplies={lab.supplies} />
-          </LabSection>
-
-          <LabSection title="Contribution">
-            <p className="font-sans text-xs text-muted-foreground">
-              {lab.lastEditedAt
-                ? `Last edited ${formatEditAge(lab.lastEditedAt)}${
-                    lab.lastEditorUsername
-                      ? ` by @${lab.lastEditorUsername}`
-                      : ""
-                  } · ${lab.editCount} edit${lab.editCount === 1 ? "" : "s"}`
-                : "No edits recorded yet."}
-            </p>
-            <p className="mt-2 font-sans text-xs text-muted-foreground">
-              Anything above can be corrected by anyone signed in, and edits go
-              live immediately.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {/* Track B's route. Linked now because the path is fixed by the
-                  route table and the page should not need revisiting. */}
-              <Link
-                href={`/labs/${lab.id}/edit`}
-                className="border border-foreground px-3 py-1.5 font-sans text-xs hover:bg-foreground hover:text-background"
-              >
-                Suggest an edit
-              </Link>
-            </div>
-          </LabSection>
+          <LabContacts contacts={lab.contacts} />
         </aside>
       </div>
 
-      <div className="mt-12">
-        <LabSection title="Edit history">
-          <LabEditLog labId={lab.id} editCount={lab.editCount} />
-        </LabSection>
+      <div
+        id="edit-history"
+        className="scroll-mt-4 border-t border-border px-5 pt-5 pb-10"
+      >
+        <LabEditLog labId={lab.id} editCount={lab.editCount} />
       </div>
     </main>
   );

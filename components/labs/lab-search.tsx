@@ -163,9 +163,18 @@ export function LabSearch({
   const center: [number, number] = [search.lng!, search.lat!];
   const labs = results?.labs ?? [];
 
+  // On a wide screen this is a fixed viewport frame rather than a scrolling
+  // page: the map holds still and the result list scrolls inside itself.
+  //
+  // That needs the frame's height pinned AND `min-h-0` on the flex children. A
+  // flex item defaults to `min-height:auto`, which refuses to shrink below its
+  // content, so without it the list pushes the frame taller than the screen and
+  // the whole page scrolls — dragging the map out of view, which is the bug this
+  // replaced. Below `lg` the two stack and the page scrolls normally, which is
+  // what a phone wants.
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
-      <div className="order-2 flex w-full flex-col border-border lg:order-1 lg:w-[27rem] lg:shrink-0 lg:border-r">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:flex-row lg:overflow-hidden">
+      <div className="order-2 flex w-full flex-col border-border lg:order-1 lg:h-full lg:min-h-0 lg:w-[27rem] lg:shrink-0 lg:border-r">
         <FilterPanel
           state={search}
           options={options}
@@ -173,7 +182,7 @@ export function LabSearch({
           resultCount={results?.total ?? 0}
         />
 
-        <div className="lg:h-[calc(100vh-4rem)] lg:overflow-y-auto">
+        <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {error ? (
             <div className="px-5 py-10">
               <h2 className="text-xl">Search failed</h2>
@@ -209,7 +218,7 @@ export function LabSearch({
         </div>
       </div>
 
-      <div className="order-1 h-[45vh] w-full lg:order-2 lg:h-[calc(100vh-4rem)] lg:flex-1">
+      <div className="order-1 h-[45vh] w-full lg:order-2 lg:h-full lg:min-h-0 lg:flex-1">
         <LabMap
           labs={labs}
           center={center}
