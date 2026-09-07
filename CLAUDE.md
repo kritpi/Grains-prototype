@@ -162,7 +162,11 @@ Grains is a crowdsourced platform for finding film-developing labs ("film labs")
 - Short artist's note (2-3 lines) per Photobook
 - MVP safeguard: per-user cap on original photo uploads (Connections don't count against it), to bound storage and push toward "best shots only"
 
-## Design direction & visual identity (not yet implemented)
+## Design direction & visual identity
+
+**The visual contract is [docs/design-system/component-library.html](docs/design-system/component-library.html) and [docs/design/grains-prototype.html](docs/design/grains-prototype.html) — read one of them before writing any UI.** The prose below is the intent; those two are the specification, down to exact tokens, component states and layout ratios. The prototype is an exported artifact that greps as noise, so use the `prototype-fidelity` skill (`.claude/skills/prototype-fidelity/`) to open it — building from the wireframe or from this prose alone is how the lab detail page got rewritten once already.
+
+Note that `app/globals.css` and the design system have **not** been formally reconciled: the palette here was set from the prose example at scaffold time (P7), and the design system's own values differ. Map onto the existing semantic tokens rather than pasting hex values out of the prototype, and raise the difference rather than editing the palette from a feature branch.
 
 - Influences: street/editorial photographers — Saul Leiter, Cartier-Bresson, Vivian Maier, Joe Greer, Willem Verbeeck
 - Layout: editorial grid, high negative space, no heavy borders or generic-SaaS drop shadows, no rounded corners (sharp, flat rectangles only)
