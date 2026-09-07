@@ -354,11 +354,53 @@ Three things the writing of it settled:
   because two spellings of absent would have to be understood by the detail
   page and the log, and the log already prints them identically.
 - **`from` is validated too**, though nothing writes it. It is what the log
-  renders forever, and a malformed one is a lie recorded permanently.
+  renders forever, and a malformed one is a lie recorded permanently. It admits
+  null for *every* leaf, including booleans, enums and NOT NULL columns — null
+  on the way in does not mean "cleared", it means the leaf did not exist yet.
+  B2's tests found this: a contact being added has no previous channel, a day
+  has no previous `closed` until the week is materialised, and a lab's own name
+  begins at null in the entry recording its creation. Requiring a typed `from`
+  made adding anything unrepresentable.
 - **The value schema stops at shape.** `lab_pricing`'s check constraints and the
   composite foreign key are the database's, and restating them here would create
   a second opinion that eventually disagrees with the first. B3 turns the
   constraint violation into a message.
+
+---
+
+# What B2 shipped
+
+`lib/queries/lab-edits.ts` — `insertLab`, `applyLabChanges`,
+`recomputeCompleteness`, `recomputeAllCompleteness` and `appendEditHistory`,
+each taking the caller's transaction. `tests/db/tx.ts` is the rollback helper the
+suite did not have: the schema invariants use a raw postgres.js client because
+they assert on error codes, but the write layer takes a drizzle transaction
+precisely so a test can run the real function and leave nothing behind.
+`tests/queries/lab-edits.test.ts` covers all of it against `grains-dev`.
+
+**Creation takes a document, not a diff** — the deliberate asymmetry with
+`applyLabChanges`. There is no prior state to address leaves against, and
+forcing creation through the diff path would land a new lab at version 2 with a
+founding dump of forty leaves burying every real edit that follows.
+
+Three things the database decided rather than the design:
+
+- **Pricing reads before it writes.** `lab_pricing_not_empty` forbids an all-null
+  row, so clearing the last value in a cell is a DELETE and not an UPDATE, and
+  no upsert can tell which without knowing the other two columns.
+- **The version check and the scalar writes are one statement.** A stale caller
+  writes nothing at all rather than writing and then being told, and the same
+  UPDATE takes the row lock that serialises two editors for the rest of the
+  transaction.
+- **A cleared time is removed, not nulled.** A shut day stores exactly
+  `{"closed": true}`, never `{"closed": true, "open": null}` — a shape every
+  reader would otherwise have to learn to ignore.
+
+The backfill has run: **seven labs recomputed**, and the spread is what a
+tiebreaker needs — 20 to 60 across the real Bangkok seven, with the
+fully-populated `mock-lab.sql` fixture at 100. No clustering, no accidental
+ceiling. That is also the first evidence the weight table discriminates on real
+data rather than only on a fixture built to satisfy it.
 
 ---
 
@@ -371,3 +413,7 @@ thorough four-process lab and a thorough one-process lab score the same on
 price. The alternative is a cap that scales with `count(lab_processes)`, which
 reintroduces the moving denominator and its bug. Recommendation: keep the flat
 cap, and revisit only if search results visibly rank a stub above a rich lab.
+
+The seeded spread above is the first real evidence either way, and it does not
+show the failure this cap could produce: no stub outranks a rich lab. Revisit if
+one ever does.

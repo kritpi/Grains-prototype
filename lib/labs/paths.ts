@@ -479,10 +479,24 @@ const labChangeSchema = z
     }
 
     const schema = valueSchema(parsed.leaf);
-    for (const side of ["from", "to"] as const) {
-      // `from` is validated too, though nothing writes it: it is what the log
-      // renders, and a malformed one is a lie recorded permanently.
-      const result = schema.safeParse(change[side]);
+
+    // `from` is validated too, though nothing writes it: it is what the log
+    // renders, and a malformed one is a lie recorded permanently.
+    //
+    // It admits null for every leaf, including the ones `to` will not — a
+    // boolean, an enum, a NOT NULL column. Null on the way in does not mean
+    // "cleared", it means the leaf did not exist yet: a contact being added has
+    // no previous channel, a day has no previous `closed` until the week is
+    // materialised, and a lab's own name begins at null in the entry that
+    // records its creation. Requiring a typed `from` would make adding anything
+    // unrepresentable.
+    const sides = [
+      ["from", schema.nullable()],
+      ["to", schema],
+    ] as const;
+
+    for (const [side, sideSchema] of sides) {
+      const result = sideSchema.safeParse(change[side]);
       if (!result.success) {
         ctx.addIssue({
           code: "custom",
