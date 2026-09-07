@@ -71,7 +71,16 @@ const statements = readFileSync(file, "utf8")
   // is an empty query, which errors rather than doing nothing.
   .filter(hasStatement);
 
-const sql = postgres(url, { ssl: "require", prepare: false, max: 1 });
+const sql = postgres(url, {
+  ssl: "require",
+  prepare: false,
+  max: 1,
+  // A seed's RAISE NOTICE is a message written for the person running it —
+  // bangkok-labs.sql uses one to say which labs it skipped for want of a pin.
+  // The default handler dumps the whole notice object, severity and C source
+  // file included, which buries the sentence that was meant to be read.
+  onnotice: (notice) => console.log(notice.message),
+});
 
 try {
   await sql.begin(async (tx) => {

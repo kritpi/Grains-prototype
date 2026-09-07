@@ -20,13 +20,12 @@
 --
 -- WHAT IS MISSING, AND WHY IT IS MISSING
 --
--- Coordinates. No public source carries them: the editorial lists give a street
--- and a BTS stop, the structured directory gives a postal address, and the two
--- venue databases that hold real pins (Foursquare, Google) are behind logins.
--- Deriving a pin from a street address is a guess, and a guess puts a lab on the
--- wrong side of a soi in a product whose main surface is a map — so this file
--- does not contain one. Fill in COORDS below by dropping a pin; the guard
--- underneath refuses to seed until every row has one.
+-- Coordinates, for three of the ten. No listing publishes them: the editorial
+-- lists give a street and a BTS stop, the directory gives a postal address, and
+-- the two venue databases that hold real pins are behind logins. Seven were
+-- recovered by geocoding against OpenStreetMap and are marked as approximate
+-- where they are; the other three resist it and are left NULL, which skips them.
+-- See the seed_coords block below for which, and why.
 --
 -- Hours are entered only where a source stated them, and the array is left empty
 -- otherwise. Empty is not "closed": `OPEN_NOW` in lib/queries/labs.ts treats a
@@ -62,55 +61,93 @@ ON CONFLICT (lower(email)) DO NOTHING;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
--- FILL THIS IN. One row per lab: the pin, dropped by a person.
+-- The pins. Three still need a person.
 --
 -- Open the maps link in the review doc, drop a pin on the door, copy the two
--- numbers. Latitude first — that is the order they appear in a Google Maps URL,
--- and the opposite of the order ST_MakePoint takes them, which is handled below
--- rather than left as a trap.
+-- numbers in. Latitude first — that is the order they appear in a Google Maps
+-- URL, and the opposite of the order ST_MakePoint takes them, which is handled
+-- below rather than left as a trap.
+--
+-- Replacing a geocoded pin with a dropped one is always an improvement and needs
+-- no ceremony: change the numbers, delete that lab's row, run the file again.
 -- ---------------------------------------------------------------------------
 CREATE TEMP TABLE seed_coords (slug text PRIMARY KEY, lat double precision, lng double precision) ON COMMIT DROP;
 --> statement-breakpoint
 
+-- Seven are geocoded against OpenStreetMap (Nominatim, 2026-09-07) and every one
+-- was validated against its postal address — soi number, sub-district and
+-- postcode all had to match before it was written down. That check earned its
+-- keep: the English query for Charoen Krung 32 confidently returned a shop on
+-- Soi Charoen Krung *36*, and only the Thai-language query found the right soi.
+--
+-- Except XANAP these are STREET CENTROIDS, not doors: fine for ST_DWithin, where
+-- 150 metres is nothing in a 5 km search, and visibly off on the detail page's
+-- map. Replacing any of them with a real dropped pin is a pure improvement, and
+-- the seeded edit_history entry says so in the product itself.
+--
+-- The remaining three have no public source and are left NULL. Labs without a
+-- pin are skipped, not fatal — fill them in and run the file again.
 INSERT INTO seed_coords (slug, lat, lng) VALUES
-  ('xanap',        NULL, NULL),  -- Lido Connect 2F, Rama I Rd, Wang Mai, Pathum Wan 10330
-  ('sweet-film',   NULL, NULL),  -- 2, 1 Trok Wat Tritosthep, Ban Phan Thom 10200
-  ('a-and-b',      NULL, NULL),  -- 1152/13 Phahon Yothin Rd, opposite Central Ladprao — SEE REVIEW DOC, address disputed
-  ('fotoclub',     NULL, NULL),  -- 1158 Charoen Krung 32 Alley, Bang Rak 10500
-  ('patani',       NULL, NULL),  -- 59 Soi Nana, Pom Prap Sattru Phai
-  ('brotherhood',  NULL, NULL),  -- Chulalongkorn Soi 42, Pathum Wan
-  ('flashbox',     NULL, NULL),  -- 352 Phatthanakan Soi 30, Suan Luang
-  ('warinda',      NULL, NULL),  -- 338/7 Mahaisawan Rd, Bang Rak
-  ('him-lab',      NULL, NULL),  -- 135/8 Pan Rd, Si Lom, Bang Rak
-  ('filmtastic',   NULL, NULL);  -- Chulalongkorn Soi 15, Pathum Wan
+  -- Matched to the Lido Connect building itself, not a street.
+  ('xanap',       13.7451699, 100.5324766),  -- Lido Connect 2F, Rama I Rd, Wang Mai, Pathum Wan 10330
+  ('sweet-film',  13.7633377, 100.4995320),  -- 2, 1 Trok Wat Tritosthep, Ban Phan Thom 10200
+  ('fotoclub',    13.7274940, 100.5148339),  -- 1158 Charoen Krung 32 Alley, Bang Rak 10500
+  ('patani',      13.7398522, 100.5140294),  -- 59 Soi Nana, Pom Prap Sattru Phai 10100
+  ('brotherhood', 13.7352321, 100.5276142),  -- Chulalongkorn Soi 42, Pathum Wan 10330
+  ('him-lab',     13.7223646, 100.5237278),  -- 135/8 Pan Rd, Si Lom, Bang Rak 10500
+  ('filmtastic',  13.7341053, 100.5276229),  -- Chulalongkorn Soi 15, Pathum Wan 10330
+
+  -- Still yours. Soi Phatthanakan 30 is two disconnected segments 1.2 km apart
+  -- and house 352 cannot choose between them; Mahaisawan Road is not in OSM
+  -- under any spelling tried; A&B resolves neither by house number nor by
+  -- Central Ladprao as a landmark — and its street number is disputed anyway.
+  ('a-and-b',     NULL, NULL),  -- 1152/13 Phahon Yothin Rd, opposite Central Ladprao — address disputed, see review doc
+  ('flashbox',    NULL, NULL),  -- 352 Phatthanakan Soi 30, Suan Luang
+  ('warinda',     NULL, NULL);  -- 338/7 Mahaisawan Rd, Bang Rak
 --> statement-breakpoint
 
--- The guard. `labs.location` is NOT NULL, so an unfilled pin would fail anyway —
--- but it would fail on the first insert with a constraint violation naming a
--- column, several statements after the actual mistake. This says what is wrong.
+-- The guard.
+--
+-- A missing pin skips that lab rather than failing the run: three of the ten
+-- have no public source, and holding the other seven hostage to them would mean
+-- nothing is seeded until every one is chased down. It says loudly which were
+-- skipped, so "not seeded" cannot be mistaken for "seeded and missing".
+--
+-- A pin outside Bangkok is still fatal, because that is a mistake rather than an
+-- absence. `labs.location` is NOT NULL and would eventually catch a null, but it
+-- would do it as a constraint violation naming a column, several statements
+-- after the actual error.
 DO $$
-DECLARE missing text;
+DECLARE skipped text; bad text; ready int;
 BEGIN
-  SELECT string_agg(slug, ', ' ORDER BY slug) INTO missing
-  FROM seed_coords WHERE lat IS NULL OR lng IS NULL;
+  SELECT count(*) INTO ready FROM seed_coords WHERE lat IS NOT NULL AND lng IS NOT NULL;
 
-  IF missing IS NOT NULL THEN
+  IF ready = 0 THEN
     RAISE EXCEPTION
-      'bangkok-labs.sql: no pin for %. Drop a pin per lab and fill in seed_coords — see docs/plans/track-a-lab-seed-review.md.',
-      missing;
+      'bangkok-labs.sql: no pins at all. Fill in seed_coords — see docs/plans/track-a-lab-seed-review.md.';
   END IF;
 
   -- Bangkok, generously bounded. Catches the classic transposition: latitude
   -- ~13.7 and longitude ~100.5 are both plausible-looking numbers, and swapping
   -- them lands the lab in the Indian Ocean without anything complaining.
-  SELECT string_agg(slug, ', ' ORDER BY slug) INTO missing
+  SELECT string_agg(slug, ', ' ORDER BY slug) INTO bad
   FROM seed_coords
-  WHERE lat NOT BETWEEN 13.4 AND 14.1 OR lng NOT BETWEEN 100.2 AND 100.9;
+  WHERE (lat IS NOT NULL AND lat NOT BETWEEN 13.4 AND 14.1)
+     OR (lng IS NOT NULL AND lng NOT BETWEEN 100.2 AND 100.9);
 
-  IF missing IS NOT NULL THEN
+  IF bad IS NOT NULL THEN
     RAISE EXCEPTION
       'bangkok-labs.sql: % is outside Bangkok. Latitude is the first number (~13.7), longitude the second (~100.5).',
-      missing;
+      bad;
+  END IF;
+
+  SELECT string_agg(slug, ', ' ORDER BY slug) INTO skipped
+  FROM seed_coords WHERE lat IS NULL OR lng IS NULL;
+
+  IF skipped IS NOT NULL THEN
+    RAISE NOTICE
+      'bangkok-labs.sql: skipping % — no pin yet. Fill in seed_coords and run again; labs already seeded are left alone.',
+      skipped;
   END IF;
 END $$;
 --> statement-breakpoint
@@ -197,17 +234,38 @@ INSERT INTO seed_labs (slug, name_en, name_th, area_en, area_th, street, landmar
 -- Thai would invent a name the lab does not use. Left for a contributor who can
 -- read the shopfront.
 
-INSERT INTO labs (name_en, name_th, area_en, area_th, street, landmark_note, location, hours, created_by)
-SELECT
-  l.name_en, l.name_th, l.area_en, l.area_th, l.street, l.landmark_note,
-  -- Longitude first: ST_MakePoint takes (x, y), and the seed_coords table above
-  -- is deliberately (lat, lng) because that is the order a person reads them off
-  -- a map. The swap happens here, once.
-  ST_SetSRID(ST_MakePoint(c.lng, c.lat), 4326)::geography,
-  l.hours,
-  (SELECT id FROM users WHERE email = 'seed@grains.app')
-FROM seed_labs l
-JOIN seed_coords c ON c.slug = l.slug;
+-- Which labs this particular run created.
+--
+-- Every child insert below is driven from this rather than from `labs`, which
+-- makes the file re-runnable — and it has to be, because the intended workflow
+-- is to seed the pinned labs now and run it again after the last three pins turn
+-- up. A second run inserts only what is new: the labs already there are matched
+-- by name and skipped, so their processes, prices and history are not doubled.
+--
+-- Matching on `name_en` rather than a unique constraint because there is none:
+-- two labs may legitimately share a name, and the schema is right not to forbid
+-- it. Within this file the names are known and distinct, which is enough.
+CREATE TEMP TABLE seed_inserted (id uuid PRIMARY KEY, name_en text) ON COMMIT DROP;
+--> statement-breakpoint
+
+WITH inserted AS (
+  INSERT INTO labs (name_en, name_th, area_en, area_th, street, landmark_note, location, hours, created_by)
+  SELECT
+    l.name_en, l.name_th, l.area_en, l.area_th, l.street, l.landmark_note,
+    -- Longitude first: ST_MakePoint takes (x, y), and the seed_coords table above
+    -- is deliberately (lat, lng) because that is the order a person reads them off
+    -- a map. The swap happens here, once.
+    ST_SetSRID(ST_MakePoint(c.lng, c.lat), 4326)::geography,
+    l.hours,
+    (SELECT id FROM users WHERE email = 'seed@grains.app')
+  FROM seed_labs l
+  JOIN seed_coords c ON c.slug = l.slug
+  WHERE c.lat IS NOT NULL
+    AND c.lng IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM labs x WHERE x.name_en = l.name_en)
+  RETURNING id, name_en
+)
+INSERT INTO seed_inserted (id, name_en) SELECT id, name_en FROM inserted;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -220,7 +278,7 @@ JOIN seed_coords c ON c.slug = l.slug;
 -- doc so the optimistic reading is not simply lost.
 -- ---------------------------------------------------------------------------
 INSERT INTO lab_processes (lab_id, process)
-SELECT id, p::chem_process FROM labs, LATERAL (VALUES
+SELECT id, p::chem_process FROM seed_inserted, LATERAL (VALUES
   ('XANAP Filmlab', 'c41'), ('XANAP Filmlab', 'bw'),
   ('Sweet Film Bar', 'c41'), ('Sweet Film Bar', 'bw'), ('Sweet Film Bar', 'e6'), ('Sweet Film Bar', 'ecn2'),
   ('A&B Digital Lab', 'c41'), ('A&B Digital Lab', 'bw'), ('A&B Digital Lab', 'e6'), ('A&B Digital Lab', 'ecn2'),
@@ -232,7 +290,7 @@ SELECT id, p::chem_process FROM labs, LATERAL (VALUES
   ('HiM Lab', 'c41'), ('HiM Lab', 'bw'), ('HiM Lab', 'ecn2'),
   ('Filmtastic', 'c41'), ('Filmtastic', 'bw')
 ) AS v(lab, p)
-WHERE labs.name_en = v.lab;
+WHERE seed_inserted.name_en = v.lab;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -245,7 +303,7 @@ WHERE labs.name_en = v.lab;
 -- lab's exact model number is display detail the schema has nowhere to put.
 -- ---------------------------------------------------------------------------
 INSERT INTO lab_scanners (lab_id, model)
-SELECT id, m FROM labs, LATERAL (VALUES
+SELECT id, m FROM seed_inserted, LATERAL (VALUES
   ('Sweet Film Bar', 'Noritsu'), ('Sweet Film Bar', 'SP-3000'),
   ('A&B Digital Lab', 'Fuji Frontier'),
   ('Fotoclub BKK', 'Noritsu'), ('Fotoclub BKK', 'Fuji Frontier'),
@@ -253,7 +311,7 @@ SELECT id, m FROM labs, LATERAL (VALUES
   ('Flashbox Filmlab', 'Noritsu'), ('Flashbox Filmlab', 'Fuji Frontier'),
   ('Filmtastic', 'Noritsu'), ('Filmtastic', 'Fuji Frontier')
 ) AS v(lab, m)
-WHERE labs.name_en = v.lab;
+WHERE seed_inserted.name_en = v.lab;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -270,7 +328,7 @@ WHERE labs.name_en = v.lab;
 -- fortnight. Left for a contributor. The prose is in the review doc.
 -- ---------------------------------------------------------------------------
 INSERT INTO lab_pricing (lab_id, process, format, price_thb)
-SELECT id, p::chem_process, f::film_format, price FROM labs, LATERAL (VALUES
+SELECT id, p::chem_process, f::film_format, price FROM seed_inserted, LATERAL (VALUES
   ('XANAP Filmlab',      'c41', '135', 160), ('XANAP Filmlab',      'c41', '120', 220),
   ('Sweet Film Bar',     'c41', '135', 180), ('Sweet Film Bar',     'c41', '120', 200),
   ('Sweet Film Bar',     'bw',  '135', 200), ('Sweet Film Bar',     'bw',  '120', 240),
@@ -282,7 +340,7 @@ SELECT id, p::chem_process, f::film_format, price FROM labs, LATERAL (VALUES
   ('HiM Lab',            'c41', '135', 150), ('HiM Lab',            'c41', '120', 180),
   ('Filmtastic',         'c41', '135', 150), ('Filmtastic',         'c41', '120', 150)
 ) AS v(lab, p, f, price)
-WHERE labs.name_en = v.lab;
+WHERE seed_inserted.name_en = v.lab;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -291,12 +349,12 @@ WHERE labs.name_en = v.lab;
 -- none, so they are not guessed from the lab's name.
 -- ---------------------------------------------------------------------------
 INSERT INTO lab_contacts (lab_id, channel, value, position)
-SELECT id, ch::contact_channel, val, pos FROM labs, LATERAL (VALUES
+SELECT id, ch::contact_channel, val, pos FROM seed_inserted, LATERAL (VALUES
   ('Fotoclub BKK',   'phone',   '+66 87 673 7333',        0),
   ('Fotoclub BKK',   'website', 'https://www.fotoclubbkk.com', 1),
   ('Sweet Film Bar', 'phone',   '+66 95 860 1168',        0)
 ) AS v(lab, ch, val, pos)
-WHERE labs.name_en = v.lab;
+WHERE seed_inserted.name_en = v.lab;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -308,11 +366,11 @@ WHERE labs.name_en = v.lab;
 -- wrong one makes a lab appear in a search it does not belong in.
 -- ---------------------------------------------------------------------------
 INSERT INTO lab_services (lab_id, service_key)
-SELECT id, k FROM labs, LATERAL (VALUES
+SELECT id, k FROM seed_inserted, LATERAL (VALUES
   ('Fotoclub BKK',   'push_pull'),
   ('Sweet Film Bar', 'push_pull')
 ) AS v(lab, k)
-WHERE labs.name_en = v.lab;
+WHERE seed_inserted.name_en = v.lab;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
@@ -323,11 +381,20 @@ WHERE labs.name_en = v.lab;
 -- with no recorded origin would be the one thing in the product with no
 -- attribution. The change list names what this file actually set.
 -- ---------------------------------------------------------------------------
+-- The note says the pins are approximate, and it says it here rather than only
+-- in a repository file because this is the one place the product itself shows
+-- provenance: it is rendered on /labs/[id] under the edit log. A visitor who
+-- notices the map is half a block out can read why, and a contributor who moves
+-- the pin supersedes this entry with their own. XANAP is called out separately
+-- because it is the one pin matched to a building rather than a street.
 INSERT INTO edit_history (entity, entity_id, editor_id, note, changes)
 SELECT
-  'lab', l.id,
+  'lab', s.id,
   (SELECT id FROM users WHERE email = 'seed@grains.app'),
-  'Seeded from public directory listings, September 2026. Unverified — prices and hours especially.',
-  jsonb_build_array(jsonb_build_object('path', 'name_en', 'from', NULL, 'to', l.name_en))
-FROM labs l
-WHERE l.created_by = (SELECT id FROM users WHERE email = 'seed@grains.app');
+  'Seeded from public directory listings, September 2026. Unverified — prices and hours especially. '
+    || CASE WHEN s.name_en = 'XANAP Filmlab'
+            THEN 'Location matched to the Lido Connect building.'
+            ELSE 'Location is geocoded to the street, not the door.'
+       END,
+  jsonb_build_array(jsonb_build_object('path', 'name_en', 'from', NULL, 'to', s.name_en))
+FROM seed_inserted s;
