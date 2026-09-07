@@ -59,6 +59,41 @@ The seed also range-checks the result against a Bangkok bounding box, which catc
 transposition that otherwise passes silently: latitude ~13.7 and longitude ~100.5 are both
 plausible numbers, and swapping them lands the lab in the Indian Ocean.
 
+### Geocoded candidates — 7 of 10, none of them in the seed
+
+Looked up against OpenStreetMap's Nominatim on 2026-09-07. These are **not** in
+`bangkok-labs.sql`; they are here so the pin-dropping is a check rather than a search.
+
+A geocode is a real lookup rather than a guess, but with one caveat that matters: except
+for XANAP these are **street centroids, not doors**. Good enough for `ST_DWithin` — a
+150-metre error is nothing in a 5 km search — and visibly off on the detail page's map at
+zoom 15.
+
+| Slug | Latitude | Longitude | What OSM matched | Precision |
+| --- | --- | --- | --- | --- |
+| `xanap` | 13.7451699 | 100.5324766 | ลิโด้ คอนเนกต์ / Lido Connect, สยามสแควร์ | **Building** — the named venue itself |
+| `sweet-film` | 13.7633377 | 100.4995320 | ตรอกวัดตรีทศเทพ, บ้านพานถม 10200 | Street |
+| `fotoclub` | 13.7274940 | 100.5148339 | ซอยเจริญกรุง 32, บางรัก 10500 | Street |
+| `brotherhood` | 13.7352321 | 100.5276142 | ซอยจุฬาลงกรณ์ 42, วังใหม่ 10330 | Street |
+| `filmtastic` | 13.7341053 | 100.5276229 | ซอยจุฬาลงกรณ์ 15, วังใหม่ 10330 | Street |
+| `him-lab` | 13.7223646 | 100.5237278 | ถนนปั้น, สีลม, บางรัก 10500 | Street |
+| `patani` | 13.7398522 | 100.5140294 | ซอยนานา, ป้อมปราบศัตรูพ่าย 10100 | Street |
+
+Every row was checked against the postal address before being written down — soi number,
+sub-district and postcode all have to match. That check is not ceremony. The English query
+`Charoen Krung 32, Bang Rak, Bangkok` confidently returned a shop on **Soi Charoen Krung
+36**, which would have pinned Fotoclub on the wrong soi; the Thai-language query returned
+the right one. `ซอยนานา` is the same trap — there is a Soi Nana on Sukhumvit and a
+different one in Chinatown, and only the district tells them apart.
+
+**Three still have nothing and need a person either way:**
+
+| Slug | Why |
+| --- | --- |
+| `flashbox` | ซอยพัฒนาการ 30 comes back as two disconnected segments, 1.2 km apart. House 352 cannot choose between them |
+| `warinda` | Mahaisawan Road is not in OSM under any spelling tried, Thai or romanised |
+| `a-and-b` | Neither the Phahon Yothin house number nor Central Ladprao as a landmark resolves |
+
 ### 2. The prices, which are the part most likely to be wrong
 
 Every price is dev+scan from source 3, **last updated July 2025** — over a year old, on the
