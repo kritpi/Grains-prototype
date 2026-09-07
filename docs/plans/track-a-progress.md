@@ -3,8 +3,8 @@
 Phase 2, worktree `discovery`, branch `claude/track-a-discovery`, cut from `develop` at `c0ce154`.
 Last updated 2026-09-07.
 
-Step numbering follows [build-plan.html](build-plan.html). **A1–A5 and A7 are done; A6 is not started
-and needs a person.**
+Step numbering follows [build-plan.html](build-plan.html). **A1–A5 and A7 are done. A6 is drafted
+and blocked on ten map pins, which only a person can drop.**
 
 | Step | State | Commit |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ and needs a person.**
 | A3 `/api/labs`, `/api/labs/[id]/history` | done | `b9826e3` |
 | A4 `/labs` page | done | `c96a9a8` |
 | A5 `/labs/[id]` | done | `44c608e` |
-| A6 Bangkok seed (needs real lab data) | not started | — |
+| A6 Bangkok seed | drafted, needs pins | `84165d0` |
 | A7 remaining query tests | done | `8bc2092` |
 
 ## What is verified, and how
@@ -108,6 +108,12 @@ fixed it.
   appended the same page. Entries are now de-duplicated by id, which also covers a retry
   after a partly-successful load. Nothing about this is visible in production, which is
   what makes it worth recording.
+- **A catastrophic regex looks exactly like a hung database.** The seed runner's
+  comment-only-chunk test was `/^(--[^\n]*\n?)*$/` — correct, and exponentially
+  backtracking on a chunk that does not match. It hung for minutes on pure string work
+  before ever opening a connection, and the first three things investigated were the
+  pooler, a stale lock and a paused project. Nested quantifiers over untrusted-length input
+  are worth a second look; the fix was a line scan.
 - **The five-connection pool is small enough to deadlock.** `/labs` needs connections for
   the filter options, the areas, the search and the header's user lookup; when it fanned
   out one more, two overlapping renders each held connections the other waited for and
@@ -117,6 +123,11 @@ fixed it.
 
 ## Housekeeping before resuming
 
+- **A6 is drafted and one step from finished.** [db/seed/bangkok-labs.sql](../../db/seed/bangkok-labs.sql)
+  holds ten real labs from public sources with every field they publish; it refuses to run
+  until somebody fills in the ten coordinates. What to check, and every conflict resolved
+  conservatively along the way, is in
+  [track-a-lab-seed-review.md](track-a-lab-seed-review.md).
 - **`grains-dev` currently holds six invented labs** from `db/seed/dev-labs.mjs`, added so
   the pages could be looked at, plus three seed users and three seed film stocks. All are
   namespaced `[dev-seed]`. Remove with `pnpm db:seed:dev --clean`. A6 replaces the labs
@@ -138,10 +149,11 @@ pnpm db:seed:dev      # optional: something to look at
 pnpm dev -p 3001
 ```
 
-Next step is **A6**, the Bangkok seed — the one step in this track that cannot be done
-without a person. It needs ten real labs: names, map pins, and per-process prices somebody
-has verified. Everything else in Track A is finished, so once A6 lands the track is ready
-to merge.
+Next step is finishing **A6**: drop ten pins into `seed_coords` in
+[db/seed/bangkok-labs.sql](../../db/seed/bangkok-labs.sql) and run
+`pnpm db:seed db/seed/bangkok-labs.sql`. The lab names, addresses, processes, prices, hours
+and scanners are already drafted from public sources; the pins are the only thing no source
+publishes. Once that lands the track is ready to merge.
 
 Two things this track leaves deliberately unfinished, both waiting on other tracks rather
 than on more work here:
