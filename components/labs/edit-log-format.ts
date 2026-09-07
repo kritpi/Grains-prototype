@@ -8,8 +8,7 @@ import { PROCESS_LABELS } from "./search-state";
  * `edit_history.changes` is an array of `{path, from, to}`, where the path
  * names one leaf of a lab: `name_en`, `hours.3.open`,
  * `pricing.c41.135.price_thb`, `contacts.<uuid>.value`. The grammar that writes
- * them is `lib/labs/paths.ts` — Track B's B1, and the riskiest artefact in
- * Phase 2. It does not exist yet.
+ * them is `lib/labs/paths.ts` — Track B's B1, now merged.
  *
  * So this reads the shape rather than depending on the module: it labels the
  * segments it recognises and humanises the rest. That is deliberate and not a
