@@ -43,6 +43,10 @@ export const CONSTRAINT_MESSAGES: Record<string, string> = {
     "That film stock is no longer in the catalog. Search for it again.",
   lab_services_curated_idx: "That service is already on this lab.",
   lab_supplies_curated_idx: "That supply is already on this lab.",
+  // Identity is name + ISO (PRD B #2), so a second "Portra 400" at 400 is the
+  // same stock rather than a new one — which is the point of the index.
+  film_stocks_identity_idx:
+    "A film stock with that name and ISO is already in the catalog.",
 
   // schema.ts: lab_pricing_not_empty
   lab_pricing_check:

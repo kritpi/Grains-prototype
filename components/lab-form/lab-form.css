@@ -439,3 +439,28 @@
   border-color: var(--border);
   color: var(--ring);
 }
+
+/* The film stock picker: a search box, its matches, and the way to add one. */
+.grains-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grains-picker-match {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  padding: 7px 10px;
+  font: 400 12.5px var(--font-sans);
+  color: var(--foreground);
+  cursor: pointer;
+  text-align: left;
+}
+
+.grains-picker-match:hover {
+  border-color: var(--foreground);
+}

@@ -27,6 +27,7 @@ import {
   type LabDraft,
 } from "./draft";
 import { PinPicker } from "./pin-picker";
+import { StockPicker } from "./stock-picker";
 
 const PROCESS_LABELS: Record<ChemProcess, string> = {
   c41: "C-41",
@@ -527,10 +528,10 @@ function setCell(
 /**
  * Inventory.
  *
- * A lab cannot carry a film stock that is not a catalog entry (PRD A #3) —
- * that link is what makes reverse search from a stock's page possible at all.
- * Which means adding one needs the catalog typeahead, and the catalog is B5.
- * What is here works on what is already listed: formats, and removal.
+ * A lab cannot carry a film stock that is not a catalog entry (PRD A #3) — that
+ * link is what makes reverse search from a stock's page possible at all. So the
+ * picker searches the catalog and can add to it inline, rather than sending a
+ * contributor to /films and back with their edit abandoned behind them.
  */
 function InventorySection({
   draft,
@@ -589,10 +590,20 @@ function InventorySection({
           </div>
         ))
       )}
+      <StockPicker
+        existingIds={draft.stock.map((s) => s.filmStockId)}
+        onPick={({ filmStockId, name }) =>
+          update((d) => {
+            if (d.stock.some((s) => s.filmStockId === filmStockId)) return;
+            // 135 by default, matching what a new catalog entry starts as; the
+            // format chips beside the row are how a contributor says otherwise.
+            d.stock.push({ filmStockId, name, formats: ["135"] });
+          })
+        }
+      />
       <p className="grains-note">
         Must match a Film Stock catalog entry — reverse search from a
-        stock&apos;s page depends on it. Searching the catalog and adding a
-        stock inline arrives with the catalog itself.
+        stock&apos;s page depends on it.
       </p>
     </section>
   );

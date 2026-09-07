@@ -510,6 +510,63 @@ simply overwritten.
 
 ---
 
+# What B5 shipped
+
+Film stocks end to end (P15): `lib/queries/films.ts`, `lib/films/paths.ts`,
+`lib/queries/film-edits.ts`, `app/films/actions.ts`,
+`app/api/film-stocks/route.ts`, `/films`, `/films/[id]`, `/films/new`,
+`/films/[id]/edit`, `db/seed/film-stocks.sql` — and the typeahead wired back
+into the lab form, which is what B4 was waiting on.
+
+The catalog write path is the lab write path in miniature and deliberately so:
+optimistic concurrency in the statement that writes, exactly one `edit_history`
+row per mutation, the same leaf-path shape so one log renders both entities. It
+differs in one place — `updateFilmStock` takes the whole entry and diffs it
+inside the transaction, because three columns on one row are small enough that a
+person edits all of them at once, and the transaction is the only place that can
+see what somebody else changed a second ago.
+
+**Reverse search runs on `/api/labs` with `film_stock_id`.** No second endpoint
+and no second query: "labs near me carrying X" is lab search with one more
+filter, and giving it its own implementation would mean two versions of the
+radius rule.
+
+## The gap the design assumes and the schema does not have
+
+The prototype keys every film tile and spec chip by **chemical process** — a
+C-41 stock gets the amber duotone, an E-6 stock the blue. `film_stocks` has
+`name`, `iso`, `formats` and no process column.
+
+Rendered hueless rather than guessed. Deriving a process from a stock's name
+would be inventing data of exactly the kind the Decision Ledger was written
+about, and the cost of not having it is visible on `/films`: thirty-two
+identical grey tiles where the design has a spread of colour. Adding the column
+is a migration, and migrations are frozen for Phase 2, so it belongs in the same
+foundation PR as the constraint names.
+
+## What the seed got wrong, and what caught it
+
+`db/seed/film-stocks.sql` first went in with "Ilford HP5 Plus 400", "Ilford FP4
+Plus 125" and three more of the same shape. HP5 Plus is the product's name; the
+400 is the `iso` column. The error surfaced because `db/seed/mock-lab.sql` had
+already created "Ilford HP5 Plus" — the catalog ended up with two entries for
+one film, which is precisely what the name + ISO identity rule exists to
+prevent, and it took a collision with somebody else's fixture to notice. Names
+corrected, duplicates removed, and the reasoning is now a comment in the seed.
+
+## Two things the browser found
+
+- **A tile's parts must be block-level.** The tile is a `<Link>`, so its pieces
+  are spans, and an inline box ignores `width` and `aspect-ratio` entirely — the
+  duotone collapsed to a hairline.
+- **Clearing typeahead results in the effect that noticed the box was empty**
+  is a synchronous `setState` in an effect, which cascades renders. Results now
+  carry the query they answer and are rendered only while that is still what the
+  box says — which also removes the stale-response race, since an answer to a
+  query nobody is asking any more is simply not shown.
+
+---
+
 # Open question for review
 
 **The pricing cap.** Four priced cells is a full matrix for a single-process
