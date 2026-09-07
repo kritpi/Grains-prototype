@@ -30,6 +30,25 @@ const schema = z.object({
   AUTH_GOOGLE_SECRET: z.string().min(1),
   /** Signs the session cookie. `openssl rand -base64 32`. */
   AUTH_SECRET: z.string().min(32),
+
+  /**
+   * Supabase project URL, used to build public object URLs for lab atmosphere
+   * photos.
+   *
+   * Optional, and deliberately so: the `photos` bucket is created in Track C
+   * (C1, a dashboard step), and until it exists there is nothing to serve and
+   * no rows to serve it for. A lab page without this variable simply omits its
+   * photo section rather than failing to render, which is what lets Track A
+   * finish ahead of the storage setup.
+   *
+   * An empty string is read as absent, not as an invalid URL: `.env.example`
+   * ships the key with `""`, and copying that file is the documented way to
+   * start — so the placeholder must not fail validation on every page.
+   */
+  SUPABASE_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.url().optional(),
+  ),
 });
 
 export type Env = z.infer<typeof schema>;
