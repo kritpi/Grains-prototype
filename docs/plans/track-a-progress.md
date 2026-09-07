@@ -34,6 +34,16 @@ passed `typecheck`, `lint` and `format` before it was found.**
 - **The Route Handlers**, exercised over HTTP for both the happy path and every rejection.
 - **The page**, in a browser: the area list, `?area=` results present in the server HTML,
   filters writing to the URL, the near-miss empty state, pins, and the radius ring.
+- **Atmosphere photos**, which are otherwise the one part of the detail page no data can
+  exercise until Track C exists. Verified end to end without touching the app: a throwaway
+  server serving Supabase's public-object URL shape on localhost, with `SUPABASE_URL` passed
+  on the dev server's command line rather than written to an env file, so `labPhotoUrl`, the
+  null-filter on the page and `LabPhotos` all ran exactly as they will in production — only
+  the host differed. Three PNGs at the mock's true dimensions came back at uniform height
+  with widths following their real aspect ratios (1:1 → 192x192, 3:4 → 144x192, 3:2 →
+  288x192), uncropped, scrolling inside their own container while the page body did not
+  scroll horizontally. **What this does not prove** is the Supabase wiring itself, which is
+  Track C's `lib/storage.ts` and bucket.
 
 A7 is complete. Radius, AND/OR semantics, closed-lab exclusion and open-now were already
 covered; `getLab` and `listLabHistory` now have coverage against populated rows, and the
