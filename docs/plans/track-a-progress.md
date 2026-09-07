@@ -1,10 +1,9 @@
 # Track A — Lab Discovery & Map: progress
 
 Phase 2, worktree `discovery`, branch `claude/track-a-discovery`, cut from `develop` at `c0ce154`.
-Last updated 2026-09-07.
+**Merged into `develop` on 2026-09-08 as `5420b3a`.** Last updated 2026-09-08.
 
-Step numbering follows [build-plan.html](build-plan.html). **A1–A7 are done. The track is ready
-to merge.**
+Step numbering follows [build-plan.html](build-plan.html). **A1–A7 are done and merged.** 102 tests.
 
 | Step | State | Commit |
 | --- | --- | --- |
@@ -173,7 +172,7 @@ pnpm db:seed:dev      # optional: something to look at
 pnpm dev -p 3001
 ```
 
-Every step is done and the track is ready to merge into `develop`.
+Every step is done and the track is merged into `develop` (`5420b3a`).
 
 Two things follow it rather than block it. The seeded data is drafted from public sources and
 **not verified against any lab** — Phase 3.4 is where that happens, and the review doc lists
