@@ -1,9 +1,10 @@
 # Track A — Lab Discovery & Map: progress
 
 Phase 2, worktree `discovery`, branch `claude/track-a-discovery`, cut from `develop` at `c0ce154`.
-Last updated 2026-09-06.
+Last updated 2026-09-07.
 
-Step numbering follows [build-plan.html](build-plan.html). **A1–A4 are done; A5–A7 are not started.**
+Step numbering follows [build-plan.html](build-plan.html). **A1–A5 and A7 are done; A6 is not started
+and needs a person.**
 
 | Step | State | Commit |
 | --- | --- | --- |
@@ -11,9 +12,9 @@ Step numbering follows [build-plan.html](build-plan.html). **A1–A4 are done; A
 | A2 `lib/queries/labs.ts` | done | `39c0fbb` |
 | A3 `/api/labs`, `/api/labs/[id]/history` | done | `b9826e3` |
 | A4 `/labs` page | done | `c96a9a8` |
-| A5 `/labs/[id]` | not started | — |
+| A5 `/labs/[id]` | done | `44c608e` |
 | A6 Bangkok seed (needs real lab data) | not started | — |
-| A7 remaining query tests | mostly done, see below | — |
+| A7 remaining query tests | done | `8bc2092` |
 
 ## What is verified, and how
 
@@ -34,9 +35,14 @@ passed `typecheck`, `lint` and `format` before it was found.**
 - **The page**, in a browser: the area list, `?area=` results present in the server HTML,
   filters writing to the URL, the near-miss empty state, pins, and the radius ring.
 
-A7 is therefore largely complete — radius, AND/OR semantics, closed-lab exclusion and
-open-now all have tests. What A7 still owes is coverage of `getLab` and `listLabHistory`
-against populated rows; today they are only asserted to return empty for an unknown id.
+A7 is complete. Radius, AND/OR semantics, closed-lab exclusion and open-now were already
+covered; `getLab` and `listLabHistory` now have coverage against populated rows, and the
+hours and edit-log-path helpers are tested as pure functions. 94 tests, up from 44.
+
+- **The detail page**, in a browser against `grains-dev`: the pricing matrix showing "not
+  offered" and "not entered" as different things, the temporarily-closed banner, quick
+  actions appearing only for channels the lab has, every "not entered yet" prompt on a
+  sparse lab, and a non-uuid path returning 404 rather than 500.
 
 ## Decisions taken here, worth a review
 
@@ -59,6 +65,20 @@ These extend or depart from the plan. None are hard to reverse.
    `lib/labs/paths.ts` specifically; these are different files and should not conflict.
 7. **`@types/geojson` added explicitly.** It was only a transitive dependency of
    maplibre-gl, which pnpm's strict layout keeps out of the top-level `@types`.
+8. **Turnaround is rendered per cell, not per process row.** The wireframe gives the
+   pricing table one turnaround column per process; the schema stores turnaround per
+   `(process, format)`. A 135 back next day while 120 goes out to a partner lab for a week
+   is exactly why that shape exists, so printing one number for both would invent data.
+9. **`getLab` returns the whole badge roster with counts, including zeros**, and no longer
+   returns `badgeCounts`. `LabCard.badgeCounts` on the search path is unchanged.
+10. **`SUPABASE_URL` is a new optional env key**, read only to build public URLs for
+   atmosphere photos via `lib/labs/photo-url.ts`. **Track C: that file is a stand-in for
+   `lib/storage.ts`'s `publicUrl` and should be deleted when the real one lands.**
+11. **Edit-log leaf paths are formatted by shape, not by importing Track B's grammar.**
+   `components/labs/edit-log-format.ts` labels the segments it recognises and humanises the
+   rest. **Track B: it does not need to be kept in sync with `lib/labs/paths.ts`** — it is
+   built to render paths it has never seen, because history recorded today has to stay
+   readable after new fields are added.
 
 ## Things found the hard way
 
@@ -78,6 +98,16 @@ fixed it.
   for tiles, which only load while the map renders — so it is never true in a background
   tab. `map.once("load")` is worse: an effect running after load attaches to an event
   that has already fired.
+- **An IntersectionObserver cannot be verified in a non-rendering page.** The edit log
+  loads when it scrolls into view, and in a hidden browser tab `requestAnimationFrame`
+  never fires, so neither does the observer — correctly, but it means the lazy path cannot
+  be exercised by automation that does not composite. Verified by temporarily forcing an
+  eager load, which is also how the next entry was found.
+- **Appending a fetched page to state is not idempotent.** The whole edit log rendered
+  twice in development: React mounts effects twice, `load()` ran twice, and each run
+  appended the same page. Entries are now de-duplicated by id, which also covers a retry
+  after a partly-successful load. Nothing about this is visible in production, which is
+  what makes it worth recording.
 - **The five-connection pool is small enough to deadlock.** `/labs` needs connections for
   the filter options, the areas, the search and the header's user lookup; when it fanned
   out one more, two overlapping renders each held connections the other waited for and
@@ -88,9 +118,12 @@ fixed it.
 ## Housekeeping before resuming
 
 - **`grains-dev` currently holds six invented labs** from `db/seed/dev-labs.mjs`, added so
-  the page could be looked at. They are namespaced `[dev-seed]`. Remove with
-  `pnpm db:seed:dev --clean`. A6 replaces them with the ten real Bangkok labs, which needs
-  names, pins and prices from a person.
+  the pages could be looked at, plus three seed users and three seed film stocks. All are
+  namespaced `[dev-seed]`. Remove with `pnpm db:seed:dev --clean`. A6 replaces the labs
+  with the ten real Bangkok ones, which needs names, pins and prices from a person.
+- **The seed film stocks will collide conceptually with Track B's `film-stocks.sql`.** They
+  are namespaced, so they cannot collide on the `(lower(name), iso)` unique index, but they
+  should be cleaned once B's catalog exists.
 - **Nothing in this track is deployed.** The Singapore region and the production callback
   URL are still unproven outside a laptop, carried over from Phase 1.
 - A **verification hook** now runs typecheck, lint, format and tests once per turn; it
@@ -105,8 +138,20 @@ pnpm db:seed:dev      # optional: something to look at
 pnpm dev -p 3001
 ```
 
-Next step is **A5**, `/labs/[id]`: the pricing matrix that must show "not entered yet"
-differently from "not offered", hours and open-now, contacts, curated and custom services
-and supplies, inventory, atmosphere photos, read-only badge counts, and the edit log below
-the fold via the history handler. `getLab` and `listLabHistory` already return everything
-it needs.
+Next step is **A6**, the Bangkok seed — the one step in this track that cannot be done
+without a person. It needs ten real labs: names, map pins, and per-process prices somebody
+has verified. Everything else in Track A is finished, so once A6 lands the track is ready
+to merge.
+
+Two things this track leaves deliberately unfinished, both waiting on other tracks rather
+than on more work here:
+
+- **Atmosphere photos render but there is nothing to render.** `lab_photos` has no write
+  path until Track C, and the section is absent while `SUPABASE_URL` is unset.
+- **Badges are read-only.** `toggleLabBadge` is Phase 3 (build plan 3.2). The roster is
+  rendered as static rows rather than disabled buttons, because a control that cannot do
+  anything is worse than no control.
+
+`/films/[id]` and `/labs/[id]/edit` are linked from the page and 404 until Track B merges.
+That is intentional — the hrefs are fixed by the route table, so writing them now saves
+revisiting the page later.
