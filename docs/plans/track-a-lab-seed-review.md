@@ -8,7 +8,7 @@ argument behind it and the list of what still needs a person.
 pnpm db:seed db/seed/bangkok-labs.sql
 ```
 
-It will refuse to run until the pins are filled in. That is deliberate.
+Seven labs are seeded and live. It skips the three that still have no pin, and says which.
 
 ## Sources, and how they were weighed
 
@@ -31,38 +31,43 @@ this list is an improvement, not a correction.
 
 ## What you have to supply
 
-### 1. Ten pins — the blocking item
+### 1. Three pins — the only blocking item left
 
 No public source carries coordinates. The editorial lists give a street and a BTS stop, the
 directory gives a postal address, and the two databases that hold real pins (Google,
 Foursquare) are behind logins. Deriving a pin from a street address is a guess, and on a
 product whose main surface is a map a guess puts a lab on the wrong side of a soi.
 
-So the seed has none, and refuses to run without them. Open each link, drop a pin on the
-door, copy the two numbers out of the URL into `seed_coords` in the SQL file — latitude
-first, which is the order the URL gives them.
+Seven were recovered by geocoding (below) and are seeded. **Three are still open**, and
+they are the ones geocoding could not resolve: `a-and-b`, `flashbox`, `warinda`. Open the
+link, drop a pin on the door, copy the two numbers into `seed_coords` — latitude first,
+which is the order the URL gives them — and run the seed again. Labs already there are left
+alone, so re-running is safe.
 
-| Slug | Lab | Address to search |
-| --- | --- | --- |
-| `xanap` | XANAP Filmlab | [Lido Connect, Rama I Rd, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Lido+Connect+Rama+I+Road+Pathum+Wan+Bangkok) |
-| `sweet-film` | Sweet Film Bar | [2, 1 Trok Wat Tritosthep, Ban Phan Thom](https://www.google.com/maps/search/?api=1&query=Trok+Wat+Tritosthep+Ban+Phan+Thom+Bangkok+10200) |
-| `a-and-b` | A&B Digital Lab | [1152/13 Phahon Yothin Rd, opposite Central Ladprao](https://www.google.com/maps/search/?api=1&query=1152+Phahon+Yothin+Road+Chatuchak+Bangkok) |
-| `fotoclub` | Fotoclub BKK | [1158 Charoen Krung Soi 32, Bang Rak](https://www.google.com/maps/search/?api=1&query=1158+Charoen+Krung+32+Bang+Rak+Bangkok+10500) |
-| `patani` | Patani Studio | [59 Soi Nana, Pom Prap Sattru Phai](https://www.google.com/maps/search/?api=1&query=59+Soi+Nana+Pom+Prap+Sattru+Phai+Bangkok) |
-| `brotherhood` | Brotherhood Filmlab | [Chulalongkorn Soi 42, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Chulalongkorn+Soi+42+Pathum+Wan+Bangkok) |
-| `flashbox` | Flashbox Filmlab | [352 Phatthanakan Soi 30, Suan Luang](https://www.google.com/maps/search/?api=1&query=352+Phatthanakan+Soi+30+Suan+Luang+Bangkok) |
-| `warinda` | Warinda Studio | [338/7 Mahaisawan Rd, Bang Rak](https://www.google.com/maps/search/?api=1&query=338%2F7+Mahaisawan+Road+Bang+Rak+Bangkok) |
-| `him-lab` | HiM Lab | [135/8 Pan Rd, Si Lom, Bang Rak](https://www.google.com/maps/search/?api=1&query=135%2F8+Pan+Road+Si+Lom+Bang+Rak+Bangkok) |
-| `filmtastic` | Filmtastic | [Chulalongkorn Soi 15, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Chulalongkorn+Soi+15+Pathum+Wan+Bangkok) |
+Replacing any of the seven geocoded pins with a real dropped one is also a pure
+improvement: change the numbers, delete that lab's row from the database, run again.
+
+| Slug | Lab | Address to search | |
+| --- | --- | --- | --- |
+| `xanap` | XANAP Filmlab | [Lido Connect, Rama I Rd, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Lido+Connect+Rama+I+Road+Pathum+Wan+Bangkok) | seeded |
+| `sweet-film` | Sweet Film Bar | [2, 1 Trok Wat Tritosthep, Ban Phan Thom](https://www.google.com/maps/search/?api=1&query=Trok+Wat+Tritosthep+Ban+Phan+Thom+Bangkok+10200) | seeded |
+| `a-and-b` | A&B Digital Lab | [1152/13 Phahon Yothin Rd, opposite Central Ladprao](https://www.google.com/maps/search/?api=1&query=1152+Phahon+Yothin+Road+Chatuchak+Bangkok) | **← still needed** |
+| `fotoclub` | Fotoclub BKK | [1158 Charoen Krung Soi 32, Bang Rak](https://www.google.com/maps/search/?api=1&query=1158+Charoen+Krung+32+Bang+Rak+Bangkok+10500) | seeded |
+| `patani` | Patani Studio | [59 Soi Nana, Pom Prap Sattru Phai](https://www.google.com/maps/search/?api=1&query=59+Soi+Nana+Pom+Prap+Sattru+Phai+Bangkok) | seeded |
+| `brotherhood` | Brotherhood Filmlab | [Chulalongkorn Soi 42, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Chulalongkorn+Soi+42+Pathum+Wan+Bangkok) | seeded |
+| `flashbox` | Flashbox Filmlab | [352 Phatthanakan Soi 30, Suan Luang](https://www.google.com/maps/search/?api=1&query=352+Phatthanakan+Soi+30+Suan+Luang+Bangkok) | **← still needed** |
+| `warinda` | Warinda Studio | [338/7 Mahaisawan Rd, Bang Rak](https://www.google.com/maps/search/?api=1&query=338%2F7+Mahaisawan+Road+Bang+Rak+Bangkok) | **← still needed** |
+| `him-lab` | HiM Lab | [135/8 Pan Rd, Si Lom, Bang Rak](https://www.google.com/maps/search/?api=1&query=135%2F8+Pan+Road+Si+Lom+Bang+Rak+Bangkok) | seeded |
+| `filmtastic` | Filmtastic | [Chulalongkorn Soi 15, Pathum Wan](https://www.google.com/maps/search/?api=1&query=Chulalongkorn+Soi+15+Pathum+Wan+Bangkok) | seeded |
 
 The seed also range-checks the result against a Bangkok bounding box, which catches the
 transposition that otherwise passes silently: latitude ~13.7 and longitude ~100.5 are both
 plausible numbers, and swapping them lands the lab in the Indian Ocean.
 
-### Geocoded candidates — 7 of 10, none of them in the seed
+### The seven geocoded pins, now seeded
 
-Looked up against OpenStreetMap's Nominatim on 2026-09-07. These are **not** in
-`bangkok-labs.sql`; they are here so the pin-dropping is a check rather than a search.
+Looked up against OpenStreetMap's Nominatim on 2026-09-07 and seeded. Listed here so
+checking them is a glance rather than a search.
 
 A geocode is a real lookup rather than a guess, but with one caveat that matters: except
 for XANAP these are **street centroids, not doors**. Good enough for `ST_DWithin` — a
@@ -86,7 +91,7 @@ sub-district and postcode all have to match. That check is not ceremony. The Eng
 the right one. `ซอยนานา` is the same trap — there is a Soi Nana on Sukhumvit and a
 different one in Chinatown, and only the district tells them apart.
 
-**Three still have nothing and need a person either way:**
+**Three still have nothing and are skipped by the seed:**
 
 | Slug | Why |
 | --- | --- |
