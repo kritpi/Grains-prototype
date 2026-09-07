@@ -45,3 +45,6 @@ next-env.d.ts
 # drizzle-kit introspection scratch (Ticket 1 parity check)
 /db/introspect/
 !.env.example
+
+# Readable copy of the design prototype, produced by the prototype-fidelity skill.
+.prototype-cache/
