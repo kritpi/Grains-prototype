@@ -1,0 +1,43 @@
+/* MapLibre's own chrome, brought into the Grains palette.
+ *
+ * The design direction is sharp rectangles on warm paper with no drop shadows
+ * (see app/globals.css). MapLibre ships rounded, shadowed controls, and those
+ * styles come from its stylesheet rather than from our markup, so they cannot
+ * be overridden with utility classes on a component. This file is the one
+ * place that restyles them.
+ */
+
+.maplibregl-ctrl-group {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--border);
+}
+
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: var(--secondary);
+}
+
+/* Attribution is a legal requirement for CARTO and OSM, not decoration: it is
+ * restyled to sit quietly on the paper, never hidden.
+ */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--background) 90%, transparent);
+  border-radius: 0;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--muted-foreground);
+  text-decoration: underline;
+}
+
+.maplibregl-ctrl-attrib-button,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: 0;
+}

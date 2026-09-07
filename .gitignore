@@ -46,5 +46,9 @@ next-env.d.ts
 /db/introspect/
 !.env.example
 
+# copied out of node_modules by scripts/copy-maplibre-worker.mjs on install,
+# so it always matches the resolved maplibre-gl version rather than drifting
+/public/maplibre/
+
 # Readable copy of the design prototype, produced by the prototype-fidelity skill.
 .prototype-cache/

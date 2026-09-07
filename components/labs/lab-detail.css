@@ -1,0 +1,182 @@
+/* Lab detail page — the states the prototype expresses as data attributes.
+ *
+ * Kept in a stylesheet rather than as utility classes for the same reason
+ * components/map/lab-map.css exists: these are small state machines driven off
+ * a data attribute (a process key, a status, whether a box is ticked), and
+ * writing them as conditional class strings in the markup buries the rule that
+ * is actually being expressed.
+ *
+ * Colours map onto the palette already in app/globals.css rather than
+ * redefining it. The prototype's own tokens are a shade different — its paper is
+ * #FDFDFC where ours is #F9F8F6 — but the palette is a foundation decision (P7,
+ * enforced in globals.css) and is not Track A's to move. Only the process
+ * colours are genuinely new, and those are data vocabulary rather than palette:
+ * a process is identified by its colour everywhere it appears.
+ */
+
+/* Chemical process identity colours, straight from the prototype. */
+[data-process="c41"] {
+  --proc: #c97112;
+  --proc-ink: #ffffff;
+}
+[data-process="ecn2"] {
+  --proc: #0e8c7d;
+  --proc-ink: #ffffff;
+}
+[data-process="e6"] {
+  --proc: #1d4fd8;
+  --proc-ink: #ffffff;
+}
+[data-process="bw"] {
+  --proc: var(--foreground);
+  --proc-ink: var(--background);
+}
+
+/* A filled chip when the lab offers the process, an outline when it does not. */
+.grains-proc {
+  border: 1.5px solid var(--proc);
+  padding: 3px 10px;
+  font: 700 12px var(--font-sans);
+  background: var(--proc);
+  color: var(--proc-ink);
+}
+
+.grains-proc[data-on="false"] {
+  background: transparent;
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+
+/* Open / closed, as a dot and a word. The dot is filled only when the doors are
+ * actually open — the one state that means "you can go there right now". */
+.grains-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 12px var(--font-sans);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.grains-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+
+.grains-status[data-status="open"] {
+  color: var(--foreground);
+}
+.grains-status[data-status="open"] i {
+  background: currentColor;
+}
+.grains-status[data-status="caution"] {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.grains-status[data-status="closed"] {
+  color: var(--ring);
+}
+
+/* Services read as a checklist, so an un-offered service is an unticked box
+ * rather than a missing line. */
+.grains-svbox {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 1.5px solid var(--foreground);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  line-height: 1;
+}
+
+[data-svstate="unknown"] {
+  color: var(--ring);
+}
+[data-svstate="unknown"] .grains-svbox {
+  border-color: var(--ring);
+}
+
+/* A badge nobody has endorsed keeps its slot, dashed — an invitation rather
+ * than an absence (PRD C #1). */
+.grains-badge {
+  border: 1.5px solid var(--foreground);
+  padding: 8px 12px;
+  font: 400 12.5px var(--font-sans);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.grains-badge i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--destructive);
+  align-self: center;
+}
+
+.grains-badge[data-zero="true"] {
+  color: var(--ring);
+  border-style: dashed;
+  border-color: var(--ring);
+}
+.grains-badge[data-zero="true"] i {
+  background: var(--ring);
+}
+
+/* Pressable, and visibly pressed.
+ *
+ * The filled state is the only way to answer "have I already endorsed this" —
+ * the count cannot, because it moves for everybody. It wins over the dashed
+ * zero state below by coming after it: a badge you have just endorsed is never
+ * at zero, but the two rules can overlap for an instant while the optimistic
+ * update and the server's answer disagree, and filled is the truthful one. */
+button.grains-badge,
+a.grains-badge {
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+button.grains-badge:hover,
+a.grains-badge:hover {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.grains-badge[data-endorsed="true"],
+.grains-badge[data-endorsed="true"]:hover {
+  background: var(--foreground);
+  border-color: var(--foreground);
+  border-style: solid;
+  color: var(--background);
+}
+
+.grains-badge[data-endorsed="true"] i {
+  background: var(--background);
+}
+
+.grains-badge:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The placeholder hatch behind an atmosphere-photo slot that has no photo. */
+[data-stripe] {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--secondary) 0 6px,
+    var(--background) 6px 12px
+  );
+}
+
+/* A field nobody has filled in: stated, not omitted. */
+[data-filled="false"] {
+  color: var(--ring);
+  font-style: italic;
+}

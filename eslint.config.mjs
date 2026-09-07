@@ -12,6 +12,15 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendor bundles copied out of node_modules at install time by
+    // scripts/copy-maplibre-worker.mjs — minified, not ours to lint.
+    "public/maplibre/**",
+    // Phase 2's parallel tracks live in worktrees under .claude/worktrees/.
+    // Each is a full checkout of this same repository, so linting from the root
+    // would walk into them and report every file twice under a second path —
+    // including their copied maplibre bundles, which the root-relative pattern
+    // above does not match. A worktree lints itself.
+    ".claude/worktrees/**",
   ]),
 ]);
 

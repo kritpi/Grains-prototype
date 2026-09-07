@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "postinstall": "node scripts/copy-maplibre-worker.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -17,6 +18,8 @@
     "db:generate": "drizzle-kit generate --custom",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "node db/seed/run.mjs",
+    "db:seed:dev": "node db/seed/dev-labs.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate:prod": "GRAINS_DB_TARGET=prod drizzle-kit migrate"
@@ -27,8 +30,10 @@
     "cn": "^0.2.5",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.41.0",
+    "maplibre-gl": "^6.7.0",
     "next": "16.3.4",
     "next-auth": "5.0.0-beta.32",
+    "nuqs": "^2.10.1",
     "postgres": "^3.4.9",
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
@@ -39,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

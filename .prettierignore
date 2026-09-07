@@ -2,6 +2,14 @@
 node_modules/
 pnpm-lock.yaml
 
+# Copied out of node_modules at install time, not authored here.
+public/maplibre/
+
+# Each Phase 2 track is a full checkout of this repository under
+# .claude/worktrees/. Formatting from the root would reach into them and see
+# every file a second time, vendored bundles included. A worktree formats itself.
+.claude/worktrees/
+
 # Prose and planning artefacts are hand-authored; their line breaks and
 # emphasis style are the author's, not Prettier's.
 *.md
