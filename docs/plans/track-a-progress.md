@@ -123,6 +123,14 @@ fixed it.
 
 ## Housekeeping before resuming
 
+- **A fully-populated fixture lives at [db/seed/mock-lab.sql](../../db/seed/mock-lab.sql).**
+  "Amp's Laboratory" is invented and does not exist; it fills every field the detail page
+  renders, which is what makes it useful for looking at `/labs/[id]` with nothing missing —
+  a pricing matrix with no gaps, all four scanners, every contact channel, all four badges,
+  and an edit log spanning five leaf-path shapes. It is owned by `mock-…@grains.invalid`
+  users so `created_by` tells it apart from the real seven, its own edit-history entry says
+  it is a fixture, and `pnpm db:seed db/seed/mock-lab-remove.sql` takes it out by ownership
+  rather than by name. Re-running refreshes it rather than duplicating.
 - **`grains-dev` holds seven real Bangkok labs**, seeded from
   [db/seed/bangkok-labs.sql](../../db/seed/bangkok-labs.sql) and attributed to `@grains`.
   Their pins are geocoded to the street rather than the door — good enough for `ST_DWithin`,
