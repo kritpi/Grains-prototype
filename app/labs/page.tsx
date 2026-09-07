@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/layout/back-link";
 import { LabSearch } from "@/components/labs/lab-search";
 import {
   toApiQuery,
@@ -94,12 +95,17 @@ export default async function LabsPage({ searchParams }: PageProps<"/labs">) {
     : null;
 
   return (
-    <LabSearch
-      options={options}
-      areas={areas}
-      initial={initial}
-      initialQuery={initialQuery}
-      initialCenter={located ? { lat: state.lat!, lng: state.lng! } : null}
-    />
+    <>
+      {/* Track B addition: the search page had no way back to the entry screen.
+          Every other page carries one, so this one does too. */}
+      <BackLink href="/" label="Grains" />
+      <LabSearch
+        options={options}
+        areas={areas}
+        initial={initial}
+        initialQuery={initialQuery}
+        initialCenter={located ? { lat: state.lat!, lng: state.lng! } : null}
+      />
+    </>
   );
 }

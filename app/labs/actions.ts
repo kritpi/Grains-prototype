@@ -96,7 +96,10 @@ function revalidateLab(labId: string): void {
  * leaves at creation would bury every real edit that follows under the founding
  * dump. Both seed files already write it this way.
  */
-export async function createLab(input: unknown): Promise<LabActionResult> {
+export async function createLab(
+  input: unknown,
+  note?: string,
+): Promise<LabActionResult> {
   const user = await requireUser("/labs/new");
 
   const parsed = newLabSchema.safeParse(input);
@@ -111,6 +114,7 @@ export async function createLab(input: unknown): Promise<LabActionResult> {
         entity: "lab",
         entityId: id,
         editorId: user.id,
+        note: note?.trim() || null,
         changes: [
           {
             path: labPath.scalar("name_en"),

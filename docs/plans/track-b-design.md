@@ -451,6 +451,65 @@ Two more things the tests found, both of which would have shipped:
 
 ---
 
+# What B4 shipped
+
+`components/lab-form/**` — one form, two modes, and `components/lab-form/draft.ts`,
+which is the half that had to be right: the contributor's typing becoming the
+set of leaves they actually touched. Everything is held as a string the way a
+form holds it, and parsed once at diff time, so `"180"`, `" ฿180 "` and a stored
+`180` all produce no change at all. `tests/lab-form/draft.test.ts` asserts that
+every diff it emits is one `labChangesSchema` accepts — the contract between the
+two halves of this track, checked rather than assumed.
+
+Built against the prototype's own `edit` screen via the `prototype-fidelity`
+skill: same section order, the two input weights, `data-on` chips, the checklist
+boxes, the dashed caveat notes, and the signal-coloured save whose copy carries
+the promise ("Save — goes live now"). Four things the diff-against-the-design
+turned up, none of which a test would have:
+
+- **C-41 pairs with dark ink, not paper.** The component library says so and
+  both this stylesheet and Track A's had `#ffffff`. Fixed in both.
+- **The save button is the one signal-coloured thing on the screen.** It was ink.
+- **The pin hint sat on top of MapLibre's attribution** at 375px.
+- **The atmosphere-photo slot is drawn, not omitted** — zero is an invitation.
+  It is disabled until Track C gives it something to upload.
+
+## The bug that only a browser could find
+
+The dropped pin never appeared. Nothing threw, nothing logged, and `addTo(map)`
+ran with a real `Marker`: React mounts effects twice in development, so BaseMap
+builds a map, discards it and builds another, and a marker held across that
+lands on the discarded one — attached to a real canvas container that is not in
+the document. The marker's life is now tied to the effect that made it, so it
+always belongs to the map on screen.
+
+Its class was also `.grains-pin`, which `components/map/lab-map.css` already
+uses for a search result. Renamed to `.grains-drop-pin`. And the teardrop needs
+`rotate: -45deg` rather than `transform: rotate()`, because MapLibre positions a
+marker by writing `transform: translate(...)` inline and a transform here is
+simply overwritten.
+
+## Deviations, recorded rather than invented
+
+- **Turnaround gets one input per format**, in the prototype's TURNAROUND column
+  and at its width. The prototype gives a process one input; the schema stores
+  turnaround per `(process, format)`. This is P25 again, resolved the way Track
+  A resolved it on the read view.
+- **Status is not on this form.** The plan's B4 lists "status + note", the
+  prototype's screen does not draw it, and `setLabStatus` already exists as its
+  own action reached from the lab page — which is where "Mark as closed"
+  belongs. Putting it in both places would mean two ways to do one thing.
+- **The inventory picker lists and edits, but cannot search.** A lab may only
+  carry a catalog entry (PRD A #3), so adding one needs the film-stock typeahead,
+  and that is B5. The section renders what a lab already has.
+- **Back links.** Every page now says where it came from — `/labs` → `/`,
+  `/labs/new` → `/labs`, `/labs/[id]/edit` → that lab. Written as links to known
+  places rather than `history.back()`, which does nothing for somebody arriving
+  from a bookmark or a post-sign-in redirect. `components/layout/back-link.tsx`
+  matches the breadcrumb the lab detail page already carried.
+
+---
+
 # Open question for review
 
 **The pricing cap.** Four priced cells is a full matrix for a single-process
