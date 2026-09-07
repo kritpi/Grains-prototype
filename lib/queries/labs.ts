@@ -434,6 +434,68 @@ export type LabPricingCell = {
   turnaroundMaxD: number | null;
 };
 
+/**
+ * One day of the weekly schedule, normalised.
+ *
+ * The column is jsonb, so the database guarantees only that the array has 0 or
+ * 7 entries — not what is inside them. Every reader would otherwise repeat the
+ * same shape-checking, and a page that gets it wrong renders "open
+ * undefined–undefined" rather than failing, so the checking happens once, here.
+ *
+ * A single window per day, matching the schema's comment and the `OPEN_NOW`
+ * expression above. Split shifts are proposed in the wireframe and are not in
+ * the schema; supporting them is a migration, not a display change.
+ */
+export type LabDayHours =
+  { closed: true } | { closed: false; open: string; close: string };
+
+/** Seven days, index 0 = Sunday, matching `extract(dow)`. */
+export type LabHours = LabDayHours[];
+
+/** `"09:30:00"` and `"09:30"` both arrive; the page wants the latter. */
+function toClockTime(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${match[2]}`;
+}
+
+/**
+ * The stored schedule as seven known-shaped days, or null when there is none.
+ *
+ * Null and "closed every day" are different answers and the page shows them
+ * differently: nobody has entered hours yet is a prompt to contribute, while a
+ * lab that is shut all week is a fact about the lab. A malformed day degrades
+ * to closed rather than throwing — one bad row should not take out the page.
+ */
+function toLabHours(value: unknown): LabHours | null {
+  if (!Array.isArray(value) || value.length !== 7) return null;
+
+  return value.map((day): LabDayHours => {
+    if (typeof day !== "object" || day === null) return { closed: true };
+
+    const entry = day as Record<string, unknown>;
+    if (entry.closed === true) return { closed: true };
+
+    const open = toClockTime(entry.open);
+    const close = toClockTime(entry.close);
+    if (open === null || close === null) return { closed: true };
+
+    return { closed: false, open, close };
+  });
+}
+
+/** One row of the fixed badge roster, with this lab's endorsement count. */
+export type LabBadge = {
+  key: string;
+  labelEn: string;
+  labelTh: string;
+  count: number;
+};
+
 export type LabDetail = {
   id: string;
   nameEn: string;
@@ -447,11 +509,23 @@ export type LabDetail = {
   status: LabStatus;
   statusNote: string | null;
   openNow: boolean;
-  hours: unknown;
+  /** Null when nobody has entered a schedule — not the same as closed daily. */
+  hours: LabHours | null;
   completeness: number;
   version: number;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Who last touched this lab, and how many times it has been touched.
+   *
+   * Read here rather than from the lazily-loaded edit log, because the page
+   * states it above the fold ("last edited 3 days ago by @x · 14 edits") and
+   * the log itself is fetched only if somebody scrolls to it. It costs no extra
+   * round trip: both come off the `labs` select as subqueries.
+   */
+  editCount: number;
+  lastEditedAt: string | null;
+  lastEditorUsername: string | null;
   /** Every process offered — the pricing matrix's column set. */
   processes: ChemProcess[];
   /**
@@ -489,7 +563,15 @@ export type LabDetail = {
     width: number;
     height: number;
   }[];
-  badgeCounts: Record<string, number>;
+  /**
+   * The whole fixed roster, including badges with no endorsements.
+   *
+   * A zero stays in the list rather than being dropped: the roster is
+   * product-defined and identical for every lab, so a comparable set of rows is
+   * the point — and an absent badge would read as "not applicable here" rather
+   * than "nobody has said so yet" (PRD C #1).
+   */
+  badges: LabBadge[];
 };
 
 /**
@@ -536,6 +618,9 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       version: number;
       created_at: string;
       updated_at: string;
+      edit_count: number;
+      last_edited_at: string | null;
+      last_editor_username: string | null;
     }>(sql`
       select
         l.id, l.name_en, l.name_th, l.area_en, l.area_th,
@@ -544,9 +629,26 @@ export async function getLab(id: string): Promise<LabDetail | null> {
         st_x(l.location::geometry) as lng,
         l.status, l.status_note,
         ${OPEN_NOW} as open_now,
-        l.hours, l.completeness, l.version, l.created_at, l.updated_at
+        l.hours, l.completeness, l.version, l.created_at, l.updated_at,
+        (
+          select count(*)::int from edit_history eh
+          where eh.entity = 'lab' and eh.entity_id = l.id
+        ) as edit_count,
+        last_edit.created_at as last_edited_at,
+        last_edit.username   as last_editor_username
       from labs l
       cross join ${BANGKOK_NOW}
+      -- Lateral rather than a tenth parallel statement: the contribution line
+      -- is rendered with the lab, and the pool is small enough that fanning out
+      -- one more query per request has deadlocked this page before.
+      left join lateral (
+        select eh.created_at, u.username
+        from edit_history eh
+        join users u on u.id = eh.editor_id
+        where eh.entity = 'lab' and eh.entity_id = l.id
+        order by eh.id desc
+        limit 1
+      ) last_edit on true
       where l.id = ${id}::uuid
     `),
 
@@ -635,9 +737,21 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       where lab_id = ${id}::uuid order by created_at, id
     `),
 
-    db.execute<{ badge_key: string; n: number }>(sql`
-      select badge_key, count(*)::int as n from lab_badge_votes
-      where lab_id = ${id}::uuid group by badge_key
+    // Driven from the catalog, not from the votes, so a badge nobody has
+    // endorsed still comes back — with a zero — and the roster is the same
+    // four rows on every lab.
+    db.execute<{
+      key: string;
+      label_en: string;
+      label_th: string;
+      n: number;
+    }>(sql`
+      select bc.key, bc.label_en, bc.label_th, count(v.user_id)::int as n
+      from badge_catalog bc
+      left join lab_badge_votes v
+        on v.badge_key = bc.key and v.lab_id = ${id}::uuid
+      group by bc.key, bc.label_en, bc.label_th, bc.sort_order
+      order by bc.sort_order, bc.key
     `),
   ]);
 
@@ -657,11 +771,15 @@ export async function getLab(id: string): Promise<LabDetail | null> {
     status: lab.status,
     statusNote: lab.status_note,
     openNow: lab.open_now,
-    hours: lab.hours,
+    hours: toLabHours(lab.hours),
     completeness: lab.completeness,
     version: lab.version,
     createdAt: String(lab.created_at),
     updatedAt: String(lab.updated_at),
+    editCount: lab.edit_count,
+    lastEditedAt:
+      lab.last_edited_at === null ? null : String(lab.last_edited_at),
+    lastEditorUsername: lab.last_editor_username,
     processes: processRows.map((r) => r.process),
     pricing: pricingRows.map((r) => ({
       process: r.process,
@@ -703,7 +821,12 @@ export async function getLab(id: string): Promise<LabDetail | null> {
       width: r.width,
       height: r.height,
     })),
-    badgeCounts: Object.fromEntries(badgeRows.map((r) => [r.badge_key, r.n])),
+    badges: badgeRows.map((r) => ({
+      key: r.key,
+      labelEn: r.label_en,
+      labelTh: r.label_th,
+      count: r.n,
+    })),
   };
 }
 
