@@ -3,8 +3,8 @@
 Phase 2, worktree `discovery`, branch `claude/track-a-discovery`, cut from `develop` at `c0ce154`.
 Last updated 2026-09-07.
 
-Step numbering follows [build-plan.html](build-plan.html). **A1–A5 and A7 are done. A6 has seven
-of its ten labs seeded and live; three need a pin dropped by a person.**
+Step numbering follows [build-plan.html](build-plan.html). **A1–A7 are done. The track is ready
+to merge.**
 
 | Step | State | Commit |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ of its ten labs seeded and live; three need a pin dropped by a person.**
 | A3 `/api/labs`, `/api/labs/[id]/history` | done | `b9826e3` |
 | A4 `/labs` page | done | `c96a9a8` |
 | A5 `/labs/[id]` | done | `44c608e` |
-| A6 Bangkok seed | 7 of 10 seeded; 3 need pins | `89dc51e` |
+| A6 Bangkok seed | done — 7 labs | `89dc51e` |
 | A7 remaining query tests | done | `8bc2092` |
 
 ## What is verified, and how
@@ -127,8 +127,13 @@ fixed it.
   [db/seed/bangkok-labs.sql](../../db/seed/bangkok-labs.sql) and attributed to `@grains`.
   Their pins are geocoded to the street rather than the door — good enough for `ST_DWithin`,
   visibly off on the detail map — and the seeded `edit_history` note says so where the
-  product shows it. Three more labs are drafted but skipped for want of a pin. Everything to
-  check is in [track-a-lab-seed-review.md](track-a-lab-seed-review.md).
+  product shows it. Nothing here is verified against a lab; everything to check is in
+  [track-a-lab-seed-review.md](track-a-lab-seed-review.md).
+- **A6 landed seven labs, not the ten the plan asks for.** Three met the selection rule but
+  could not be given a location by any means available, and a lab without a pin cannot be
+  seeded — `labs.location` is NOT NULL. They were dropped rather than carried as rows that
+  never insert; their research is in the review doc, and they belong in Track B's Add Lab
+  form, whose pin-on-a-map step is exactly what the seed could not do.
 - **`grains-dev` currently holds six invented labs** from `db/seed/dev-labs.mjs`, added so
   the pages could be looked at, plus three seed users and three seed film stocks. All are
   namespaced `[dev-seed]`. Remove with `pnpm db:seed:dev --clean`. A6 replaces the labs
@@ -150,11 +155,12 @@ pnpm db:seed:dev      # optional: something to look at
 pnpm dev -p 3001
 ```
 
-Next step is finishing **A6**: three pins — `a-and-b`, `flashbox`, `warinda` — into
-`seed_coords` in [db/seed/bangkok-labs.sql](../../db/seed/bangkok-labs.sql), then
-`pnpm db:seed db/seed/bangkok-labs.sql` again. The file is idempotent; labs already seeded
-are left alone. Those three are the ones geocoding could not resolve, and each has a reason
-recorded next to it. Once they land the track is ready to merge.
+Every step is done and the track is ready to merge into `develop`.
+
+Two things follow it rather than block it. The seeded data is drafted from public sources and
+**not verified against any lab** — Phase 3.4 is where that happens, and the review doc lists
+what to check, prices first. And the three labs that could not be pinned are best added
+through Track B's Add Lab form once it exists, which dogfoods the form at the same time.
 
 Two things this track leaves deliberately unfinished, both waiting on other tracks rather
 than on more work here:

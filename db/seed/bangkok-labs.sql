@@ -1,4 +1,4 @@
--- Ten real Bangkok film labs — A6.
+-- Seven real Bangkok film labs — A6.
 --
 -- DRAFTED FROM PUBLIC SOURCES, NOT VERIFIED. Every value below came off a
 -- published directory or listing on 2026-09-07 and none of it has been checked
@@ -13,19 +13,22 @@
 --   3. kitzonaroll.com/bangkok-film-labs — community list, last updated
 --                           July 2025; the only source with a full price grid.
 --
--- The ten labs here are exactly the intersection of sources 2 and 3: every one
--- appears in both, independently. That was the selection rule, in preference to
--- picking favourites out of the ~40 labs source 3 lists — two editors landing on
--- the same shop is the closest thing to corroboration available without visiting.
+-- The labs here are drawn from the intersection of sources 2 and 3: each appears
+-- in both, independently. That was the selection rule, in preference to picking
+-- favourites out of the ~40 labs source 3 lists — two editors landing on the same
+-- shop is the closest thing to corroboration available without visiting.
 --
--- WHAT IS MISSING, AND WHY IT IS MISSING
+-- SEVEN, NOT THE TEN THE BUILD PLAN ASKS FOR
 --
--- Coordinates, for three of the ten. No listing publishes them: the editorial
--- lists give a street and a BTS stop, the directory gives a postal address, and
--- the two venue databases that hold real pins are behind logins. Seven were
--- recovered by geocoding against OpenStreetMap and are marked as approximate
--- where they are; the other three resist it and are left NULL, which skips them.
--- See the seed_coords block below for which, and why.
+-- Ten met the rule. Three of them — A&B Digital Lab, Flashbox Filmlab and Warinda
+-- Studio — could not be given a location by any means available here, and a lab
+-- without a pin cannot be seeded at all: `labs.location` is NOT NULL, and rightly
+-- so, because a lab that cannot be found on a map is not a listing.
+--
+-- They are dropped rather than carried as rows that never insert. Their research
+-- is kept in docs/plans/track-a-lab-seed-review.md, and the place they belong is
+-- Track B's Add Lab form, whose pin-on-a-map step is exactly the thing this file
+-- could not do. Adding them there also dogfoods the form.
 --
 -- Hours are entered only where a source stated them, and the array is left empty
 -- otherwise. Empty is not "closed": `OPEN_NOW` in lib/queries/labs.ts treats a
@@ -61,12 +64,11 @@ ON CONFLICT (lower(email)) DO NOTHING;
 --> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
--- The pins. Three still need a person.
+-- The pins.
 --
--- Open the maps link in the review doc, drop a pin on the door, copy the two
--- numbers in. Latitude first — that is the order they appear in a Google Maps
--- URL, and the opposite of the order ST_MakePoint takes them, which is handled
--- below rather than left as a trap.
+-- Latitude first — that is the order a Google Maps URL gives them, and the
+-- opposite of the order ST_MakePoint takes them, which is handled below rather
+-- than left as a trap.
 --
 -- Replacing a geocoded pin with a dropped one is always an improvement and needs
 -- no ceremony: change the numbers, delete that lab's row, run the file again.
@@ -85,8 +87,8 @@ CREATE TEMP TABLE seed_coords (slug text PRIMARY KEY, lat double precision, lng 
 -- map. Replacing any of them with a real dropped pin is a pure improvement, and
 -- the seeded edit_history entry says so in the product itself.
 --
--- The remaining three have no public source and are left NULL. Labs without a
--- pin are skipped, not fatal — fill them in and run the file again.
+-- A row added here without a pin is skipped rather than fatal, so this file can
+-- grow a lab before somebody has stood outside it.
 INSERT INTO seed_coords (slug, lat, lng) VALUES
   -- Matched to the Lido Connect building itself, not a street.
   ('xanap',       13.7451699, 100.5324766),  -- Lido Connect 2F, Rama I Rd, Wang Mai, Pathum Wan 10330
@@ -95,23 +97,15 @@ INSERT INTO seed_coords (slug, lat, lng) VALUES
   ('patani',      13.7398522, 100.5140294),  -- 59 Soi Nana, Pom Prap Sattru Phai 10100
   ('brotherhood', 13.7352321, 100.5276142),  -- Chulalongkorn Soi 42, Pathum Wan 10330
   ('him-lab',     13.7223646, 100.5237278),  -- 135/8 Pan Rd, Si Lom, Bang Rak 10500
-  ('filmtastic',  13.7341053, 100.5276229),  -- Chulalongkorn Soi 15, Pathum Wan 10330
-
-  -- Still yours. Soi Phatthanakan 30 is two disconnected segments 1.2 km apart
-  -- and house 352 cannot choose between them; Mahaisawan Road is not in OSM
-  -- under any spelling tried; A&B resolves neither by house number nor by
-  -- Central Ladprao as a landmark — and its street number is disputed anyway.
-  ('a-and-b',     NULL, NULL),  -- 1152/13 Phahon Yothin Rd, opposite Central Ladprao — address disputed, see review doc
-  ('flashbox',    NULL, NULL),  -- 352 Phatthanakan Soi 30, Suan Luang
-  ('warinda',     NULL, NULL);  -- 338/7 Mahaisawan Rd, Bang Rak
+  ('filmtastic',  13.7341053, 100.5276229);  -- Chulalongkorn Soi 15, Pathum Wan 10330
 --> statement-breakpoint
 
 -- The guard.
 --
--- A missing pin skips that lab rather than failing the run: three of the ten
--- have no public source, and holding the other seven hostage to them would mean
--- nothing is seeded until every one is chased down. It says loudly which were
--- skipped, so "not seeded" cannot be mistaken for "seeded and missing".
+-- A missing pin skips that lab rather than failing the run, and says loudly which
+-- were skipped, so "not seeded" cannot be mistaken for "seeded and missing". No
+-- row needs that today; it is here so adding a lab ahead of its pin is a partial
+-- seed rather than a broken one.
 --
 -- A pin outside Bangkok is still fatal, because that is a mistake rather than an
 -- absence. `labs.location` is NOT NULL and would eventually catch a null, but it
@@ -179,13 +173,6 @@ INSERT INTO seed_labs (slug, name_en, name_th, area_en, area_th, street, landmar
    'In the Banglamphu lanes north of Khao San Road. It is a bar as well as a lab.',
    '[]'::jsonb),
 
-  -- Hours: daily 09:30–20:00 (source 2). Conflicting report of 08:00–24:00 —
-  -- see the review doc; the wider claim may describe a different shop.
-  ('a-and-b', 'A&B Digital Lab', NULL, 'Chatuchak', 'จตุจักร',
-   '1152/13 Phahon Yothin Road',
-   'On Phahon Yothin opposite Central Ladprao.',
-   '[{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"},{"open":"09:30","close":"20:00"}]'::jsonb),
-
   -- Hours: daily 11:00–20:00 (sources 1 and 2 agree).
   ('fotoclub', 'Fotoclub BKK', NULL, 'Bang Rak', 'บางรัก',
    '1158 Charoen Krung Soi 32',
@@ -203,18 +190,6 @@ INSERT INTO seed_labs (slug, name_en, name_th, area_en, area_th, street, landmar
    'Chulalongkorn Soi 42',
    'A few streets from Chulalongkorn University, near MRT Sam Yan.',
    '[{"open":"13:00","close":"19:00"},{"open":"13:00","close":"19:00"},{"open":"13:00","close":"19:00"},{"closed":true},{"open":"13:00","close":"19:00"},{"open":"13:00","close":"19:00"},{"open":"13:00","close":"19:00"}]'::jsonb),
-
-  -- Hours: 13:00–20:00, closed Wednesday (source 2).
-  ('flashbox', 'Flashbox Filmlab', NULL, 'Suan Luang', 'สวนหลวง',
-   '352 Phatthanakan Soi 30',
-   NULL,
-   '[{"open":"13:00","close":"20:00"},{"open":"13:00","close":"20:00"},{"open":"13:00","close":"20:00"},{"closed":true},{"open":"13:00","close":"20:00"},{"open":"13:00","close":"20:00"},{"open":"13:00","close":"20:00"}]'::jsonb),
-
-  -- Source 2 could not confirm hours; left empty rather than invented.
-  ('warinda', 'Warinda Studio', NULL, 'Bang Rak', 'บางรัก',
-   '338/7 Mahaisawan Road',
-   'Near BTS Saphan Taksin. Contact the studio before visiting.',
-   '[]'::jsonb),
 
   -- Source 2 could not confirm hours; left empty rather than invented.
   ('him-lab', 'HiM Lab', NULL, 'Bang Rak', 'บางรัก',
@@ -281,12 +256,9 @@ INSERT INTO lab_processes (lab_id, process)
 SELECT id, p::chem_process FROM seed_inserted, LATERAL (VALUES
   ('XANAP Filmlab', 'c41'), ('XANAP Filmlab', 'bw'),
   ('Sweet Film Bar', 'c41'), ('Sweet Film Bar', 'bw'), ('Sweet Film Bar', 'e6'), ('Sweet Film Bar', 'ecn2'),
-  ('A&B Digital Lab', 'c41'), ('A&B Digital Lab', 'bw'), ('A&B Digital Lab', 'e6'), ('A&B Digital Lab', 'ecn2'),
   ('Fotoclub BKK', 'c41'), ('Fotoclub BKK', 'bw'), ('Fotoclub BKK', 'e6'), ('Fotoclub BKK', 'ecn2'),
   ('Patani Studio', 'bw'), ('Patani Studio', 'e6'),
   ('Brotherhood Filmlab', 'c41'), ('Brotherhood Filmlab', 'bw'), ('Brotherhood Filmlab', 'ecn2'),
-  ('Flashbox Filmlab', 'c41'), ('Flashbox Filmlab', 'bw'), ('Flashbox Filmlab', 'ecn2'),
-  ('Warinda Studio', 'c41'), ('Warinda Studio', 'bw'), ('Warinda Studio', 'ecn2'),
   ('HiM Lab', 'c41'), ('HiM Lab', 'bw'), ('HiM Lab', 'ecn2'),
   ('Filmtastic', 'c41'), ('Filmtastic', 'bw')
 ) AS v(lab, p)
@@ -305,10 +277,8 @@ WHERE seed_inserted.name_en = v.lab;
 INSERT INTO lab_scanners (lab_id, model)
 SELECT id, m FROM seed_inserted, LATERAL (VALUES
   ('Sweet Film Bar', 'Noritsu'), ('Sweet Film Bar', 'SP-3000'),
-  ('A&B Digital Lab', 'Fuji Frontier'),
   ('Fotoclub BKK', 'Noritsu'), ('Fotoclub BKK', 'Fuji Frontier'),
   ('Patani Studio', 'Noritsu'), ('Patani Studio', 'Fuji Frontier'),
-  ('Flashbox Filmlab', 'Noritsu'), ('Flashbox Filmlab', 'Fuji Frontier'),
   ('Filmtastic', 'Noritsu'), ('Filmtastic', 'Fuji Frontier')
 ) AS v(lab, m)
 WHERE seed_inserted.name_en = v.lab;
@@ -332,11 +302,8 @@ SELECT id, p::chem_process, f::film_format, price FROM seed_inserted, LATERAL (V
   ('XANAP Filmlab',      'c41', '135', 160), ('XANAP Filmlab',      'c41', '120', 220),
   ('Sweet Film Bar',     'c41', '135', 180), ('Sweet Film Bar',     'c41', '120', 200),
   ('Sweet Film Bar',     'bw',  '135', 200), ('Sweet Film Bar',     'bw',  '120', 240),
-  ('A&B Digital Lab',    'c41', '135', 100), ('A&B Digital Lab',    'c41', '120', 150),
   ('Fotoclub BKK',       'c41', '135', 150), ('Fotoclub BKK',       'c41', '120', 170),
   ('Brotherhood Filmlab','c41', '135', 150), ('Brotherhood Filmlab','c41', '120', 230),
-  ('Flashbox Filmlab',   'c41', '135', 150), ('Flashbox Filmlab',   'c41', '120', 200),
-  ('Warinda Studio',     'c41', '135', 120), ('Warinda Studio',     'c41', '120', 150),
   ('HiM Lab',            'c41', '135', 150), ('HiM Lab',            'c41', '120', 180),
   ('Filmtastic',         'c41', '135', 150), ('Filmtastic',         'c41', '120', 150)
 ) AS v(lab, p, f, price)
