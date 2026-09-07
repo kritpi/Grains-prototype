@@ -404,6 +404,53 @@ data rather than only on a fixture built to satisfy it.
 
 ---
 
+# What B3 shipped
+
+`app/labs/actions.ts` — `createLab`, `updateLab`, `setLabStatus`, each the same
+four steps in the same order: `requireUser()`, one transaction, exactly one
+`edit_history` row, `revalidatePath`. `lib/labs/lab-input.ts` holds the create
+gate as a zod schema the form validates against too, and
+`lib/constraint-messages.ts` turns a database rule into a sentence.
+
+`setLabStatus` goes through the diff path rather than writing the two columns
+directly, which is what gives it a `from` and a `to` in the log like every other
+edit, and the same conflict semantics for free.
+
+An empty save is `unchanged`, not an error — the contributor opened the form,
+changed their mind, and pressed save. Nothing is wrong, and nothing is recorded.
+
+## The constraint names do not match the schema mirror
+
+`db/migrations/0000_init.sql` declares its CHECK constraints anonymously, so
+Postgres named them itself. Single-column ones came out sensibly
+(`labs_hours_check`); `lab_pricing`'s three came out **positionally** —
+`lab_pricing_check`, `_check1`, `_check2`. `lib/db/schema.ts` calls those three
+`lab_pricing_not_empty`, `lab_pricing_turnaround_min_present` and
+`lab_pricing_turnaround_order`, names that exist in no database.
+
+The migration is what ran, so the migration wins and the mirror's names are
+documentation. This is exactly the parity CLAUDE.md says is a review item and
+not something a tool checks — and nothing caught it until a message had to be
+keyed on one. Naming them properly is a migration, and migrations are frozen for
+Phase 2, so it belongs in a foundation PR to `main`.
+
+Positional names can be reordered without anybody noticing, and the failure
+would be silent — the wrong sentence attached to the wrong rule, which is worse
+than no sentence. `tests/actions/constraint-names.test.ts` asserts every mapped
+name exists in the live database, which makes that loud instead.
+
+Two more things the tests found, both of which would have shipped:
+
+- **Drizzle wraps driver errors**, so `constraint_name` is never on the error
+  that is thrown — it is on `cause`. The mapping silently did nothing until the
+  chain was walked, and every mapped rule would have surfaced as a 500.
+- **Postgres reports the first constraint a row violates**, so which sentence
+  comes back depends on the row and not only on the mistake. A cell with an
+  upper turnaround bound and nothing else fails the not-empty rule before it
+  reaches the one about bounds.
+
+---
+
 # Open question for review
 
 **The pricing cap.** Four priced cells is a full matrix for a single-process

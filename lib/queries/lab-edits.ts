@@ -318,6 +318,29 @@ async function writeChildren(
 // Editing
 // ---------------------------------------------------------------------------
 
+export type LabStatusRow = { status: LabStatus; statusNote: string | null };
+
+/**
+ * The two fields `setLabStatus` needs a `from` for.
+ *
+ * A status change is an edit like any other and so must record what it changed
+ * from, but the button that sends it has no form behind it holding the previous
+ * values — and the client would be the wrong place to take them from anyway.
+ * Small and deliberate rather than reaching for `getLab`, which runs six selects
+ * to answer a question about two columns.
+ */
+export async function readLabStatus(
+  tx: LabTx,
+  labId: string,
+): Promise<LabStatusRow | null> {
+  const rows = await tx.execute<{
+    status: LabStatus;
+    status_note: string | null;
+  }>(sql`select status, status_note from labs where id = ${labId}`);
+  const row = rows[0];
+  return row ? { status: row.status, statusNote: row.status_note } : null;
+}
+
 export type ApplyLabChangesResult =
   | { ok: true }
   /** The lab moved under the editor; B3 reloads and shows what changed. */
