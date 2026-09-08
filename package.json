@@ -21,12 +21,15 @@
     "db:seed": "node db/seed/run.mjs",
     "db:seed:dev": "node db/seed/dev-labs.mjs",
     "db:backfill:completeness": "node scripts/backfill-completeness.mjs",
+    "r2:check": "node scripts/check-r2.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate:prod": "GRAINS_DB_TARGET=prod drizzle-kit migrate"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
+    "@aws-sdk/client-s3": "^3.1127.0",
+    "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.5",
     "drizzle-orm": "^0.45.2",
