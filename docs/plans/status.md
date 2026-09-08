@@ -1,6 +1,6 @@
 # Where the project stands
 
-Written 2026-09-08, after C5. A cross-track snapshot, because the three
+Written 2026-09-08, after C6. A cross-track snapshot, because the three
 per-track progress files each tell the truth about one branch and none of them
 answers "what is actually left".
 
@@ -9,7 +9,7 @@ That distinction earned its keep: two things the plan says are outstanding are
 already built, one thing nothing mentions is a live bug, and the R2 status could
 not be re-tested at all. Where this file and [build-plan.html](build-plan.html)
 disagree, this one was checked more recently — but check again rather than
-trusting it, because it goes stale the moment C6 lands.
+trusting it. Track C is finished, so the next thing to move is Phase 3.
 
 ---
 
@@ -30,8 +30,8 @@ it is narrower than it sounds:
 - **Blocked:** any real object moving through the upload path. No `confirmPhoto`
   has ever seen a real object. `requestUploadUrl` signs, and the browser's PUT
   then fails.
-- **Not blocked:** everything else. C2 through C5 are written and tested
-  against a real database without it, and C6 can be too.
+- **Not blocked:** everything else. All of Track C is written and tested
+  against a real database without it.
 
 Do not re-diagnose it. Run `pnpm r2:check`; if it still says `NotEntitled`,
 nothing in this repository will fix it and a support ticket is the only path.
@@ -68,11 +68,11 @@ Two things follow, and they reorder the work below:
 | **Ticket 0/1** — scaffold, migration | done, merged |
 | **A** — lab discovery & map | A1–A7 done, merged into `develop` |
 | **B** — curation & invariants | B1–B5 done, merged into `develop` |
-| **C** — media & photobooks | C1 done bar the entitlement; C2–C5 done; **C7 effectively done**; **C6 is the last step** |
+| **C** — media & photobooks | **complete.** C1 done bar the entitlement; C2–C7 done |
 | **Phase 3** — integration & ship | partly done ahead of schedule, see below |
 | **Phase 4** — hardening | not started |
 
-The whole suite is **295 tests, green, nothing skipped**, run against
+The whole suite is **301 tests, green, nothing skipped**, run against
 `grains-dev` with no residue left behind.
 
 ---
@@ -84,7 +84,7 @@ The whole suite is **295 tests, green, nothing skipped**, run against
 | Step | State |
 | --- | --- |
 | **C5** `app/u/actions.ts` — photobook CRUD, `addToPhotobook`, remove, reorder | done, 31 tests |
-| **C6** `/u/[username]`, photobook detail, photo detail in book context | not started. **The largest remaining piece of work in the project**, and the last step of Track C |
+| **C6** `/u/[username]`, photobook detail, photo detail in book context | done. Driven in a browser against `db/seed/mock-photobook.sql`, owner-only branches included |
 | **C7** tests | **done.** All five items the plan lists — cap counts originals only, self-connection rejected, delete cascades items, `alsoAppearsIn` counts across users, `confirmPhoto` refuses a key outside the caller's `pending/` prefix — are written and passing |
 
 ### Phase 3 — two corrections to the plan
@@ -98,8 +98,10 @@ not.
 metadata form already uses Track B's real film-stock typeahead rather than the
 fixture the plan assumes it would need. What remains of 3.1:
 
-- the film-stock gallery grid on `/films/[id]` — the slot is drawn and says what
-  it is waiting for; it needs C6's grid to reuse
+- the film-stock gallery grid on `/films/[id]` — the slot is drawn and says
+  what it is waiting for. **C6's `components/books/photo-grid.tsx` is the grid
+  it was waiting for**, and `listGalleryPhotos` is the query, so this is now
+  composition rather than new work
 - the lab form's atmosphere-photo slot, still a disabled `+`, wired to
   `requestUploadUrl({ kind: 'lab_atmosphere' })` + `confirmLabPhoto`
 
@@ -116,11 +118,10 @@ keyboard-accessible alternative to the map.
 
 Neither appears in any other document.
 
-**The site header links somewhere that does not exist.**
+**~~The site header links somewhere that does not exist.~~ FIXED by C6.**
 `components/layout/site-header.tsx:29` sends a signed-in user to
-`/u/{username}`, and `app/u/` has not been built. Signing in and clicking your
-own name is a 404 today. C6 closes it; until then it is the first thing a new
-user does after authenticating.
+`/u/{username}`, which had not been built — signing in and clicking your own
+name was a 404. The route exists now.
 
 **`next build` requires a live database.** `/`, `/films` and `/films/[id]`
 declare no `dynamic` export, so they are statically prerendered and the build
@@ -178,7 +179,7 @@ Ordered by how much each unblocks, not by effort.
 | **The upload cap number** | 50 is a placeholder the PRD explicitly defers. It is in `lib/photos/limits.ts` and the profile's cap meter will display it |
 | **The artist's-note length** | 300 characters, read off PRD D #7's "2–3 lines". PROPOSED, and enforced only in `app/u/actions.ts` |
 | **Whether a photobook slug should follow its title** | It does not: minted once, never changed, so a rename cannot break a shared link. PROPOSED — the alternative needs a redirect table |
-| **Where a Photo in no Photobook surfaces on `/u/@username`** | Partly blocks C6 — `getProfile` returns Photobooks only, and PRD D #10 leaves this open. Gap plan J11 |
+| **Where a Photo in no Photobook surfaces on `/u/@username`** | **Answered, PROPOSED:** on its owner's profile under "NOT IN A PHOTOBOOK · N", owner-only. A visitor's view stays curated sets. Overturning it is one section and one query |
 | **The 25 MB ceiling and the JPEG/PNG/WebP/AVIF allowlist** | Both PROPOSED in `lib/photos/limits.ts`. Nothing upstream specifies either; widening the list later is one line, narrowing it after people have uploaded is not |
 | **Reverse search → map filter UI** | The schema and `/api/labs` already support `film_stock_id`, so this is only a UI question |
 | **The bilingual strategy, on paper twice** | `00_BACKLOG` lists it as unresolved while P22 already decides it (a hand-rolled `lib/i18n.ts`, not next-intl). Reconcile the two so 3.3 does not re-litigate it |

@@ -280,6 +280,44 @@ export async function getPhotobook(
   };
 }
 
+export type ConnectTarget = {
+  id: string;
+  title: string;
+  slug: string;
+  /** Whether this Photo is already in it, so the sheet opens with it ticked. */
+  contains: boolean;
+};
+
+/**
+ * The viewer's own Photobooks, each marked with whether it already holds this
+ * Photo — everything the Connect sheet needs in one statement.
+ *
+ * The sheet is multi-select and disconnects through the same control, so it has
+ * to render the current state rather than only offer an action; a sheet that
+ * could add but not show what was already there would make "connect" look
+ * idempotent and "disconnect" look impossible (gap plan L1).
+ */
+export async function listPhotobooksForConnect(
+  ownerId: string,
+  photoId: string,
+): Promise<ConnectTarget[]> {
+  const rows = await getDb().execute<{
+    id: string;
+    title: string;
+    slug: string;
+    contains: boolean;
+  }>(sql`
+    select b.id, b.title, b.slug,
+           exists (select 1 from photobook_items i
+                    where i.photobook_id = b.id
+                      and i.photo_id = ${photoId}::uuid) as contains
+      from photobooks b
+     where b.owner_id = ${ownerId}
+     order by b.position, b.created_at
+  `);
+  return rows;
+}
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------

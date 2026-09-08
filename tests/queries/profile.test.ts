@@ -2,8 +2,17 @@ import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { getPhotobook, getProfile } from "@/lib/queries/books";
-import { alsoAppearsIn, listGalleryPhotos } from "@/lib/queries/photos";
+import {
+  getPhotobook,
+  getProfile,
+  listPhotobooksForConnect,
+} from "@/lib/queries/books";
+import {
+  alsoAppearsIn,
+  getPhotoDetail,
+  listGalleryPhotos,
+  listUnfiledPhotos,
+} from "@/lib/queries/photos";
 import { hasDatabase, testClient } from "../db/client";
 
 /**
@@ -229,6 +238,57 @@ describe.skipIf(!hasDatabase)("profile and gallery reads", () => {
     it("carries the uploader's handle for the credit line", async () => {
       const page = await listGalleryPhotos(filmStockId, null, 1);
       expect(page.photos[0].uploaderUsername).toBe(uploaderName);
+    });
+  });
+
+  describe("getPhotoDetail", () => {
+    it("resolves the film stock's name, not just its id", async () => {
+      // The metadata rail shows a name; the id would be useless there.
+      const detail = await getPhotoDetail(photos[0]);
+      expect(detail!.filmStockName).toBe(`${TAG} Film`);
+      expect(detail!.uploaderUsername).toBe(uploaderName);
+      expect(detail!.frameSize).toBe("3:2");
+    });
+
+    it("is null for a photo that is gone", async () => {
+      expect(await getPhotoDetail(randomUUID())).toBeNull();
+    });
+  });
+
+  describe("listUnfiledPhotos", () => {
+    it("returns only the photos in no photobook at all", async () => {
+      // photos[0..3] are filed; photos[4] is in the connector's book, and the
+      // uploader's fifth is nowhere. The fixture files 1, 2, 3 and 4.
+      const unfiled = await listUnfiledPhotos(uploader);
+      const ids = unfiled.map((p) => p.id);
+
+      expect(ids).not.toContain(photos[1]);
+      expect(ids).not.toContain(photos[3]);
+      expect(ids).not.toContain(photos[4]);
+      // photos[0] was added to the book and then removed again by the fixture,
+      // so it is in nothing — which is exactly the case this exists for.
+      expect(ids).toContain(photos[0]);
+    });
+
+    it("is empty for somebody whose photos are all filed", async () => {
+      const unfiled = await listUnfiledPhotos(connector);
+      expect(unfiled).toEqual([]);
+    });
+  });
+
+  describe("listPhotobooksForConnect", () => {
+    it("marks the books that already hold the photo", async () => {
+      // The sheet has to open with the right rows already ticked, or connect
+      // looks idempotent and disconnect looks impossible.
+      const targets = await listPhotobooksForConnect(connector, photos[4]);
+      const mixed = targets.find((t) => t.id === mixedBook)!;
+      expect(mixed.contains).toBe(true);
+    });
+
+    it("lists the viewer's own books and nobody else's", async () => {
+      const targets = await listPhotobooksForConnect(connector, photos[0]);
+      expect(targets.map((t) => t.id)).toEqual([mixedBook]);
+      expect(targets[0].contains).toBe(false);
     });
   });
 

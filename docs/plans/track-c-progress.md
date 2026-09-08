@@ -1,6 +1,6 @@
 # Track C — Media & Photobooks: progress
 
-**C1 done (bar the entitlement), C2–C5 done. C6 is the last step.** This file exists so the
+**Track C is complete.** C1 done bar the entitlement; C2–C7 done. This file exists so the
 next session does not have to reconstruct where things stand from a conversation
 it cannot see.
 
@@ -315,28 +315,94 @@ includes `constraint-names.test.ts`, which is what confirms
 inferred from Postgres' inline-`UNIQUE` convention, and had it been wrong a
 duplicate slug would have surfaced as a 500 instead of a sentence.
 
-## Where C goes next
+## C6 — done
 
-C6 — the pages, and the last step of the track. `/u/[username]` (visitor vs
-owner, cap meter, both empty states, 3-up mosaic covers, artist's note on
-cards), `/u/[username]/[slug]` (true-aspect grid, `via @uploader` on connected
-photos only, artist's note once), and the photo detail in book context (prev/
-next, the metadata rail, "Also appears in · N", the Connect sheet, Edit/Delete
-for your own).
+Three pages and the components under them.
 
-Everything underneath it is finished and tested. Two things C6 will hit
-immediately:
+| Route | What it is |
+| --- | --- |
+| `/u/[username]` | the profile: visitor vs owner, cap meter, both empty states, 3-up mosaic covers, artist's note on cards, the upload entry point |
+| `/u/[username]/[slug]` | the photobook: true-aspect grid, `via @uploader` on connected frames only, the artist's note once |
+| `/u/[username]/[slug]/[photoId]` | the photo in book context: prev/next, the metadata rail, "Also appears in · N", the Connect sheet, Edit/Delete for your own |
 
-- **`PhotoUploader` has no caller until C6 mounts it.** It takes `scannerModels`
-  from `listFormCatalog` and an optional `photobookId`.
-- **`components/layout/site-header.tsx:29` already links to `/u/{username}`**,
-  so signing in and clicking your own name is a 404 until this lands.
+`components/books/` holds the card, the grid, the Connect sheet, the create
+form and the owner's actions, plus `photobook.css` transcribed from the
+prototype's own values.
 
-And one open decision it needs: **where a Photo belonging to no Photobook
-surfaces on a profile.** `getProfile` returns Photobooks only. Gap plan J11, PRD
-D #10's open sub-question.
+### The bug this nearly shipped with
 
-None of C6 is blocked by the entitlement. What is still blocked is end-to-end
-verification of the upload path: no real object has moved through it, because
-the browser's PUT cannot succeed until Cloudflare restores the S3 API.
-`pnpm r2:check` is the gate.
+The profile's Photos stat was the sum of its photobooks' item counts. That is
+the prototype's worst bug — gap plan J13, "the clearest outright contradiction
+of a resolved decision" — because a Connection is somebody else's work and one
+Photo filed in two books gets counted twice. It read **6** for a person who had
+uploaded **4**. It now comes from `countOriginals`, which is the one number in
+the product that expresses PRD D #5.
+
+Found by looking at the rendered page against the fixture, not by any test. It
+type-checked perfectly.
+
+### Two deviations from the prototype, both recorded in the CSS
+
+- **No `border-radius`.** The prototype rounds the new-photobook tile, the
+  metadata rail and several buttons; CLAUDE.md says "no rounded corners (sharp,
+  flat rectangles only)" and `lab-form.css` already has none. The avatar keeps
+  its circle — that is a shape, not a rounded rectangle.
+- **No monospace.** The prototype sets the profile URL in `ui-monospace`;
+  CLAUDE.md rules out monospace outright, so it is the sans at the same size.
+
+The profile URL also shows `/u/@name` rather than the prototype's
+`grains.app/u/@name`. The production hostname is a launch decision nobody has
+made, and printing a guess would put it in front of every visitor.
+
+### The open decision, answered
+
+**Where a Photo in no Photobook surfaces (PRD D #10, gap plan J11): on its
+owner's profile, under "NOT IN A PHOTOBOOK · N", and only for the owner.**
+PROPOSED. A visitor's view stays what the product says it is — curated sets —
+while the person who uploaded a frame and has not filed it can still find it.
+Overturning it means deleting one section and one query.
+
+### New fixture
+
+`db/seed/mock-photobook.sql`, shaped so that each of the prototype's bugs would
+be visible if it came back: a book of only the owner's work (no credit lines), a
+mixed book (`3 photos · 1 connected`), one Photo in books owned by two different
+people (`Also appears in · 3`), a Photo in no book, and four different aspect
+ratios so the masonry is visibly ragged. It reuses the `mock-…@grains.invalid`
+users, so `mock-lab-remove.sql` cleans it up.
+
+```bash
+pnpm db:seed db/seed/mock-lab.sql
+pnpm db:seed db/seed/mock-photobook.sql
+```
+
+### Verified
+
+301 tests green, nothing skipped. Beyond that, every page was driven in a
+browser against the fixture — including the branches only an owner can reach,
+by stubbing `currentUser` temporarily and reverting it (`git diff lib/auth.ts`
+is empty). What that confirmed, and what no test covers:
+
+- the cap meter, "+ New Photobook", the unfiled section and the uploader all
+  appear for the owner and for nobody else
+- **a Connection made and undone through the sheet**, with "Also appears in"
+  moving 2 → 3 → 2 live
+- the delete confirmation stating the cascade in plain numbers: "This
+  photograph is in 3 photobooks. Deleting removes it from all of them,
+  including other people's, with no notice to them."
+
+The frames render broken, because no object has ever been uploaded. That is the
+entitlement, not the layout.
+
+## What is left
+
+Track C is done. The remaining work is Phase 3, and
+[status.md](status.md) is the current picture of it. C6 closes one defect that
+file records: `site-header.tsx` links a signed-in user to `/u/{username}`, which
+now exists.
+
+Still blocked, and unchanged: no real object has moved through the upload path.
+`pnpm r2:check` does not even reach the entitlement, because step 2 of
+[r2-setup.md](r2-setup.md) has not been done and `NEXT_PUBLIC_R2_PUBLIC_URL`
+still holds the S3 API endpoint — so every image URL in the app currently points
+at an endpoint that answers 401.

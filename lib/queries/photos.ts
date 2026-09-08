@@ -348,3 +348,110 @@ function decodeCursor(
 
   return { createdAt, id };
 }
+
+export type PhotoDetail = PhotoRow & {
+  /** Resolved for the metadata rail, which shows a name rather than an id. */
+  filmStockName: string | null;
+  uploaderUsername: string | null;
+};
+
+/**
+ * One Photo with everything its detail page shows.
+ *
+ * Separate from `getPhoto` rather than replacing it: the actions need the row
+ * and its owner to decide whether a write is allowed, and joining two tables to
+ * answer an ownership question would be a wider query for no benefit. This one
+ * is for rendering.
+ *
+ * The metadata rail's row order is fixed — Film Stock, Format, Camera, Scanner,
+ * Chemistry — so that a missing field reads as "not tagged" rather than as a
+ * different layout. The page renders every row; this only supplies the values.
+ */
+export async function getPhotoDetail(id: string): Promise<PhotoDetail | null> {
+  const rows = await getDb().execute<{
+    id: string;
+    owner_id: string;
+    storage_key: string;
+    width: number;
+    height: number;
+    film_stock_id: string | null;
+    film_stock_name: string | null;
+    format: FilmFormat | null;
+    frame_size: string | null;
+    camera: string | null;
+    scanner_model: string | null;
+    chemistry: string | null;
+    uploader_username: string | null;
+  }>(sql`
+    select p.id, p.owner_id, p.storage_key, p.width, p.height,
+           p.film_stock_id, f.name as film_stock_name,
+           p.format, p.frame_size, p.camera, p.scanner_model, p.chemistry,
+           u.username as uploader_username
+      from photos p
+      join users u on u.id = p.owner_id
+      left join film_stocks f on f.id = p.film_stock_id
+     where p.id = ${id}::uuid
+  `);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    storageKey: row.storage_key,
+    width: row.width,
+    height: row.height,
+    filmStockId: row.film_stock_id,
+    filmStockName: row.film_stock_name,
+    format: row.format,
+    frameSize: row.frame_size,
+    camera: row.camera,
+    scannerModel: row.scanner_model,
+    chemistry: row.chemistry,
+    uploaderUsername: row.uploader_username,
+  };
+}
+
+/**
+ * The owner's Photos that are in no Photobook at all.
+ *
+ * A Photo is live and Gallery-eligible without belonging to anything (PRD D #4),
+ * which left it with nowhere to appear on its own author's profile — the open
+ * question in PRD D #10 and gap plan J11.
+ *
+ * **PROPOSED answer, implemented here: they surface, but only for the owner.**
+ * A visitor's view of a profile stays what the product says it is — curated
+ * sets — while the person who uploaded a frame and has not filed it yet can
+ * still find it. Filing it is then the obvious next action rather than a
+ * feature nobody can reach. Overturning this means deleting one section and one
+ * query, not unpicking a model.
+ */
+export async function listUnfiledPhotos(
+  ownerId: string,
+): Promise<GalleryPhoto[]> {
+  const rows = await getDb().execute<{
+    id: string;
+    storage_key: string;
+    width: number;
+    height: number;
+    frame_size: string | null;
+    format: FilmFormat | null;
+  }>(sql`
+    select p.id, p.storage_key, p.width, p.height, p.frame_size, p.format
+      from photos p
+     where p.owner_id = ${ownerId}
+       and not exists (select 1 from photobook_items i where i.photo_id = p.id)
+     order by p.created_at desc
+  `);
+
+  return rows.map((row) => ({
+    id: row.id,
+    storageKey: row.storage_key,
+    width: row.width,
+    height: row.height,
+    frameSize: row.frame_size,
+    format: row.format,
+    uploaderUsername: null,
+  }));
+}
