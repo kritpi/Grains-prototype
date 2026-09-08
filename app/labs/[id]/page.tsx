@@ -24,8 +24,8 @@ import { PricingMatrix } from "@/components/labs/pricing-matrix";
 import { PROCESS_LABELS } from "@/components/labs/search-state";
 import { currentUser } from "@/lib/auth";
 import { bangkokNow } from "@/lib/labs/hours";
-import { labPhotoUrl } from "@/lib/labs/photo-url";
 import { CHEM_PROCESSES, getLab } from "@/lib/queries/labs";
+import { publicUrl } from "@/lib/storage";
 
 import "@/components/labs/lab-detail.css";
 
@@ -87,13 +87,13 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
   const lab = await loadLab(id, viewer?.id);
   if (!lab) notFound();
 
-  // Resolvable only once Track C's bucket exists; until then the mosaic renders
-  // as empty hatched slots rather than disappearing.
-  const photos = lab.photos
-    .map((photo) => ({ ...photo, url: labPhotoUrl(photo.storageKey) }))
-    .filter(
-      (photo): photo is typeof photo & { url: string } => photo.url !== null,
-    );
+  // A stored key is a path under the public domain, so this is a rewrite rather
+  // than a lookup. Resolving it here rather than in the component keeps the
+  // storage origin on the server side of the boundary.
+  const photos = lab.photos.map((photo) => ({
+    ...photo,
+    url: publicUrl(photo.storageKey),
+  }));
 
   const offered = new Set(lab.processes);
 

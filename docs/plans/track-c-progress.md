@@ -1,11 +1,12 @@
 # Track C — Media & Photobooks: progress
 
-**Not started.** This file exists so the next session does not have to
-reconstruct where things stand from a conversation it cannot see.
+**C1 done (bar the entitlement), C2 done. C3 is next.** This file exists so the
+next session does not have to reconstruct where things stand from a conversation
+it cannot see.
 
-Last updated 2026-09-08. Branch `claude/track-c-media` is cut at `c0ce154`,
-which predates Tracks A and B — **cut it again from `develop`** rather than
-using it.
+Last updated 2026-09-08. C2 is on `claude/c2-storage-image-loader-a6c43f`, cut
+from `develop`. The older `claude/track-c-media` branch is cut at `c0ce154`,
+which predates Tracks A and B — **do not use it**.
 
 ## Read these first
 
@@ -90,15 +91,66 @@ The proposal, not yet accepted, is `labs/{labId}/{uuid}`:
 Decide it before C3 writes `confirmLabPhoto`. Accepting it means updating P20,
 C3, and the keys and comment in `mock-lab.sql`.
 
-## Where C starts
+## C2 — done
 
-C2, since C1 is as done as it can be: `lib/storage.ts` as a server-only S3
-client against R2 — `createSignedUpload`, `headObject`, `moveObject`,
-`deleteObject`, `publicUrl` — plus `lib/image-loader.ts` pointing at
-`/cdn-cgi/image/`, and deleting `lib/labs/photo-url.ts` with `SUPABASE_URL`
-(P24). `headObject` is the one addition to the original interface: P19\'s limits
-are enforced after the object lands now, because R2 has no bucket-level mime or
-size configuration.
+`lib/storage.ts` is the server-only S3 client: `createSignedUpload`,
+`headObject`, `moveObject`, `deleteObject`, and `publicUrl` re-exported. It
+imports `server-only`, which is a new dependency and the point of it — those
+three credentials are write access to the bucket and `@aws-sdk/client-s3` has no
+business in a browser bundle.
 
-None of that needs the entitlement. `pnpm r2:check` verifies it the moment
-Cloudflare fixes their side.
+`publicUrl`'s implementation is in `lib/image-loader.ts`, not in `storage.ts`,
+and that is the one shape decision worth knowing. A `next/image` loader runs in
+the browser, so it cannot call `env()`; putting the public origin and the
+loader in one isomorphic module is what stops the two from ever disagreeing
+about where an object is served. `storage.ts` re-exports it so the interface
+still reads whole.
+
+Also landed:
+
+- `next.config.ts` sets `images.loader: "custom"` + `loaderFile`. A per-image
+  `loader` prop is not an option in the App Router — `next/image` is a client
+  component and a function cannot cross that boundary — so it is global, and
+  the loader passes through anything not on the R2 domain.
+- `components/labs/lab-photos.tsx` moved from `<img>` to `next/image` with
+  `fill` + `sizes`. Its own comment had named this as the thing to do once the
+  loader existed, and without it the loader would ship with no caller. `sizes`
+  rather than the row's intrinsic width on purpose: a 6000 px scan in a 700 px
+  slot would have Cloudflare bill a 6000 px variant.
+- `lib/env.ts` drops `SUPABASE_URL` and requires the four server-only `R2_*`
+  keys. `NEXT_PUBLIC_R2_PUBLIC_URL` is deliberately *not* in `env()` — it has to
+  be legible in the browser, and `pnpm r2:check` is what validates its shape.
+- `lib/labs/photo-url.ts` deleted (P24); the lab page calls `publicUrl`.
+- `tests/storage/image-loader.test.ts` — 8 pure tests, no network.
+
+Verified by rendering a throwaway page against the dev server: the loader emits
+absolute `https://<domain>/cdn-cgi/image/width=…,format=auto,fit=scale-down/<key>`
+URLs, and `server-only` does refuse a client import of `lib/storage.ts` (the
+build says so in as many words). Neither is provable by type checking.
+
+**One measurement C6 should have.** `next/image`'s default `deviceSizes` gives a
+`fill` image with a `vw`-based `sizes` an eight-to-ten-width srcset — measured,
+not guessed. Only the width a browser picks is ever transformed, so nothing is
+billed for the breadth; but across viewports and DPRs it is more distinct
+variants per photo than the 5,000-a-month budget was reckoned against (three
+widths × two formats). PROPOSED, for C6 to take with the photobook grid in
+front of it rather than for C2 to guess at: narrow `images.deviceSizes` to
+something like `[640, 828, 1080, 1600, 2048]`. Left at the defaults for now
+because under-serving a fine-art photobook is the worse failure of the two.
+
+One behaviour changed on purpose. `labPhotoUrl` returned `string | null` and the
+lab page filtered, so an unconfigured install omitted the photo section;
+`publicUrl` is total. A photo product with no configured origin is broken rather
+than early, and a visibly broken image is a better signal than a silently
+missing section. The practical effect: **Amp's Laboratory now renders three
+broken frames until objects exist at the fixture's keys.**
+
+## Where C goes next
+
+C3 — `app/photos/actions.ts` and `components/upload/PhotoUploader.tsx`. Nothing
+in C2 is blocked by the entitlement, but C3's *verification* is: `confirmPhoto`
+cannot be exercised end to end until an S3 PUT works. It can still be written
+and unit-tested against the S3 client.
+
+Decide the lab-photo key shape first — the open item above. `confirmLabPhoto` is
+the first code that has to commit to it.

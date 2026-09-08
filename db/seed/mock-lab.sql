@@ -208,11 +208,13 @@ JOIN film_stocks fs ON lower(fs.name) = lower(v.name) AND fs.iso = v.iso
 WHERE l.name_en = 'Amp''s Laboratory';
 --> statement-breakpoint
 
--- Atmosphere photos. The rows are real; the section will not render until Track
--- C creates the `photos` bucket and SUPABASE_URL is set, because
--- lib/labs/photo-url.ts returns null without it and the page drops the section
--- rather than showing broken frames. Keys follow the confirmed-photo shape
--- Track C will write, `photos/{userId}/{uuid}`.
+-- Atmosphere photos. The rows are real and the page now builds URLs for them
+-- unconditionally (lib/storage.ts `publicUrl`), so the frames render as broken
+-- images until objects exist at these exact keys. Uploading three through the
+-- R2 dashboard is the cheapest end-to-end check of the custom domain, the
+-- loader and Cloudflare's transformations — see docs/plans/track-c-progress.md.
+-- Keys follow the confirmed-photo shape Track C will write,
+-- `photos/{userId}/{uuid}`.
 INSERT INTO lab_photos (lab_id, storage_key, width, height, uploaded_by)
 SELECT l.id,
        'photos/' || u.id || '/mock-amp-' || v.n,
