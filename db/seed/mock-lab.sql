@@ -208,16 +208,22 @@ JOIN film_stocks fs ON lower(fs.name) = lower(v.name) AND fs.iso = v.iso
 WHERE l.name_en = 'Amp''s Laboratory';
 --> statement-breakpoint
 
--- Atmosphere photos. The rows are real and the page now builds URLs for them
+-- Atmosphere photos. The rows are real and the page builds URLs for them
 -- unconditionally (lib/storage.ts `publicUrl`), so the frames render as broken
 -- images until objects exist at these exact keys. Uploading three through the
 -- R2 dashboard is the cheapest end-to-end check of the custom domain, the
--- loader and Cloudflare's transformations — see docs/plans/track-c-progress.md.
--- Keys follow the confirmed-photo shape Track C will write,
--- `photos/{userId}/{uuid}`.
+-- loader and Cloudflare's transformations — docs/plans/track-c-progress.md has
+-- the query that prints the keys, since the lab id is generated here.
+--
+-- Keys are `labs/{labId}/{uuid}`, the shape confirmLabPhoto writes, and NOT the
+-- `photos/{userId}/` shape a community Photo gets. That separation is the
+-- content-integrity rule applied to storage: a key is a public string that
+-- appears in the src of every image, so a community photo whose key carried a
+-- lab id would be exactly the attribution `photos` has no lab_id column to
+-- prevent. lib/photos/keys.ts is where both shapes are defined.
 INSERT INTO lab_photos (lab_id, storage_key, width, height, uploaded_by)
 SELECT l.id,
-       'photos/' || u.id || '/mock-amp-' || v.n,
+       'labs/' || l.id || '/mock-amp-' || v.n,
        v.w, v.h, u.id
 FROM labs l
 CROSS JOIN users u

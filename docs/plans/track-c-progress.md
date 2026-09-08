@@ -1,6 +1,6 @@
 # Track C — Media & Photobooks: progress
 
-**C1 done (bar the entitlement), C2 done. C3 is next.** This file exists so the
+**C1 done (bar the entitlement), C2 and C3 done. C4/C5 are next.** This file exists so the
 next session does not have to reconstruct where things stand from a conversation
 it cannot see.
 
@@ -52,17 +52,26 @@ and Images transformations.
 That unblocks the more interesting half to prove, because P23 (resizing) has
 never been exercised. The fixture makes it a five-minute check: `lab_photos`
 already holds three rows for **Amp\'s Laboratory** from `db/seed/mock-lab.sql`.
-Upload any three images through the dashboard at exactly these keys —
+Upload any three images through the dashboard at the keys the fixture names.
+Both the lab id and the user id are `gen_random_uuid()`, so they differ per seed
+run and cannot be written down here — print them instead:
 
-```
-photos/2c3e3284-2172-41e8-9309-7f968a4e598d/mock-amp-1     landscape, ~3:2
-photos/2c3e3284-2172-41e8-9309-7f968a4e598d/mock-amp-2     square
-photos/2c3e3284-2172-41e8-9309-7f968a4e598d/mock-amp-3     portrait, ~3:4
+```bash
+pnpm db:seed db/seed/mock-lab.sql
 ```
 
-— and `/labs/<Amp\'s id>` renders its atmosphere strip with nothing uploaded
-through the app. That exercises the custom domain, `publicUrl`, the image loader
-and transformations in one go.
+```sql
+select storage_key, width, height from lab_photos
+  join labs on labs.id = lab_photos.lab_id
+ where labs.name_en = 'Amp''s Laboratory'
+ order by storage_key;
+```
+
+Three keys come back, shaped `labs/{labId}/mock-amp-1..3`. Upload a landscape
+(~3:2), a square and a portrait (~3:4) at exactly those keys, then open
+`/labs/<Amp's id>`: its atmosphere strip renders with nothing uploaded through
+the app. That exercises the custom domain, `publicUrl`, the image loader and
+transformations in one go.
 
 ## Environment
 
@@ -73,23 +82,22 @@ it does, and says why.
 
 `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` are installed already.
 
-## One decision still open
+## The lab-photo key shape — decided
 
-**The storage key for lab atmosphere photos.** Community photos are
-`photos/{userId}/{uuid}` and that is settled. Lab photos have no shape specified
-anywhere; `db/seed/mock-lab.sql` assumes they share `photos/{userId}/`.
+**`labs/{labId}/{uuid}`.** Accepted 2026-09-08, as proposed. Community photos
+stay `photos/{userId}/{uuid}`; `pending/{userId}/{uuid}` is unchanged.
 
-The proposal, not yet accepted, is `labs/{labId}/{uuid}`:
+The reason that carried it: a key is a public string — it is in the `src` of
+every image on every page — so a community photo whose key contained a lab id
+would be exactly the attribution the missing `photos.lab_id` column exists to
+prevent. Keeping the namespaces apart makes the content-integrity rule true in
+storage as well as in the schema. It also means a deleted lab's objects stay
+findable by prefix, which `lab_photos` cascading in the database does not give
+you, because R2 objects do not follow a foreign key.
 
-- it matches the schema, which keeps `lab_photos` and `photos` deliberately
-  apart — venue documentation is not a Photo
-- a community photo\'s key then never contains a lab id, so the key namespace
-  cannot become the attribution link the content-integrity rule forbids
-- deleting a lab leaves its objects findable by prefix; `lab_photos` cascades in
-  the database but R2 objects do not follow
-
-Decide it before C3 writes `confirmLabPhoto`. Accepting it means updating P20,
-C3, and the keys and comment in `mock-lab.sql`.
+Both shapes are defined in `lib/photos/keys.ts` and asserted in
+`tests/photos/keys.test.ts` — the test states the invariant directly rather than
+leaving it to a comment. `db/seed/mock-lab.sql` was updated with it.
 
 ## C2 — done
 
@@ -145,12 +153,76 @@ than early, and a visibly broken image is a better signal than a silently
 missing section. The practical effect: **Amp's Laboratory now renders three
 broken frames until objects exist at the fixture's keys.**
 
+## C3 — done
+
+`app/photos/actions.ts` carries the five writes: `requestUploadUrl`,
+`confirmPhoto`, `confirmLabPhoto`, `updatePhotoMetadata`, `deletePhoto`.
+Supporting them:
+
+- `lib/photos/keys.ts` — the three key namespaces and `parsePendingKey`, which
+  is the confirm path's whole defence. The key arrives from the browser, so it
+  is an argument, not a fact: shape is checked there, ownership in the action.
+- `lib/photos/limits.ts` — the type allowlist, 25 MB, and the cap of 50. No
+  imports, so the browser pre-checks with the same function the server decides
+  with. **Both numbers are PROPOSED** — nothing upstream specifies them, and
+  the cap value is an open product item 00_BACKLOG already tracks.
+- `lib/queries/photos.ts` — `countOriginals`, `insertPhoto`, `getPhoto`,
+  `updatePhotoMetadata`, `deletePhoto`, `insertLabPhoto`. This is C4's file,
+  started early because C3 cannot write SQL inline (the one layering rule).
+- `lib/queries/books.ts` — `appendPhotobookItem` only. C5 owns the rest.
+- `components/upload/PhotoUploader.tsx` + `photo-uploader.css`.
+
+### Three things worth knowing before C4
+
+**Order of operations is chosen by which failure is worse.** Confirm moves the
+object first and writes the row second, so a crash between them leaves an object
+nobody references — wasted storage, invisible. The reverse would leave a row
+pointing at nothing, which is a permanently broken frame in somebody's
+photobook. Delete runs the other way round for the same reason: the row must not
+survive. Keep that asymmetry if you touch either.
+
+**The recorded content type is a claim, not a measurement.** `headObject` reads
+the `Content-Type` the browser sent, so a determined caller can label anything
+`image/jpeg`. Sniffing the bytes would mean streaming the object through the app
+server, which is the one thing this flow exists to avoid, so it is bounded by an
+authenticated session and the cap instead. Written up in `putObject`'s comment
+in the uploader.
+
+**`PhotoUploader` has no caller yet.** C6 owns `/u/[username]`, which is where
+it mounts; it takes `scannerModels` (from `listFormCatalog`) and an optional
+`photobookId`. There is also no prototype screen for it — the prototype's only
+upload affordance is the one film-stock PRD §3 rules out, recorded as gap J10 —
+so it is built from the component library's primitives and the deviation is
+written into `photo-uploader.css`.
+
+The lab form's atmosphere-photo slot is still the disabled `+` placeholder.
+Wiring it to `confirmLabPhoto` is Phase 3.1, not C3.
+
+### Tests
+
+`tests/photos/keys.test.ts` and `tests/photos/limits.test.ts` are pure and pass
+here — 14 of them, including the namespace invariant and the refusal of a key
+outside the caller's `pending/` prefix (C7).
+
+`tests/queries/photos.test.ts` is database-backed — 7 tests covering the cap
+counting originals only, the delete cascading through every Connection, and a
+non-owner changing nothing. **They have not been run.** This worktree carries no
+local environment file, so they skipped for want of `DIRECT_URL`. Run them
+before merging:
+
+```bash
+pnpm test
+```
+
 ## Where C goes next
 
-C3 — `app/photos/actions.ts` and `components/upload/PhotoUploader.tsx`. Nothing
-in C2 is blocked by the entitlement, but C3's *verification* is: `confirmPhoto`
-cannot be exercised end to end until an S3 PUT works. It can still be written
-and unit-tested against the S3 client.
+C4 and C5 — the rest of `lib/queries/photos.ts` (`listGalleryPhotos`,
+`alsoAppearsIn`) and `lib/queries/books.ts` (`getProfile`, `getPhotobook`, CRUD,
+`addItem` rejecting self-connection, `removeItem`, `reorder`), then
+`app/u/actions.ts`. Then C6's pages, which is where `PhotoUploader` finally
+mounts.
 
-Decide the lab-photo key shape first — the open item above. `confirmLabPhoto` is
-the first code that has to commit to it.
+None of it is blocked by the entitlement. What *is* blocked is end-to-end
+verification of the upload path: `requestUploadUrl` signs happily, but the
+browser's PUT cannot succeed until Cloudflare restores the S3 API, so nothing
+has confirmed a real object yet. `pnpm r2:check` is still the gate.

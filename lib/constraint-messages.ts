@@ -48,6 +48,15 @@ export const CONSTRAINT_MESSAGES: Record<string, string> = {
   film_stocks_identity_idx:
     "A film stock with that name and ISO is already in the catalog.",
 
+  // Photos. `storage_key` being UNIQUE is what makes a replayed confirm safe:
+  // the second one is refused by the database rather than by a check two
+  // concurrent calls could both pass.
+  photos_film_stock_id_fkey:
+    "That film stock is no longer in the catalog. Search for it again.",
+  photos_scanner_model_fkey: "That is not a scanner model the catalog knows.",
+  photos_storage_key_key: "That upload has already been saved.",
+  lab_photos_storage_key_key: "That upload has already been saved.",
+
   // schema.ts: lab_pricing_not_empty
   lab_pricing_check:
     "A pricing cell needs a price or a turnaround — leave it blank instead.",
