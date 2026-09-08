@@ -284,6 +284,32 @@ export async function getPhotobook(
 // Writes
 // ---------------------------------------------------------------------------
 
+/**
+ * The owner's slugs that could collide with `base` — `base` itself and anything
+ * shaped `base-2`, `base-3`.
+ *
+ * A read that informs a write, so it takes the caller's transaction: the gap
+ * between choosing a slug and inserting it is where a duplicate is born, and
+ * keeping both inside one transaction makes that gap as small as it can be
+ * without a lock. It does not close it — `(owner_id, slug)` is UNIQUE and stays
+ * the arbiter, and the action retries when the database disagrees.
+ *
+ * `base` comes from `slugify`, which emits only letters, numbers, marks and
+ * hyphens, so it can carry no LIKE wildcard. Nothing here escapes one.
+ */
+export async function slugsStartingWith(
+  tx: LabTx,
+  ownerId: string,
+  base: string,
+): Promise<string[]> {
+  const rows = await tx.execute<{ slug: string }>(sql`
+    select slug from photobooks
+     where owner_id = ${ownerId}
+       and (slug = ${base} or slug like ${base + "-%"})
+  `);
+  return rows.map((row) => row.slug);
+}
+
 export type NewPhotobook = {
   ownerId: string;
   title: string;

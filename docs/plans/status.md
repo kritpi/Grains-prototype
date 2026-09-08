@@ -1,6 +1,6 @@
 # Where the project stands
 
-Written 2026-09-08, after C4. A cross-track snapshot, because the three
+Written 2026-09-08, after C5. A cross-track snapshot, because the three
 per-track progress files each tell the truth about one branch and none of them
 answers "what is actually left".
 
@@ -9,7 +9,7 @@ That distinction earned its keep: two things the plan says are outstanding are
 already built, one thing nothing mentions is a live bug, and the R2 status could
 not be re-tested at all. Where this file and [build-plan.html](build-plan.html)
 disagree, this one was checked more recently — but check again rather than
-trusting it, because it goes stale the moment C5 lands.
+trusting it, because it goes stale the moment C6 lands.
 
 ---
 
@@ -30,16 +30,34 @@ it is narrower than it sounds:
 - **Blocked:** any real object moving through the upload path. No `confirmPhoto`
   has ever seen a real object. `requestUploadUrl` signs, and the browser's PUT
   then fails.
-- **Not blocked:** everything else. C2, C3 and C4 are written and tested against
-  a real database without it, and C5–C7 can be too.
+- **Not blocked:** everything else. C2 through C5 are written and tested
+  against a real database without it, and C6 can be too.
 
 Do not re-diagnose it. Run `pnpm r2:check`; if it still says `NotEntitled`,
 nothing in this repository will fix it and a support ticket is the only path.
 
-> This could not be verified when this file was written: the worktree had no
-> local environment file, so `r2:check` had nothing to read. The last confirmed
-> observation is the one recorded in
-> [track-c-progress.md](track-c-progress.md).
+### It cannot currently be re-confirmed, and that is its own finding
+
+`pnpm r2:check` run on 2026-09-08 does not reach the entitlement at all. It
+stops on the step before:
+
+```
+NEXT_PUBLIC_R2_PUBLIC_URL is the S3 API endpoint, not a public domain.
+```
+
+**Step 2 of [r2-setup.md](r2-setup.md) — binding a public custom domain to the
+bucket — has not been done.** That is why the variable still holds the S3
+endpoint, and the check refuses to go further rather than testing against a URL
+that could never serve an image.
+
+Two things follow, and they reorder the work below:
+
+- The `NotEntitled` diagnosis is the last *confirmed* observation, not a current
+  one. It may or may not still be true; nobody can tell until step 2 lands.
+- **Every image URL the app builds today points at the S3 API**, which answers
+  401 to an unsigned request. `publicUrl` is doing exactly what it is told; it
+  is told the wrong origin. Amp's Laboratory's atmosphere strip renders broken
+  frames for this reason as much as for the missing objects.
 
 ---
 
@@ -50,11 +68,11 @@ nothing in this repository will fix it and a support ticket is the only path.
 | **Ticket 0/1** — scaffold, migration | done, merged |
 | **A** — lab discovery & map | A1–A7 done, merged into `develop` |
 | **B** — curation & invariants | B1–B5 done, merged into `develop` |
-| **C** — media & photobooks | C1 done bar the entitlement; C2, C3, C4 done; **C7 effectively done**; C5 and C6 not started |
+| **C** — media & photobooks | C1 done bar the entitlement; C2–C5 done; **C7 effectively done**; **C6 is the last step** |
 | **Phase 3** — integration & ship | partly done ahead of schedule, see below |
 | **Phase 4** — hardening | not started |
 
-The whole suite is **264 tests, green, nothing skipped**, run against
+The whole suite is **295 tests, green, nothing skipped**, run against
 `grains-dev` with no residue left behind.
 
 ---
@@ -65,8 +83,8 @@ The whole suite is **264 tests, green, nothing skipped**, run against
 
 | Step | State |
 | --- | --- |
-| **C5** `app/u/actions.ts` — photobook CRUD, `addToPhotobook`, remove, reorder | not started. The query layer beneath it is finished and tested, so what remains is validation, `requireUser`, `revalidatePath`, and minting a slug from a title |
-| **C6** `/u/[username]`, photobook detail, photo detail in book context | not started. The largest remaining piece of work in the project |
+| **C5** `app/u/actions.ts` — photobook CRUD, `addToPhotobook`, remove, reorder | done, 31 tests |
+| **C6** `/u/[username]`, photobook detail, photo detail in book context | not started. **The largest remaining piece of work in the project**, and the last step of Track C |
 | **C7** tests | **done.** All five items the plan lists — cap counts originals only, self-connection rejected, delete cascades items, `alsoAppearsIn` counts across users, `confirmPhoto` refuses a key outside the caller's `pending/` prefix — are written and passing |
 
 ### Phase 3 — two corrections to the plan
@@ -123,10 +141,13 @@ Ordered by how much each unblocks, not by effort.
 1. **File the Cloudflare support ticket for `NotEntitled`.** It gates every real
    upload and nothing in the repository can work around it.
 2. **Do steps 2, 3 and 5 of [r2-setup.md](r2-setup.md)** — custom domain,
-   `pending/` lifecycle rule, Images transformations. These are the *read* path
-   and the entitlement does not block them. Then correct
-   `NEXT_PUBLIC_R2_PUBLIC_URL`, which was last seen still holding the S3 API
-   endpoint; `pnpm r2:check` refuses to run until it does and says why.
+   `pending/` lifecycle rule, Images transformations — and then set
+   `NEXT_PUBLIC_R2_PUBLIC_URL` to that domain. **Do this before 1, or at least
+   alongside it.** These are the *read* path and the entitlement does not block
+   them; more to the point, `r2:check` stops here and never reaches the
+   entitlement, so until this is done nobody can tell whether Cloudflare has
+   fixed their side. It is also what makes every image URL in the app point
+   somewhere that can serve an image.
 3. **Upload three images at the fixture's keys** — the query that prints them is
    in [track-c-progress.md](track-c-progress.md). This renders Amp's
    Laboratory's atmosphere strip and exercises the custom domain, `publicUrl`,
@@ -155,6 +176,8 @@ Ordered by how much each unblocks, not by effort.
 | Decision | Why it matters now |
 | --- | --- |
 | **The upload cap number** | 50 is a placeholder the PRD explicitly defers. It is in `lib/photos/limits.ts` and the profile's cap meter will display it |
+| **The artist's-note length** | 300 characters, read off PRD D #7's "2–3 lines". PROPOSED, and enforced only in `app/u/actions.ts` |
+| **Whether a photobook slug should follow its title** | It does not: minted once, never changed, so a rename cannot break a shared link. PROPOSED — the alternative needs a redirect table |
 | **Where a Photo in no Photobook surfaces on `/u/@username`** | Partly blocks C6 — `getProfile` returns Photobooks only, and PRD D #10 leaves this open. Gap plan J11 |
 | **The 25 MB ceiling and the JPEG/PNG/WebP/AVIF allowlist** | Both PROPOSED in `lib/photos/limits.ts`. Nothing upstream specifies either; widening the list later is one line, narrowing it after people have uploaded is not |
 | **Reverse search → map filter UI** | The schema and `/api/labs` already support `film_stock_id`, so this is only a UI question |
@@ -167,7 +190,7 @@ Ordered by how much each unblocks, not by effort.
 `develop` is **59 commits ahead of `main`** — nothing since the architecture
 blueprint has reached `main`.
 
-Track C's work — C2, C3, C4 — is **three commits on
+Track C's work — C2 through C5 — is **four commits on
 `claude/c2-storage-image-loader-a6c43f`, local only.** The branch has not been
 pushed and there is no pull request. Everything else on the shelf is already
 merged into `develop`.

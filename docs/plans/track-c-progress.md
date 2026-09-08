@@ -1,6 +1,6 @@
 # Track C — Media & Photobooks: progress
 
-**C1 done (bar the entitlement), C2, C3 and C4 done. C5 is next.** This file exists so the
+**C1 done (bar the entitlement), C2–C5 done. C6 is the last step.** This file exists so the
 next session does not have to reconstruct where things stand from a conversation
 it cannot see.
 
@@ -263,14 +263,80 @@ into the UPDATE's WHERE clause, so an empty list against somebody else's
 photobook returned `true` — zero rows updated was indistinguishable from "not
 yours". It is an explicit check first now, with a test for that exact case.
 
+## C5 — done
+
+`app/u/actions.ts`: `createPhotobook`, `updatePhotobook`, `deletePhotobook`,
+`addToPhotobook` (the Connection), `removeFromPhotobook`, `reorderPhotobook`.
+
+They are thin, and that is the design rather than an accident. Every rule about
+*whether* a write is allowed already lives in `lib/queries/books.ts` as a WHERE
+clause — ownership, self-connection, whether a photo is actually in this book —
+so none of these reads a row to decide something and then writes. What is left
+is what only a request can know: who is asking, what they sent, and which pages
+to invalidate.
+
+The one exception is minting a slug, which cannot be done without looking first.
+`slugsStartingWith` runs inside the same transaction as the insert to keep the
+window small, and `(owner_id, slug)` remains the arbiter: on a unique violation
+the action retries once with a timestamp suffix rather than looping, because a
+second collision would mean something other than concurrency and a loop would
+hide it.
+
+### Two decisions, both PROPOSED
+
+**A slug is minted once and never changes.** Renaming a Photobook leaves its
+address alone. A profile is something people share, and a slug that follows the
+title turns every rename into a dead link for whoever has the old one. The cost
+is a book whose address can drift from its name — visible only to its owner. The
+alternative is a redirect table, which is not MVP work; `updatePhotobook` in the
+query layer does take a slug, so a "change address" affordance is possible the
+day it is worth building.
+
+**Slugs keep non-ASCII rather than folding it** (`lib/books/slug.ts`). The
+standard trick — NFKD, then strip combining marks — turns é into e and guts
+Thai, because Thai vowel signs *are* combining marks: `แล็บของแอมป์` would come
+back as a row of bare consonants. This is a bilingual product, so the rule that
+works for both scripts beats the one that makes prettier English URLs. Browsers
+percent-encode it and display it decoded. There is a test pinning it.
+
+Also PROPOSED: an artist's note is capped at **300 characters**, read off PRD
+D #7's "2–3 lines". That is an interpretation, and this is the only place the
+length is enforced.
+
+### Tests
+
+31 new — 11 pure ones for the slug rules, and 20 running the actions for real
+against `grains-dev` with only `requireUser` and `revalidatePath` mocked, which
+is the pattern `tests/actions/lab-actions.test.ts` established.
+
+**The whole suite is 295 tests, green, nothing skipped, no residue.** That
+includes `constraint-names.test.ts`, which is what confirms
+`photobooks_owner_id_slug_key` is the name the database actually uses — it was
+inferred from Postgres' inline-`UNIQUE` convention, and had it been wrong a
+duplicate slug would have surfaced as a 500 instead of a sentence.
+
 ## Where C goes next
 
-C5 — `app/u/actions.ts`: photobook CRUD, `addToPhotobook` (the Connection),
-remove, reorder. The query layer underneath it is finished and tested, so C5 is
-validation, `requireUser`, `revalidatePath` and the slug it has to mint from a
-title. Then C6's pages, which is where `PhotoUploader` finally mounts.
+C6 — the pages, and the last step of the track. `/u/[username]` (visitor vs
+owner, cap meter, both empty states, 3-up mosaic covers, artist's note on
+cards), `/u/[username]/[slug]` (true-aspect grid, `via @uploader` on connected
+photos only, artist's note once), and the photo detail in book context (prev/
+next, the metadata rail, "Also appears in · N", the Connect sheet, Edit/Delete
+for your own).
 
-None of it is blocked by the entitlement. What *is* blocked is end-to-end
-verification of the upload path: `requestUploadUrl` signs happily, but the
-browser's PUT cannot succeed until Cloudflare restores the S3 API, so nothing
-has confirmed a real object yet. `pnpm r2:check` is still the gate.
+Everything underneath it is finished and tested. Two things C6 will hit
+immediately:
+
+- **`PhotoUploader` has no caller until C6 mounts it.** It takes `scannerModels`
+  from `listFormCatalog` and an optional `photobookId`.
+- **`components/layout/site-header.tsx:29` already links to `/u/{username}`**,
+  so signing in and clicking your own name is a 404 until this lands.
+
+And one open decision it needs: **where a Photo belonging to no Photobook
+surfaces on a profile.** `getProfile` returns Photobooks only. Gap plan J11, PRD
+D #10's open sub-question.
+
+None of C6 is blocked by the entitlement. What is still blocked is end-to-end
+verification of the upload path: no real object has moved through it, because
+the browser's PUT cannot succeed until Cloudflare restores the S3 API.
+`pnpm r2:check` is the gate.

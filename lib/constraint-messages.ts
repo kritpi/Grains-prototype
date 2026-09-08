@@ -56,6 +56,10 @@ export const CONSTRAINT_MESSAGES: Record<string, string> = {
   photos_scanner_model_fkey: "That is not a scanner model the catalog knows.",
   photos_storage_key_key: "That upload has already been saved.",
   lab_photos_storage_key_key: "That upload has already been saved.",
+  // The migration declares this inline as UNIQUE (owner_id, slug), so Postgres
+  // named it; schema.ts calls the same index photobooks_owner_slug_key, which
+  // exists in no database. Same drift as the lab_pricing CHECKs above.
+  photobooks_owner_id_slug_key: "You already have a photobook at that address.",
 
   // schema.ts: lab_pricing_not_empty
   lab_pricing_check:
@@ -98,6 +102,33 @@ function constraintNameOf(error: unknown): string | null {
     current = (current as { cause?: unknown }).cause;
   }
   return null;
+}
+
+/**
+ * Whether an error is a unique violation, whichever constraint raised it.
+ *
+ * Keyed on the SQLSTATE rather than on a constraint name, because the one
+ * caller — minting a photobook slug — retries rather than reports, and a retry
+ * should not depend on a name that the schema mirror and the migration disagree
+ * about.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  let current = error;
+  for (
+    let depth = 0;
+    depth < 5 && current !== null && current !== undefined;
+    depth++
+  ) {
+    if (
+      typeof current === "object" &&
+      "code" in current &&
+      (current as { code?: unknown }).code === "23505"
+    ) {
+      return true;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 export function describeConstraint(error: unknown): string | null {
