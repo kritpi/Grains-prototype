@@ -215,6 +215,6 @@ Not a ranking of decisions — a ranking of tickets.
 6. **Film stocks** — catalog, inline add, `lab_stock` linkage, reverse search.
 7. **Photos and Photobooks** — the upload flow above, then `/u/@username`, then Connections.
 8. **Badges.** One table, one toggle, an afternoon.
-9. **Sentry, then the `pending/` cleanup cron.**
+9. **Sentry.** The `pending/` cleanup that used to sit here is an R2 lifecycle rule set during C1, not a job.
 
 Ship after 7. Badges and cleanup can follow the first real users.

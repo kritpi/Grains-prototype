@@ -9,7 +9,20 @@ first if you want the argument for R2 over Supabase Storage. This file assumes
 the decision and just does it.
 
 Do the whole thing for **dev** now. Repeat it for **prod** at launch — same
-steps, different bucket name, different token, a second set of values.
+steps, but a different bucket (`grains-photos-prod`), a different custom domain
+(`images.<yourdomain>`) and a token scoped to that bucket. Transformations are
+enabled per *zone*, so step 5 is already done for both.
+
+The prod values go into Vercel's Production environment under the **plain**
+names, not the `_PROD` ones — the deployed app reads `R2_BUCKET`, and Vercel is
+what makes that mean something different per environment.
+
+**The failure worth naming now:** if the Production environment does not
+override `R2_BUCKET`, production uploads land in the development bucket and
+nothing errors. The credentials are valid, the bucket exists, the write
+succeeds; it shows up later as production photos that 404 behind the production
+domain. Verify it at launch rather than assuming it, the same way the `sin1`
+region is verified.
 
 ---
 
@@ -41,8 +54,10 @@ Leave everything else alone.
 
 Bucket → **Settings** → **Public access** → **Custom domain** → **Connect domain**.
 
-- Use a subdomain of your Cloudflare zone: `images.<yourdomain>` is the obvious
-  one.
+- **A custom domain binds to exactly one bucket**, so dev and prod need one
+  each. Use `images-dev.<yourdomain>` now and keep the plain
+  `images.<yourdomain>` for production — the nice name should belong to the
+  environment strangers actually reach.
 - Cloudflare adds the DNS record itself. Make sure it is **proxied** (the orange
   cloud) — that is what puts the CDN in front, and it is also what makes
   `/cdn-cgi/image/` work in step 5.
@@ -52,7 +67,7 @@ domain we control, and every stored key would end up embedded in pages pointing
 at it.
 
 Check it: upload any file through the dashboard and open
-`https://images.<yourdomain>/<that file's name>`. You should get the file, not a
+`https://images-dev.<yourdomain>/<that file's name>`. You should get the file, not a
 403. Delete the test file afterwards.
 
 > The bucket is public-read on purpose (P20). Photos are public content and the
@@ -110,7 +125,7 @@ is 6000 px and several megabytes, so one photobook of twenty photos is over
 (three widths × two formats) that covers about 800 new photos a month; beyond it
 the rate is $0.50 per 1,000 and cached variants do not re-count.
 
-Check it: `https://images.<yourdomain>/cdn-cgi/image/width=200/<a test file>`
+Check it: `https://images-dev.<yourdomain>/cdn-cgi/image/width=200/<a test file>`
 should return a 200 px wide version. A 404 here almost always means the DNS
 record is grey-clouded rather than proxied.
 
@@ -124,7 +139,7 @@ R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
 R2_BUCKET=grains-photos-dev
-NEXT_PUBLIC_R2_PUBLIC_URL=https://images.<yourdomain>
+NEXT_PUBLIC_R2_PUBLIC_URL=https://images-dev.<yourdomain>
 ```
 
 `R2_BUCKET` is needed even though the public URL never mentions a bucket: the
