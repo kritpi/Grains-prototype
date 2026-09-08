@@ -123,12 +123,23 @@ environments except that prod gets the prod bucket's values):
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-R2_PUBLIC_URL=https://images.<yourdomain>
+R2_BUCKET=grains-photos-dev
+NEXT_PUBLIC_R2_PUBLIC_URL=https://images.<yourdomain>
 ```
 
-`R2_PUBLIC_URL` has **no trailing slash** and no bucket name in it — the custom
-domain is already bound to the bucket, so a key of `photos/abc.jpg` is served at
-`<R2_PUBLIC_URL>/photos/abc.jpg`.
+`R2_BUCKET` is needed even though the public URL never mentions a bucket: the
+custom domain is bound to one bucket for *reads*, but uploads go through the S3
+API, which addresses buckets by name.
+
+`NEXT_PUBLIC_R2_PUBLIC_URL` has **no trailing slash** and no bucket name in it —
+the custom domain is already bound to the bucket, so a key of `photos/abc.jpg`
+is served at `<url>/photos/abc.jpg`.
+
+The `NEXT_PUBLIC_` prefix is deliberate and is not a mistake to fix later:
+`next/image`'s custom loader runs in the browser, so a server-only variable
+would be undefined exactly where the image `src` is built. Nothing leaks — the
+value is already in the `src` of every image on every page. The other three
+carry the opposite rule and must never be prefixed.
 
 `SUPABASE_URL` goes away with `lib/labs/photo-url.ts` in C2. Leave it for now;
 it is optional and unset, so nothing reads it.
