@@ -1,6 +1,6 @@
 # Track C — Media & Photobooks: progress
 
-**C1 done (bar the entitlement), C2 and C3 done. C4/C5 are next.** This file exists so the
+**C1 done (bar the entitlement), C2, C3 and C4 done. C5 is next.** This file exists so the
 next session does not have to reconstruct where things stand from a conversation
 it cannot see.
 
@@ -200,27 +200,75 @@ Wiring it to `confirmLabPhoto` is Phase 3.1, not C3.
 
 ### Tests
 
-`tests/photos/keys.test.ts` and `tests/photos/limits.test.ts` are pure and pass
-here — 14 of them, including the namespace invariant and the refusal of a key
-outside the caller's `pending/` prefix (C7).
+`tests/photos/keys.test.ts` and `tests/photos/limits.test.ts` are pure — 15 of
+them, including the namespace invariant and the refusal of a key outside the
+caller's `pending/` prefix (C7).
 
-`tests/queries/photos.test.ts` is database-backed — 7 tests covering the cap
-counting originals only, the delete cascading through every Connection, and a
-non-owner changing nothing. **They have not been run.** This worktree carries no
-local environment file, so they skipped for want of `DIRECT_URL`. Run them
-before merging:
+`tests/queries/photos.test.ts` is database-backed — the cap counting originals
+only, the delete cascading through every Connection, a non-owner changing
+nothing. Run and passing against `grains-dev`.
 
-```bash
-pnpm test
-```
+## C4 — done
+
+`lib/queries/photos.ts` gained `listGalleryPhotos` and `alsoAppearsIn`;
+`lib/queries/books.ts` is now the whole read/write layer for photobooks —
+`getProfile`, `getPhotobook`, `insertPhotobook`, `updatePhotobook`,
+`deletePhotobook`, `connectPhoto`, `removePhotobookItem`,
+`reorderPhotobookItems`, alongside C3's `appendPhotobookItem`.
+
+Three decisions inside it:
+
+- **`connectPhoto` is a separate function from `appendPhotobookItem`, not the
+  same one behind a flag.** "Reject self-connection" cannot mean "reject when
+  the photo owner is the book owner": that would forbid putting your own Photo
+  in your own book, which is ordinary curation and is exactly what
+  `confirmPhoto`'s upload-into-a-book path does. So the Connection refuses your
+  own Photo (PRD D #12) and curation does not. Both halves are tested.
+- **`getProfile` takes no viewer.** Visitor and owner see the same Photobooks;
+  what differs is the cap meter and the edit affordances, which C6 adds from
+  `countOriginals` and the session. Nothing here is private, so nothing here
+  needs to know who is asking. `alsoAppearsIn` takes no viewer for a sharper
+  reason — it is a property of the Photo, and deriving it from the viewer's own
+  connections would print "1" on a Photo seven people connected (gap plan L2).
+- **The gallery pages by keyset, not OFFSET.** It is append-heavy and people
+  arrive days apart, so an offset silently repeats or skips a photo every time
+  somebody uploads mid-scroll. The cursor is `<timestamp>|<uuid>`, opaque but
+  not secret: it names a public row, and a malformed one is treated as absent
+  rather than as an error.
+
+Two things the reads assume, worth knowing before C6 builds on them:
+
+- **There is no bio.** `users` carries `name` and `image` and nothing else, so
+  the prototype's bio line has no column behind it.
+- **A Photo in no Photobook has nowhere to surface on a profile.** `getProfile`
+  returns Photobooks only. That is the open question gap plan J11 and PRD D #10
+  both record, not an omission here — it needs a decision, and then a second
+  list on this function.
+
+### Tests
+
+25 database-backed tests across `tests/queries/books.test.ts` (the Connection
+and its refusals, remove, reorder, photobook CRUD) and
+`tests/queries/profile.test.ts` (profile cards, book resolution by
+username+slug, the gallery's paging, `alsoAppearsIn` counting across users).
+The write tests roll back; the read tests use committed fixtures and delete
+their users, which cascades the rest.
+
+**The whole suite runs green: 264 tests, nothing skipped, no residue left in
+`grains-dev`.** That includes `constraint-names.test.ts`, which is what verifies
+the four photo constraint names C3 added actually exist under those names.
+
+One bug the tests caught: `reorderPhotobookItems` had folded its ownership check
+into the UPDATE's WHERE clause, so an empty list against somebody else's
+photobook returned `true` — zero rows updated was indistinguishable from "not
+yours". It is an explicit check first now, with a test for that exact case.
 
 ## Where C goes next
 
-C4 and C5 — the rest of `lib/queries/photos.ts` (`listGalleryPhotos`,
-`alsoAppearsIn`) and `lib/queries/books.ts` (`getProfile`, `getPhotobook`, CRUD,
-`addItem` rejecting self-connection, `removeItem`, `reorder`), then
-`app/u/actions.ts`. Then C6's pages, which is where `PhotoUploader` finally
-mounts.
+C5 — `app/u/actions.ts`: photobook CRUD, `addToPhotobook` (the Connection),
+remove, reorder. The query layer underneath it is finished and tested, so C5 is
+validation, `requireUser`, `revalidatePath` and the slug it has to mint from a
+title. Then C6's pages, which is where `PhotoUploader` finally mounts.
 
 None of it is blocked by the entitlement. What *is* blocked is end-to-end
 verification of the upload path: `requestUploadUrl` signs happily, but the

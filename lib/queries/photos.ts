@@ -213,3 +213,138 @@ export async function insertLabPhoto(
   `);
   return rows[0].id;
 }
+
+// ---------------------------------------------------------------------------
+// The Film Stock Gallery, and the reference model's one visible proof.
+// ---------------------------------------------------------------------------
+
+export type GalleryPhoto = {
+  id: string;
+  storageKey: string;
+  width: number;
+  height: number;
+  frameSize: string | null;
+  format: FilmFormat | null;
+  uploaderUsername: string | null;
+};
+
+export type GalleryPage = {
+  photos: GalleryPhoto[];
+  /** Pass back to continue. Null when the last page has been served. */
+  nextCursor: string | null;
+};
+
+const GALLERY_PAGE = 24;
+
+/**
+ * A film stock's gallery.
+ *
+ * There is no gallery table and no upload path of its own: the gallery *is*
+ * `photos_gallery_idx`, a derived view of whatever people tagged with this
+ * stock (PRD B #3). Which is why this query orders by exactly the columns that
+ * index is built on — `(film_stock_id, created_at desc)` — and why adding a
+ * different default sort later means adding an index, not just an ORDER BY.
+ *
+ * Keyset pagination rather than OFFSET. A gallery is append-heavy and people
+ * arrive at it days apart, so an offset silently repeats or skips a photo every
+ * time somebody uploads mid-scroll. `(created_at, id)` is unique because `id`
+ * breaks the tie, so the cursor names a row rather than a position.
+ */
+export async function listGalleryPhotos(
+  filmStockId: string,
+  cursor?: string | null,
+  limit: number = GALLERY_PAGE,
+): Promise<GalleryPage> {
+  const after = decodeCursor(cursor);
+
+  const rows = await getDb().execute<{
+    id: string;
+    storage_key: string;
+    width: number;
+    height: number;
+    frame_size: string | null;
+    format: FilmFormat | null;
+    uploader_username: string | null;
+    created_at: string;
+  }>(sql`
+    select p.id, p.storage_key, p.width, p.height, p.frame_size, p.format,
+           u.username as uploader_username, p.created_at
+      from photos p
+      join users u on u.id = p.owner_id
+     where p.film_stock_id = ${filmStockId}::uuid
+       and (${after === null}::boolean
+            or (p.created_at, p.id) <
+               (${after?.createdAt ?? null}::timestamptz,
+                ${after?.id ?? null}::uuid))
+     order by p.created_at desc, p.id desc
+     limit ${limit + 1}
+  `);
+
+  // One row over the page size answers "is there more" without a second count.
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const last = page.at(-1);
+
+  return {
+    photos: page.map((row) => ({
+      id: row.id,
+      storageKey: row.storage_key,
+      width: row.width,
+      height: row.height,
+      frameSize: row.frame_size,
+      format: row.format,
+      uploaderUsername: row.uploader_username,
+    })),
+    nextCursor: hasMore && last ? encodeCursor(last.created_at, last.id) : null,
+  };
+}
+
+/**
+ * "Also appears in · N Photobooks".
+ *
+ * The one place the reference model is demonstrated rather than asserted in
+ * copy (PRD D #11): one canonical Photo, seen in many contexts.
+ *
+ * **It counts every Photobook, not the viewer's.** Deriving it from whoever is
+ * looking would print "1" on a Photo seven people had connected, which is the
+ * exact mistake the gap plan's L2 records. There is deliberately no viewer
+ * parameter here for that reason — it is a property of the Photo.
+ *
+ * `photobook_items_photo_idx` is the index that makes it a lookup rather than a
+ * scan, and is why it exists.
+ */
+export async function alsoAppearsIn(photoId: string): Promise<number> {
+  const rows = await getDb().execute<{ count: number }>(sql`
+    select count(*)::int as count
+      from photobook_items
+     where photo_id = ${photoId}::uuid
+  `);
+  return rows[0].count;
+}
+
+/**
+ * The cursor is `<timestamp>|<uuid>` — opaque to a caller, readable in a log.
+ *
+ * Not encrypted and not meant to be: it names a public row in a public gallery,
+ * so the worst a hand-edited one can do is start the same public list somewhere
+ * else. A malformed one is treated as absent rather than as an error, because
+ * the honest answer to a corrupted scroll position is the first page.
+ */
+function encodeCursor(createdAt: string, id: string): string {
+  return `${new Date(createdAt).toISOString()}|${id}`;
+}
+
+function decodeCursor(
+  cursor: string | null | undefined,
+): { createdAt: string; id: string } | null {
+  if (!cursor) return null;
+
+  const separator = cursor.indexOf("|");
+  if (separator < 0) return null;
+
+  const createdAt = cursor.slice(0, separator);
+  const id = cursor.slice(separator + 1);
+  if (Number.isNaN(Date.parse(createdAt)) || id === "") return null;
+
+  return { createdAt, id };
+}
