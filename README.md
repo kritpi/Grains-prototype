@@ -4,7 +4,9 @@ Grains is a crowdsourced platform for discovering film-developing labs and film 
 
 ## Status
 
-Scaffolded. The Next.js application is in place and deploys to Vercel in Singapore; the schema and the features are not built yet. Commands, layout and environment variables are in [CLAUDE.md](CLAUDE.md); what is resolved vs. still open is in [docs/backlog.md](docs/backlog.md); the phase-by-phase build plan is [docs/plans/build-plan.html](docs/plans/build-plan.html).
+In build. The schema is migrated, lab discovery and community curation are done and merged, and the photobook feature is about half built. Nothing has been deployed to production yet, and no data in the app has been verified against a real lab.
+
+**[docs/plans/status.md](docs/plans/status.md) is the current picture** — what is blocking, what is left to build, and what needs a person. Start there. Commands, layout and environment variables are in [CLAUDE.md](CLAUDE.md); what is resolved vs. still open is in [docs/backlog.md](docs/backlog.md); the phase-by-phase build plan is [docs/plans/build-plan.html](docs/plans/build-plan.html).
 
 ## Concept
 
@@ -44,6 +46,7 @@ All three architecture decisions are made, with the rationale, the rejected opti
 - [db/migrations/0000_init.sql](db/migrations/0000_init.sql) — the initial migration, mirrored by [lib/db/schema.ts](lib/db/schema.ts)
 - [docs/api-surface.md](docs/api-surface.md) — every read, write and handler needed to put data behind the prototype
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
-- [docs/plans/](docs/plans/) — implementation plans, including the four-phase [build plan](docs/plans/build-plan.html)
+- [docs/plans/status.md](docs/plans/status.md) — where the project stands: the blocker, what is left, what needs a person
+- [docs/plans/](docs/plans/) — implementation plans, including the four-phase [build plan](docs/plans/build-plan.html), and a progress file per track
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary
 - [CLAUDE.md](CLAUDE.md) — guidance for working in this repo
