@@ -15,7 +15,7 @@ So: **three pillars, decided here, and a build order.**
 | Five-file hexagonal Go packages (old §2.5–2.6) | uniformity for agent predictability | Six files per endpoint is the opposite of agent-friendly when four of them are pass-throughs. One rule survives: SQL lives in exactly one directory. |
 | `infra/` + Terraform (old §2.1) | reproducible infrastructure | Two dashboards, configured once. Terraform for two SaaS projects is ceremony with a state file attached. |
 | local → staging → production (old §7) | environment isolation | Two environments. Staging with no users is production with worse data. |
-| Multi-vendor storage/CDN split (old §6) | zero egress fees on R2 | Real at scale, irrelevant at zero. One vendor, one bill, one set of credentials. Revisit at the first egress bill that stings. |
+| ~~Multi-vendor storage/CDN split (old §6)~~ **reversed 2026-09-08** | zero egress fees on R2 | Cut on "irrelevant at zero, revisit at the first egress bill that stings". Revisited before any bill, because the reason for cutting it turned out not to hold — see [Object storage: R2, not Supabase](#object-storage-r2-not-supabase-reversed-2026-09-08). |
 | Observability tooling as a decision (old §8) | ops maturity | It is one line: Sentry's free tier, plus the host's logs. Not a topic. |
 | Priority-ranking exercise itself | sequencing the nine | Three decisions don't need a ranking table. |
 
@@ -75,7 +75,7 @@ Full DDL: [db/migrations/0000_init.sql](../db/migrations/0000_init.sql), mirrore
 
 ### The pieces
 
-- **Supabase over Neon** on one argument: this is a photo product, so object storage is needed on day one. Neon's branching is genuinely better, but picking it means a second vendor for storage anyway. One vendor, one dashboard, one bill wins at this size. Accepted: Supabase's free tier pauses a project after 7 days of inactivity, and its branching is weaker than Neon's.
+- **Supabase over Neon** on one argument: this is a photo product, so object storage is needed on day one. Neon's branching is genuinely better, but picking it means a second vendor for storage anyway. One vendor, one dashboard, one bill wins at this size. Accepted: Supabase's free tier pauses a project after 7 days of inactivity, and its branching is weaker than Neon's. **That argument no longer holds** — storage moved to R2 on 2026-09-08, so the second vendor exists regardless. Not enough on its own to revisit the database, which is chosen for PostGIS and Singapore rather than for bundling, but the reasoning above should not be read as still standing.
 - **Drizzle, not Prisma** — schema-as-TypeScript, types inferred rather than generated, and it gets out of the way when a query needs raw SQL, which every geospatial query does.
 - **Migrations are raw `.sql` files** applied by `drizzle-kit`. PostGIS DDL is hand-written. This was already the right call in the old §7 and survives the prune intact.
 - **PostGIS is for correctness, not speed.** At tens to low hundreds of labs, haversine over float columns would also run in well under a millisecond. It stays because the usual hand-rolled substitute is a bounding box — which returns a square, so a lab 7km away shows up in a "5km" search — and because hand-written haversine invites an earth-radius constant that differs between the `WHERE` and the `ORDER BY`, silently filtering and sorting by different distances. `ST_DWithin` is one line and correct. Do not cite performance as its justification.
@@ -105,10 +105,59 @@ This is slightly pessimistic — two contributors editing genuinely different fi
 | --- | --- | --- |
 | Hosting | Vercel Hobby, function region `sin1` | `export const preferredRegion = 'sin1'` — a US default against a Singapore database costs ~400ms per render against a sub-millisecond query. This is the one setting that must not be got wrong. |
 | Database | Supabase, `ap-southeast-1` | transaction pooler (`:6543`, `prepare: false`) for the app; direct connection (`:5432`) for migrations |
-| Object storage | Supabase Storage | signed upload URLs and image transforms in the same SDK; its CDN sits in front |
+| Object storage | Cloudflare R2, served on a custom domain | presigned S3 uploads; Cloudflare Images transformations resize on the fly; free egress. **Reversed from Supabase Storage on 2026-09-08** — see below |
 | Auth | Auth.js v5, Google provider, JWT session, Drizzle adapter | Google-only is already a resolved product decision; this is plumbing |
 | Errors | Sentry free tier, both runtimes | plus Vercel's own logs. That is the entire observability answer for MVP |
 | Environments | `grains-dev` + `grains-prod` | two Supabase projects, both free |
+
+### Object storage: R2, not Supabase (reversed 2026-09-08)
+
+The original line was "one vendor, one bill, one set of credentials", with object
+storage bundled into the reason for choosing Supabase over Neon at all. Two facts
+found while planning Track C undo it.
+
+**Image transforms are not on the free plan.** The row above used to read
+"signed upload URLs and image transforms in the same SDK", and that is the half
+that does not exist: Supabase Image Transformations require Pro ($25/month), and
+then include 100 origin images before $5 per 1,000. So the feature this choice
+was partly made for was never available on the plan this project runs on. It is
+not a limit we would grow into — it is a capability that is absent today.
+
+**The free tier is small for a photo product.** 1 GB of storage and 5 GB of
+egress a month, against R2's 10 GB and no egress charge at all. A single
+photobook view of unresized scans is over 100 MB, so 5 GB is a few dozen page
+views; resizing fixes that far more than the vendor choice does, and resizing is
+the thing Supabase free cannot do.
+
+What it costs us:
+
+- **Upload limits stop being bucket configuration.** Supabase enforces
+  `allowed_mime_types` and `file_size_limit` on the bucket. R2 has no equivalent.
+  Signing `Content-Type` and `Content-Length` into a presigned PUT is possible in
+  principle, but browser uploads add headers that then fail the signature check,
+  so it is fragile in exactly the case we need. Enforcement therefore moves into
+  `confirmPhoto`: HEAD the object, delete it and refuse if the type or size is
+  wrong. That is our code holding a rule the platform used to hold, and it is the
+  real price of this change.
+- **A second set of credentials**, which is the thing the original cut was
+  protecting against. Accepted deliberately: Google, Supabase, Cloudflare and the
+  host are already four vendors, so this is the fifth credential rather than the
+  second.
+
+What it buys beyond storage and egress:
+
+- **Transformations on the free tier** — Cloudflare Images gives 5,000 unique
+  transformations a month free, then $0.50 per 1,000, and works on objects stored
+  in R2. `/cdn-cgi/image/` runs on any Cloudflare-proxied domain, so serving R2
+  through a custom domain means resizing works whether the app is deployed on
+  Vercel or on Cloudflare. That decision stays open.
+- **The orphan cleanup cron is deleted.** R2 has prefix-scoped object lifecycle
+  rules, so `pending/` objects older than a day are removed by bucket
+  configuration rather than by a weekly job we have to write, deploy and watch.
+  See the upload flow below.
+
+Postgres stays on Supabase. Nothing about this touches the database, the pooler
+ports, or Singapore co-location.
 
 ### Auth.js over Supabase Auth
 
@@ -123,20 +172,24 @@ Local development connects to `grains-dev`, the same project Vercel preview depl
 ```
 1. browser → Server Action    requestUploadUrl: content-type, size
 2. server                     auth() → check the per-user original-upload cap →
-                              signed PUT into pending/{userId}/{uuid}, ~10 min TTL,
-                              content-type and max size baked into the signature
-3. browser → Supabase Storage PUT the bytes; they never touch the app server
+                              presigned PUT into pending/{userId}/{uuid}, ~10 min TTL
+3. browser → R2               PUT the bytes; they never touch the app server
 4. browser → Server Action    confirmPhoto: key + metadata
-5. server                     move out of pending/, INSERT the row
+5. server                     HEAD the object: reject and delete unless the type and
+                              size are allowed → move out of pending/ → INSERT the row
 ```
 
-Step 2 has to run on the server because it is the only place that can check the session, enforce the cap (PRD D #5), and constrain content-type and size *inside* the signature. Handing the browser unmediated bucket access would let anyone store anything.
+Step 2 has to run on the server because it is the only place that can check the session and enforce the cap (PRD D #5). Handing the browser unmediated bucket access would let anyone store anything.
 
-**The orphan gap:** steps 3 and 5 are separate, so closing the tab in between leaves a billable object with no row pointing at it. Supabase Storage has no lifecycle rules, so this needs a weekly Vercel Cron job deleting `pending/` objects older than 24h. Week two, not day one — but written down here so it is discovered in this document rather than on a bill.
+**Step 5 is where content-type and size are enforced**, and that is a change from the original design, which put them in the signature. Signing `Content-Type` and `Content-Length` into a presigned PUT does constrain the upload — but a browser adds headers of its own that then fail the signature check, so it is unreliable in the one case that matters. Checking the object after it lands is less elegant and actually works: an upload that is the wrong type or too large is deleted before a row is ever written, so nothing but a short-lived object in `pending/` ever exists.
+
+**The orphan gap:** steps 3 and 5 are separate, so closing the tab in between leaves a billable object with no row pointing at it. R2 has prefix-scoped object lifecycle rules, so a bucket rule deletes `pending/` objects older than a day — configuration rather than a cron job to write, deploy and watch. This was a planned piece of work under Supabase Storage, which has no lifecycle rules; it is now a checkbox.
 
 ### Cost
 
-$0 through build and launch. Roughly $45/month when the free tiers stop being appropriate — Supabase Pro at $25 (which also ends the 7-day pause), Vercel Pro at $20 if the Hobby plan's terms become a problem.
+$0 through build and launch. R2 gives 10 GB of storage and free egress; Cloudflare Images gives 5,000 transformations a month, which at roughly six variants per photo covers about 800 new photos a month before anything is billed.
+
+Roughly $45/month when the free tiers stop being appropriate — Supabase Pro at $25 (which also ends the 7-day pause), Vercel Pro at $20 if the Hobby plan's terms become a problem. Storage no longer contributes to that number: R2 is $0.015/GB-month and transformations are $0.50 per 1,000 beyond the free allowance, both of which stay in the cents for a long time.
 
 ---
 
