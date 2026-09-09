@@ -1,6 +1,6 @@
 # Where the project stands
 
-Written 2026-09-08, after C6. A cross-track snapshot, because the three
+Written 2026-09-08, after C6; re-checked 2026-09-09. A cross-track snapshot, because the three
 per-track progress files each tell the truth about one branch and none of them
 answers "what is actually left".
 
@@ -75,6 +75,9 @@ Two things follow, and they reorder the work below:
 The whole suite is **301 tests, green, nothing skipped**, run against
 `grains-dev` with no residue left behind.
 
+**Counted, as of 2026-09-09: 11 code tasks, 12 that need a person, and 6 open
+decisions.** No feature area is unbuilt — A, B and C are all complete.
+
 ---
 
 ## What is left to build
@@ -105,10 +108,24 @@ fixture the plan assumes it would need. What remains of 3.1:
 - the lab form's atmosphere-photo slot, still a disabled `+`, wired to
   `requestUploadUrl({ kind: 'lab_atmosphere' })` + `confirmLabPhoto`
 
-**3.3 shell and polish** is untouched: `app/not-found.tsx`, `app/error.tsx`,
-`app/sitemap.ts`, `app/robots.ts`, `lib/i18n.ts` with the Thai fallback font,
-`generateMetadata` for profiles (labs and films already have it), and the
-keyboard-accessible alternative to the map.
+**3.3 shell and polish** is untouched except where C6 overtook it:
+`app/not-found.tsx`, `app/error.tsx`, `app/sitemap.ts`, `app/robots.ts`,
+`lib/i18n.ts` with the Thai fallback font, and **Labs / Films links in the
+header** — `site-header.tsx` carries only the wordmark, the profile and
+sign-in, so there is no way to reach either section from the chrome.
+
+Two items on that list are already done and should not be rebuilt:
+
+- **`generateMetadata` for profiles**, added by C6 across all three `/u` routes.
+  Labs and films already had theirs.
+- **A keyboard-reachable alternative to the map.** `/labs` renders a real `<ul>`
+  of lab cards beside the map, from Track A. What is left is an accessibility
+  pass, not a build.
+
+**One more the plan lists that is already correct:** 3.1's "correct the
+signed-URL wording in 00_BACKLOG (P19)". That file's upload flow already says
+type and size are enforced in `confirmPhoto`, and explains why they moved out
+of the signature.
 
 **Phase 4** — Sentry on both runtimes, paid tiers when their triggers fire.
 
