@@ -129,11 +129,26 @@ fixture the plan assumes it would need. What remains of 3.1:
 - the lab form's atmosphere-photo slot, still a disabled `+`, wired to
   `requestUploadUrl({ kind: 'lab_atmosphere' })` + `confirmLabPhoto`
 
-**3.3 shell and polish** is untouched except where C6 overtook it:
-`app/not-found.tsx`, `app/error.tsx`, `app/sitemap.ts`, `app/robots.ts`,
-`lib/i18n.ts` with the Thai fallback font, and **Labs / Films links in the
-header** — `site-header.tsx` carries only the wordmark, the profile and
-sign-in, so there is no way to reach either section from the chrome.
+**3.3 shell and polish** is now mostly done. `app/not-found.tsx`,
+`app/error.tsx`, `app/sitemap.ts`, `app/robots.ts` and the section nav all
+landed on `claude/phase-3-app-shell`. What is left of 3.3 is `lib/i18n.ts` with
+the Thai fallback font and `<html lang>` (P22), which was scoped out as its own
+piece of work.
+
+Three notes on what landed:
+
+- **The nav has two items, not the prototype's three.** Labs and Film stocks.
+  The prototype's chrome also carries "Photobooks", but that predates PRD D #9 —
+  the Connection graph is the only discovery path, so there is no global
+  photobook index for a tab to open, and a person's own photobooks are already
+  the `@username` link. Recorded in `components/layout/site-nav.tsx`.
+- **The links show at every width.** The prototype hides them below its desktop
+  breakpoint because mobile gets a `Labs · Films · + · Profile` bottom tab bar.
+  That bar is not built, and hiding the links to match would reproduce exactly
+  the bug they fix. When the bar is built, this is what moves into it.
+- **`robots.txt` is closed by default and only opens on production.** A Vercel
+  preview is the whole app on a public hostname reading `grains-dev`, which
+  holds unverified seed prices for real, named businesses.
 
 Two items on that list are already done and should not be rebuilt:
 
@@ -152,7 +167,7 @@ of the signature.
 
 ---
 
-## Two defects found while checking
+## Three defects found while checking
 
 Neither appears in any other document.
 
@@ -161,15 +176,37 @@ Neither appears in any other document.
 `/u/{username}`, which had not been built — signing in and clicking your own
 name was a 404. The route exists now.
 
-**`next build` requires a live database.** `/`, `/films` and `/films/[id]`
-declare no `dynamic` export, so they are statically prerendered and the build
-queries Postgres. That works on Vercel while the database is awake — but
+**~~`next build` requires a live database.~~ FIXED on
+`claude/phase-3-app-shell`.** `/films` and `/films/[id]` declared no `dynamic`
+export, so they were statically prerendered and the build queried Postgres.
 Supabase's free tier pauses a project after 7 days of inactivity, so **a deploy
-after a quiet week fails at build time**, not at runtime, and the error will
-read as a missing environment variable rather than as a paused project. Fix it
-before launch by either setting `revalidate` or `force-dynamic` on those three,
-or by going Supabase Pro, which ends the pause and is already on the Phase 4
-list for other reasons.
+after a quiet week failed at build time**, not at runtime, and the error read as
+a missing environment variable rather than as a paused project.
+
+Reproduced before fixing, by building `develop` in a worktree with no
+environment file: `Error occurred prerendering page "/films"` … `Missing or
+invalid environment variables: DATABASE_URL, …`. Both pages now declare
+`force-dynamic`, and the same build succeeds. `app/sitemap.ts` declares it too,
+for the same reason — a sitemap generated at build would have reintroduced the
+defect on its first day.
+
+**One correction to the original entry:** it listed `/` as a third page that
+queried Postgres. It does not. `app/page.tsx` is a placeholder `<h1>` with no
+data of any kind, so only the two film routes were ever affected.
+
+*Not* fixed by this: `revalidate` would not have worked. An ISR page is still
+prerendered at build, so it queries the database exactly when the problem
+occurs. Supabase Pro remains the other half of the answer, for the runtime pause
+rather than the build one.
+
+**Two `/u/` URLs serve the same page.** `handleOf` in the profile route strips
+a leading `@`, so `/u/@amp` and `/u/amp` both render — but every link in the
+application uses the bare form, including all nine `revalidatePath` calls in
+`app/u/actions.ts`. The sitemap therefore lists the bare form, since the `@`
+form would advertise URLs no revalidation ever refreshes. What is still missing
+is a `canonical` in the three `/u` routes' `generateMetadata`, so a crawler that
+finds the `@` form from somewhere is told which one counts. Small, and not done
+here because those are Track C's files.
 
 ---
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { currentUser, signOut } from "@/lib/auth";
 
@@ -18,9 +19,14 @@ export async function SiteHeader() {
   // transparent header.
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6">
-      <Link href="/" className="text-xl">
-        Grains
-      </Link>
+      {/* Wordmark and sections read as one group on the left; the prototype
+          sets them 14px apart and the sections 20px from each other. */}
+      <div className="flex items-center gap-3.5">
+        <Link href="/" className="text-xl">
+          Grains
+        </Link>
+        <SiteNav />
+      </div>
 
       <nav className="flex items-center gap-4 text-sm">
         {user ? (

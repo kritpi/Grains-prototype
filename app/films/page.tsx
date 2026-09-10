@@ -13,6 +13,22 @@ export const metadata: Metadata = {
 };
 
 /**
+ * Rendered per request rather than prerendered, and the reason is operational
+ * rather than about freshness.
+ *
+ * Without this the page is generated during `next build`, which means the build
+ * queries Postgres. Supabase's free tier pauses a project after 7 idle days, so
+ * a deploy after a quiet week failed *at build time* — and surfaced as an
+ * invalid-environment error rather than as a paused project, which is the worst
+ * possible way to learn it.
+ *
+ * Nothing is given up. The catalog is still server-rendered with every stock in
+ * the HTML, which is what the note below is about; it is composed when somebody
+ * asks for it instead of when the site is built.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * The Film Stock catalog.
  *
  * Server-rendered because it is one of the SEO-critical pages in

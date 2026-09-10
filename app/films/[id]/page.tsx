@@ -9,6 +9,13 @@ import { getFilmStock } from "@/lib/queries/films";
 import "@/components/films/films.css";
 import "@/components/labs/lab-detail.css";
 
+/**
+ * Per request, not at build. Same reason as `/films`: prerendering makes
+ * `next build` query Postgres, and a Supabase project that has paused after 7
+ * idle days then fails the deployment rather than the request.
+ */
+export const dynamic = "force-dynamic";
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateMetadata({
