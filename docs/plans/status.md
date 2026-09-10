@@ -1,85 +1,94 @@
 # Where the project stands
 
-Written 2026-09-08, after C6; re-checked 2026-09-09 and 2026-09-10. A cross-track snapshot, because the three
-per-track progress files each tell the truth about one branch and none of them
-answers "what is actually left".
+Written 2026-09-08, after C6; re-checked 2026-09-09 and twice on 2026-09-10.
+A cross-track snapshot, because the three per-track progress files each tell the
+truth about one branch and none of them answers "what is actually left".
 
 **Derived from the code and from `git`, not from the other planning documents.**
-That distinction earned its keep: two things the plan says are outstanding are
-already built, one thing nothing mentions is a live bug, and the blocker this
-file opened with had already been lifted without anyone noticing. Where this
-file and [build-plan.html](build-plan.html) disagree, this one was checked more recently — but check again rather than
-trusting it. Track C and most of Phase 3 are finished; what is left is mostly
-not code.
+That distinction earned its keep three times over: two things the plan called
+outstanding were already built, one live bug appeared in no document at all, and
+the blocker this file opened with had been lifted without anyone noticing —
+twice, for two different reasons. Where this file and
+[build-plan.html](build-plan.html) disagree, this one was checked more recently;
+check again rather than trusting it.
+
+**Track C and Phase 3 are finished, and photos work end to end.** What is left
+is one code task that needs an account, a handful of things only a person can
+do, and a production hardening step that is deferred rather than done.
 
 ---
 
-## The one hard blocker
+## No hard blocker any more
 
-**The R2 write path works. The read path has never been set up.**
-
-Re-tested 2026-09-10, and the answer changed:
+**Photos work end to end.** A real upload went through the app on
+2026-09-10: signed PUT, `confirmPhoto`, the object moved into
+`photos/{userId}/{uuid}`, and it renders. The `NotEntitled` wall, then the
+missing read origin, are both gone.
 
 ```
-ok    write over the S3 API  — pending/_check/5deda6f4-….png
-ok    read it back (HEAD)  — 70 bytes, image/png
-FAIL  public domain serves it  — NEXT_PUBLIC_R2_PUBLIC_URL is unusable:
-      it is the S3 API endpoint, not a public domain
-FAIL  Images transformations run  — no public domain to test
+ok    write over the S3 API
+ok    read it back (HEAD)
+ok    public domain serves it  — HTTP 200
+warn  Images transformations — not available on an r2.dev URL
 ok    delete removes it
 ```
 
-`lib/storage.ts` builds its client exactly as the check does — same endpoint,
-same credentials — so what this proves, the app inherits. A presigned PUT will
-now land an object.
+### The two things that were actually wrong, and neither was in this file
 
-### `NotEntitled` is resolved, and the reasoning that made it a wall was wrong
+**CORS, which [r2-setup.md](r2-setup.md) never mentioned.** Six steps, none of
+them the one that makes a browser upload work. Every upload failed with a `403`
+on the preflight, which surfaces in the browser as an unexplained "CORS error"
+and in the app as nothing at all — the PUT never happens, so no code path runs.
 
-The earlier entry said the account had no R2 entitlement, that no env value
-could fix it, and that a support ticket was the only path. **Do not file that
-ticket.** The write path answers.
+The missing line was `AllowedHeaders`. The browser sends
+`Content-Type: image/jpeg` with the PUT, deliberately: R2 records that header,
+serves the object back with it, and `confirmPhoto` reads the recorded type to
+decide whether to keep the object. A `Content-Type` outside the three
+CORS-simple values triggers a preflight that must authorise it *by name*, and
+R2 refuses without it. **The fix was the bucket policy, not the code.** There is
+now a step 7 in r2-setup.md with the policy and two `curl` commands that
+diagnose it without a browser.
 
-The argument for it being an account state was: the same credentials returned
-`NotEntitled` on the in-scope bucket and `AccessDenied` on the out-of-scope one,
-so the token must be fine and only the account can be at fault. That inference
-does not hold. R2 stores a token's bucket scope *with the credential*, so an
-out-of-scope bucket is refused before the account is ever resolved — scope check
-first, entitlement check second. The observed pair is equally consistent with an
-account id that is not an R2-enabled account. It was a plausible reading of the
-evidence, not a proof, and it hardened into a fact.
+**`pnpm r2:check` cannot catch that class of bug.** It runs in Node, where CORS
+does not exist, so it passed while every real upload failed. It reports the
+server path and is silent about the browser path — the same shape as the defect
+fixed in it that morning, where one early `process.exit` hid a blocker being
+lifted.
 
-Whether Cloudflare's side changed or the reactivation eventually took, the
-lesson is the one that keeps paying: `r2:check` is cheap, so run it before
-trusting anything written here about R2.
+### The read origin: working, on a fallback
 
-### Why it went two days without being re-confirmed
+`NEXT_PUBLIC_R2_PUBLIC_URL` is R2's **public development URL**,
+`https://pub-<hash>.r2.dev`, not a custom domain. That is a deliberate,
+documented fallback for having no domain on Cloudflare yet, and it is
+local-only:
 
-`pnpm r2:check` exited on the *first* problem it found, which was the public
-URL — a read-path variable that shares nothing with the write path. Every write
-check sat behind that exit and never ran.
+- **No resizing.** `/cdn-cgi/image/` only runs on a zone somebody configured,
+  and `r2.dev` is Cloudflare's hostname. `lib/image-loader.ts` detects the host
+  and serves objects untransformed; `next.config.ts` declares `unoptimized` so
+  `next/image` is told the truth rather than warned at. One uploaded frame
+  measured **4.3 MB**, so a photobook of twenty is roughly 85 MB.
+- **Rate-limited, uncached, and on a hostname we do not control**, with every
+  storage key published against it.
 
-That is fixed. The script now reports both paths in one run, whichever fails,
-and on a write failure runs `ListBuckets` (account-level, names no bucket) and
-`HeadBucket` to separate an account problem from a bucket or scope problem, plus
-the EU jurisdiction endpoint. **A diagnostic that stops at the first fault hides
-the second one** — here it hid a blocker being lifted.
+`pnpm r2:check` passes and prints *"NOT ready for production"* on every run.
 
-### What is actually left, and it is all in a dashboard
+### What is left, and it is no longer urgent
 
-Steps 2, 3 and 5 of [r2-setup.md](r2-setup.md), none of which involve code:
+- **Step 2 — bind a public custom domain**, proxied (orange cloud), and point
+  `NEXT_PUBLIC_R2_PUBLIC_URL` at it. **Before launch, not before more work.**
+- **Step 5 — Images transformations on the zone.** Meaningless until step 2.
+- **Step 3 — the `pending/` lifecycle rule**, if it is not already set. It is
+  the orphan cleanup that replaces a cron job, `r2:check` does not test it, and
+  nothing in the code substitutes for it. **This one is worth confirming now.**
+- **Add the production origin to the CORS policy at launch.** `localhost` alone
+  fails there exactly the way a missing `AllowedHeaders` failed locally.
 
-- **Step 2 — bind a public custom domain** to `grains-photos-dev`, proxied
-  (orange cloud), then set `NEXT_PUBLIC_R2_PUBLIC_URL` to it. Until this lands,
-  **every image URL in the app points at the S3 API**, which answers 401 to an
-  unsigned request. `publicUrl` is doing what it is told; it is told the wrong
-  origin. Amp's Laboratory's atmosphere strip renders broken frames for this
-  reason as much as for the missing objects.
-- **Step 3 — the `pending/` lifecycle rule.** It is the orphan cleanup that
-  replaces a cron job, and nothing in the code substitutes for it.
-- **Step 5 — enable Images transformations on the zone.** Without it an
-  unresized 6000 px scan is served whole.
+### Still true
 
-Then re-run `pnpm r2:check`; all five lines should read `ok`.
+The **fixture objects were never uploaded**. `photos/…/mock-photo-1` and its
+siblings return 404 — the rows are seeded, the objects are not — so Amp's
+Laboratory and the mock photobook still render broken frames. That is the
+"upload three images at the fixture's keys" task, not a defect.
 
 ---
 
@@ -206,9 +215,12 @@ list below.
 
 ---
 
-## Three defects found while checking
+## Defects found while checking
 
-Neither appears in any other document.
+None of these appeared in any other document, and all but the last are fixed.
+The pattern is worth naming: **every one was found by running something, not by
+reading it.** Type checking, linting and the test suite were green through all
+of them.
 
 **~~The site header links somewhere that does not exist.~~ FIXED by C6.**
 `components/layout/site-header.tsx:29` sends a signed-in user to
@@ -247,23 +259,47 @@ is a `canonical` in the three `/u` routes' `generateMetadata`, so a crawler that
 finds the `@` form from somewhere is told which one counts. Small, and not done
 here because those are Track C's files.
 
+**~~The sitemap's dates were invalid in every entry.~~ FIXED.** `execute<T>()`
+is an unchecked cast — it tells TypeScript what to believe and verifies
+nothing — so annotating a timestamp column `Date` compiled clean, type-checked
+clean, and was a string at runtime. Postgres renders `timestamptz` as
+`2026-09-10 07:17:41.55411+00`: a space instead of `T`, an offset without
+minutes, and not a W3C Datetime. Next writes a string into `<lastmod>`
+untouched, so the whole document would have been syntactically wrong while every
+gate in the repository stayed green. `films.ts` and `labs.ts` already typed
+theirs as `string`; the fix was to match them and convert in SQL. **Nothing but
+a test that reads a real row catches this class of bug.**
+
+**~~The header scrolled sideways when signed in.~~ FIXED.** A username may be 30
+characters, and at 375px the page measured 395px — horizontal scroll on every
+screen of the site, not just one. The handle was the only unbounded element in
+the header, so it truncates now, with the full value in `title`. Found because
+the check was run signed *in*; signed out it fitted exactly, which is the easy
+case and the wrong one.
+
+**~~`next/image` warned on every image under the `r2.dev` fallback.~~ FIXED.**
+A custom loader must put the requested `width` into the URL it returns, and the
+fallback cannot — so `next.config.ts` now declares `unoptimized` for that
+origin, which is simply the truth. The tempting alternative, appending an inert
+`?width=`, would have passed the check by asserting something false.
+
 ---
 
 ## What needs a person
 
 Ordered by how much each unblocks, not by effort.
 
-1. **Do steps 2, 3 and 5 of [r2-setup.md](r2-setup.md)** — custom domain,
-   `pending/` lifecycle rule, Images transformations — and then set
-   `NEXT_PUBLIC_R2_PUBLIC_URL` to that domain. This is now the whole of the R2
-   work: the write path answers, so binding the domain is what makes every image
-   URL in the app point somewhere that can serve an image. ~~File the Cloudflare
-   support ticket for `NotEntitled`~~ — no longer needed, see the blocker above.
-2. **Upload three images at the fixture's keys** — the query that prints them is
-   in [track-c-progress.md](track-c-progress.md). This renders Amp's
-   Laboratory's atmosphere strip and exercises the custom domain, `publicUrl`,
-   the image loader and Cloudflare's transformations in one go. P23 has never
-   been exercised, and this is the cheapest way to prove it.
+1. **Upload three images at the fixture's keys** — the query that prints them is
+   in [track-c-progress.md](track-c-progress.md). Those objects were never
+   uploaded, so Amp's Laboratory and the mock photobook render broken frames
+   against real rows. Everything else in that path is now proven by a real
+   upload, so this is the last thing standing between the app and looking
+   finished.
+2. **Confirm the `pending/` lifecycle rule exists** (step 3 of
+   [r2-setup.md](r2-setup.md)) — delete after 1 day, prefix `pending/`. It is
+   the orphan cleanup that replaces a cron job, `pnpm r2:check` does not test
+   it, and nothing in the code substitutes for it. Two minutes, and it is the
+   only R2 item that matters before launch.
 3. **Create a Sentry project and give me the DSN.** It is the one code task
    left and it cannot be finished without an account: the free tier needs
    signing up for, and the acceptance test is a planted error caught from each
@@ -279,12 +315,21 @@ Ordered by how much each unblocks, not by effort.
    [track-a-lab-seed-review.md](track-a-lab-seed-review.md); only the map pin was
    missing.
 6. **Review the film-stock seed.**
-7. **Launch:** publish the Google consent screen, custom domain and HTTPS on
-   Vercel, the production bucket, and a complete production environment — then
-   **verify Vercel's Production environment actually overrides `R2_BUCKET`.**
-   If it does not, production uploads land in the development bucket and nothing
-   errors: the credentials are valid, the bucket exists, the write succeeds. It
-   surfaces later as production photos that 404.
+7. **Bind a public custom domain to the bucket** (steps 2 and 5 of
+   [r2-setup.md](r2-setup.md)), proxied, and point
+   `NEXT_PUBLIC_R2_PUBLIC_URL` at it. **Required before launch, deferred until
+   then.** Today the app reads from `r2.dev`: no resizing, so 4.3 MB per frame
+   and roughly 85 MB for a photobook of twenty; rate-limited; and every storage
+   key published on a hostname we do not control. Fine while building, wrong the
+   moment a stranger loads a page. Needs a domain on Cloudflare, which is the
+   real prerequisite and is not a five-minute job if you do not have one.
+8. **Launch:** publish the Google consent screen, custom domain and HTTPS on
+   Vercel, the production bucket, a production CORS policy carrying the
+   production origin, and a complete production environment — then **verify
+   Vercel's Production environment actually overrides `R2_BUCKET`.** If it does
+   not, production uploads land in the development bucket and nothing errors:
+   the credentials are valid, the bucket exists, the write succeeds. It surfaces
+   later as production photos that 404.
 
 ---
 
@@ -304,11 +349,13 @@ Ordered by how much each unblocks, not by effort.
 
 ## Merge state
 
-`develop` is **68 commits ahead of `main`** — nothing since the architecture
-blueprint has reached `main` — and **9 of those are unpushed**.
+`develop` is **76 commits ahead of `main`** — nothing since the architecture
+blueprint has reached `main` — and **17 of those are unpushed**.
 
-Track C is merged into `develop` (`eaa50b1`), including the R2 correction.
+Track C and Phase 3 are both merged into `develop`. Two later commits — the
+`unoptimized` declaration for `r2.dev` and the `.env.example` documentation —
+are still only on `claude/phase-3-app-shell`.
 
-Phase 3 is **5 commits on `claude/phase-3-app-shell`, local only**: the app
-shell, the sitemap fix, 3.1, 3.3's i18n, and 3.5 with the reverse-search
-filter. The branch has not been pushed and there is no pull request.
+**Everything from 2026-09-09 and 2026-09-10 exists on one laptop.** Nothing is
+pushed, there is no pull request, and no deployment exists. That is the largest
+single risk on this page and the cheapest one to remove.
