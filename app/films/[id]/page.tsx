@@ -2,12 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { FilmGallery } from "@/components/films/film-gallery";
 import { NearbyLabs } from "@/components/films/nearby-labs";
 import { BackLink } from "@/components/layout/back-link";
 import { getFilmStock } from "@/lib/queries/films";
 
 import "@/components/films/films.css";
 import "@/components/labs/lab-detail.css";
+// PhotoGrid's own rules. The grid is shared with the photobook pages, so its
+// stylesheet is shared too rather than duplicated under a films- prefix.
+import "@/components/books/photobook.css";
 
 /**
  * Per request, not at build. Same reason as `/films`: prerendering makes
@@ -38,21 +42,21 @@ export async function generateMetadata({
 /**
  * One film stock.
  *
- * Two of the three things this page will eventually carry are not Track B's.
- * The inspiration gallery is derived from photos (PRD B #3) and photos are
- * Track C, so its slot is drawn and says what it is waiting for rather than
- * being absent — the same rule the lab page follows for its empty sections.
- * Composing the two is Phase 3.
+ * All three parts are here now: the catalog entry, the inspiration gallery
+ * that Phase 3 composed from Track C's grid and query, and the reverse search
+ * that is the reason a stock links to labs at all.
  *
- * What is here is the half that stands alone: the catalog entry, and the
- * reverse search that is the reason a stock links to labs at all.
+ * `?after=` is the gallery's cursor and the only search param this page reads.
  */
 export default async function FilmStockPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ after?: string | string[] }>;
 }) {
   const { id } = await params;
+  const { after } = await searchParams;
   if (!UUID.test(id)) notFound();
 
   const stock = await getFilmStock(id);
@@ -93,13 +97,12 @@ export default async function FilmStockPage({
           </div>
         </div>
 
-        <section className="grains-stock-section">
-          <div className="grains-stock-label">INSPIRATION</div>
-          <p className="grains-stock-empty">
-            A stock&apos;s gallery is whatever the community tagged with it —
-            nothing is uploaded here directly. It fills in once photos exist.
-          </p>
-        </section>
+        <FilmGallery
+          filmStockId={stock.id}
+          stockName={stock.name}
+          sampleCount={stock.sampleCount}
+          cursor={Array.isArray(after) ? after[0] : after}
+        />
 
         <NearbyLabs filmStockId={stock.id} />
       </div>

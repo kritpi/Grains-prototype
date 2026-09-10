@@ -291,6 +291,26 @@
   }
 }
 
+/* The film stock's inspiration gallery — same frames, denser wall.
+ *
+ * `column-width` rather than `column-count`, which is what the prototype
+ * writes (`columns: 200px`): the number of columns should follow the space,
+ * because this grid is however many frames the community tagged rather than a
+ * set somebody curated. It starts at the narrow breakpoint too, since 200px
+ * columns already fit a 375px frame two across.
+ */
+.grains-photo-grid[data-density="gallery"] {
+  display: block;
+  column-count: auto;
+  column-width: 200px;
+  column-gap: 16px;
+}
+
+.grains-photo-grid[data-density="gallery"] .grains-frame {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
 .grains-frame {
   display: block;
   width: 100%;
