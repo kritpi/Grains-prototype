@@ -24,6 +24,13 @@ succeeds; it shows up later as production photos that 404 behind the production
 domain. Verify it at launch rather than assuming it, the same way the `sin1`
 region is verified.
 
+**Do step 7 before you try to upload from a browser.** It is CORS. It is
+numbered last only because renumbering these steps would break every reference
+to them elsewhere in the repository — read it fourth. Without it, every upload
+fails on the preflight with an opaque `403` and nothing in the app explains why.
+This document went six steps without mentioning CORS once, and that omission
+cost an hour of debugging that had nothing wrong with it.
+
 ---
 
 ## Before you start
@@ -62,9 +69,29 @@ Bucket → **Settings** → **Public access** → **Custom domain** → **Connec
   cloud) — that is what puts the CDN in front, and it is also what makes
   `/cdn-cgi/image/` work in step 5.
 
-**Do not enable the `r2.dev` development URL.** It is rate-limited, it is not a
-domain we control, and every stored key would end up embedded in pages pointing
-at it.
+**Do not enable the `r2.dev` development URL for anything real.** It is
+rate-limited, it is not a domain we control, and every stored key would end up
+embedded in pages pointing at it.
+
+> ### If you do not have a domain on Cloudflare yet
+>
+> There is a supported fallback, and it is explicitly a fallback. Enable
+> **Public Development URL** on the bucket and set `NEXT_PUBLIC_R2_PUBLIC_URL`
+> to the `https://pub-<hash>.r2.dev` it gives you.
+>
+> `lib/image-loader.ts` detects that host and serves objects **untransformed**,
+> because `/cdn-cgi/image/` only runs on a zone somebody configured and
+> `r2.dev` is Cloudflare's hostname, not ours. Without that bypass every image
+> would 404 on a URL that looks right — which is exactly what happens if you
+> point the variable at the S3 API endpoint instead.
+>
+> What it costs: full-size objects over the wire (a 6000px scan is several
+> megabytes, a photobook of twenty is over 100 MB), a rate limit, and storage
+> keys published on a domain we do not control. Fine for working locally.
+> **Never production.** `pnpm r2:check` passes on it but says so on every run.
+>
+> Everything else on this page still applies — the bucket, the lifecycle rule,
+> the token and CORS are all unchanged. Only the read origin differs.
 
 Check it: upload any file through the dashboard and open
 `https://images-dev.<yourdomain>/<that file's name>`. You should get the file, not a
@@ -163,6 +190,65 @@ fails on the first page that reads the environment rather than only on upload.
 I will add the four names to `.env.example` — tell me the public URL and I will
 fill that one in, since it is not a secret. **Do not paste the token values into
 chat.** Put them in the env file yourself; I never read those.
+
+## 7. Allow the browser to upload (CORS)
+
+**Read this fourth, not last.** Nothing uploads without it, and the failure is
+opaque: the browser reports "CORS error", the network panel shows a `403` on a
+preflight, and the app itself never sees a response to explain.
+
+Bucket → **Settings** → **CORS policy** → edit:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["content-type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+`AllowedHeaders` is the line people leave out, and leaving it out is what
+produces the 403. The browser sends `Content-Type: image/jpeg` with the PUT —
+deliberately, because R2 records that header and serves the object back with
+it, and `confirmPhoto` reads the recorded type to decide whether to keep the
+object. A `Content-Type` outside
+`application/x-www-form-urlencoded | multipart/form-data | text/plain` is not a
+CORS-simple header, so it triggers a preflight that has to be authorised by
+name. Without `AllowedHeaders`, R2 refuses the preflight and the PUT never
+happens.
+
+The other three lines:
+
+- **`PUT` only.** The browser never issues `GET`, `POST` or `DELETE` against the
+  S3 API. Reads come from the public origin and deletes happen server-side in
+  `deletePhoto`; granting them to a browser origin buys nothing.
+- **Both localhost ports**, because a port mismatch produces a byte-identical
+  403 with a completely different cause.
+- **`ExposeHeaders: ["ETag"]`** is not needed today — the uploader only checks
+  the status — and is what a multipart upload would want.
+
+**At launch, add the production origin.** `localhost` alone fails in production
+exactly the way a missing `AllowedHeaders` fails locally.
+
+To check it without a browser, ask R2 for the preflight directly. The second
+command is the one that matters; if it answers `403` while the first answers
+`204`, `AllowedHeaders` is the problem:
+
+```bash
+EP=https://<account>.r2.cloudflarestorage.com/<bucket>/pending/probe.jpg
+curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS "$EP" \
+  -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: PUT'
+curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS "$EP" \
+  -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: PUT' \
+  -H 'Access-Control-Request-Headers: content-type'
+```
+
+`pnpm r2:check` cannot catch this: it runs in Node, where CORS does not exist,
+so it passes while every real upload fails.
 
 ---
 

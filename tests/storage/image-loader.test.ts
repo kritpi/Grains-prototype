@@ -84,3 +84,52 @@ describe("r2ImageLoader", () => {
     expect(r2ImageLoader({ src: "/logo.svg", width: 64 })).toBe("/logo.svg");
   });
 });
+
+/**
+ * R2's public development URL, which serves objects but cannot transform them.
+ *
+ * `/cdn-cgi/image/` only runs on a zone somebody configured, and
+ * `pub-<hash>.r2.dev` is Cloudflare's hostname rather than ours — so the
+ * transformation path there is a key that does not exist, and every image 404s.
+ * That is the whole failure this bypass avoids, and it is the reason the check
+ * below is on the *host* and not on `NODE_ENV`.
+ */
+describe("the r2.dev development fallback", () => {
+  const DEV = "https://pub-1234567890abcdef.r2.dev";
+
+  it("serves the original rather than a transformation URL", () => {
+    withOrigin(DEV);
+    const src = publicUrl("photos/u/a.jpg");
+    expect(r2ImageLoader({ src, width: 640 })).toBe(src);
+    expect(r2ImageLoader({ src, width: 640 })).not.toContain("/cdn-cgi/image/");
+  });
+
+  it("still builds an ordinary public URL", () => {
+    withOrigin(DEV);
+    expect(publicUrl("photos/u/a.jpg")).toBe(`${DEV}/photos/u/a.jpg`);
+  });
+
+  it("ignores width and quality, because nothing is resizing", () => {
+    withOrigin(DEV);
+    const src = publicUrl("photos/u/a.jpg");
+    expect(r2ImageLoader({ src, width: 64, quality: 10 })).toBe(src);
+    expect(r2ImageLoader({ src, width: 3840 })).toBe(src);
+  });
+
+  it("does not mistake a custom domain that merely contains r2.dev", () => {
+    // A substring test would disable transformations on somebody's real zone
+    // and there would be no symptom beyond images quietly arriving full-size.
+    const REAL = "https://r2.dev.example.com";
+    withOrigin(REAL);
+    expect(
+      r2ImageLoader({ src: publicUrl("photos/u/a.jpg"), width: 640 }),
+    ).toContain("/cdn-cgi/image/");
+  });
+
+  it("still transforms on a normal custom domain", () => {
+    withOrigin(ORIGIN);
+    expect(
+      r2ImageLoader({ src: publicUrl("photos/u/a.jpg"), width: 640 }),
+    ).toContain("/cdn-cgi/image/width=640");
+  });
+});
