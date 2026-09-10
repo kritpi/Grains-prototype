@@ -9,7 +9,8 @@ That distinction earned its keep: two things the plan says are outstanding are
 already built, one thing nothing mentions is a live bug, and the blocker this
 file opened with had already been lifted without anyone noticing. Where this
 file and [build-plan.html](build-plan.html) disagree, this one was checked more recently — but check again rather than
-trusting it. Track C is finished, so the next thing to move is Phase 3.
+trusting it. Track C and most of Phase 3 are finished; what is left is mostly
+not code.
 
 ---
 
@@ -90,8 +91,8 @@ Then re-run `pnpm r2:check`; all five lines should read `ok`.
 | **A** — lab discovery & map | A1–A7 done, merged into `develop` |
 | **B** — curation & invariants | B1–B5 done, merged into `develop` |
 | **C** — media & photobooks | **complete.** C1 done bar the entitlement; C2–C7 done |
-| **Phase 3** — integration & ship | partly done ahead of schedule, see below |
-| **Phase 4** — hardening | not started |
+| **Phase 3** — integration & ship | 3.1, 3.2, 3.3 and 3.5 done; see below |
+| **Phase 4** — hardening | reverse-search filter done; Sentry needs an account |
 
 The whole suite is **301 tests, green, nothing skipped**, run against
 `grains-dev` with no residue left behind.
@@ -118,22 +119,60 @@ decisions.** No feature area is unbuilt — A, B and C are all complete.
 shipped it. The build plan still lists it as an afternoon of Phase 3 work; it is
 not.
 
-**3.1 is half done.** `NearbyLabs` is wired into `/films/[id]`, and the photo
-metadata form already uses Track B's real film-stock typeahead rather than the
-fixture the plan assumes it would need. What remains of 3.1:
+**3.1 is done.** The film-stock gallery is `PhotoGrid` over
+`listGalleryPhotos`, with a denser column width for a wall of many people's
+frames and "by" rather than "via" under each — every frame there is by the
+person named, and calling that "via" is the soft version of gap plan K3. The
+lab form's atmosphere slot is wired to `requestUploadUrl` + `confirmLabPhoto`,
+and stays disabled while *creating* a lab because a key is
+`labs/{labId}/{uuid}` and there is no id yet.
 
-- the film-stock gallery grid on `/films/[id]` — the slot is drawn and says
-  what it is waiting for. **C6's `components/books/photo-grid.tsx` is the grid
-  it was waiting for**, and `listGalleryPhotos` is the query, so this is now
-  composition rather than new work
-- the lab form's atmosphere-photo slot, still a disabled `+`, wired to
-  `requestUploadUrl({ kind: 'lab_atmosphere' })` + `confirmLabPhoto`
+Two prototype deviations recorded in the code rather than resolved: the
+gallery has no format/scanner filter chips (they need a query that takes more
+than a stock and a cursor), and "+ Add a sample" links to your profile instead
+of opening a second uploader, because PRD D #10 put the upload surface next to
+the cap meter that constrains it.
 
-**3.3 shell and polish** is untouched except where C6 overtook it:
-`app/not-found.tsx`, `app/error.tsx`, `app/sitemap.ts`, `app/robots.ts`,
-`lib/i18n.ts` with the Thai fallback font, and **Labs / Films links in the
-header** — `site-header.tsx` carries only the wordmark, the profile and
-sign-in, so there is no way to reach either section from the chrome.
+**3.3 shell and polish is done.** `app/not-found.tsx`, `app/error.tsx`,
+`app/sitemap.ts`, `app/robots.ts`, the section nav, and `lib/i18n.ts` with the
+Thai face and `<html lang>` (P22) all landed on `claude/phase-3-app-shell`.
+
+**3.5 is done too** — [runbook.md](../runbook.md) covers a dead site, a paused
+database, a production migration, a rotated credential and a restore. It says
+out loud which parts have never been rehearsed, and that the free tier takes no
+backups at all, so today there is nothing to restore *from*. That is the
+document's biggest finding and it is a plan decision, not an operational one.
+
+Four notes on what landed:
+
+- **The nav has two items, not the prototype's three.** Labs and Film stocks.
+  The prototype's chrome also carries "Photobooks", but that predates PRD D #9 —
+  the Connection graph is the only discovery path, so there is no global
+  photobook index for a tab to open, and a person's own photobooks are already
+  the `@username` link. Recorded in `components/layout/site-nav.tsx`.
+- **The links show at every width.** The prototype hides them below its desktop
+  breakpoint because mobile gets a `Labs · Films · + · Profile` bottom tab bar.
+  That bar is not built, and hiding the links to match would reproduce exactly
+  the bug they fix. When the bar is built, this is what moves into it.
+- **`robots.txt` is closed by default and only opens on production.** A Vercel
+  preview is the whole app on a public hostname reading `grains-dev`, which
+  holds unverified seed prices for real, named businesses.
+- **A long handle now truncates in the header.** A username may be 30
+  characters, and signed in at 375px the page measured 395px — horizontal
+  scroll on every screen of the site. The handle is the only unbounded element
+  in the header, so it is the one that gives; the full value stays in `title`.
+  Anything added to that row has to be measured at 375px signed *in*.
+
+**One trap worth knowing, found the hard way here.** `execute<T>()` is an
+unchecked cast: it tells TypeScript what to believe and verifies nothing. The
+sitemap's timestamps were annotated `Date`, compiled clean, type-checked clean,
+and were strings at runtime — and Postgres renders `timestamptz` as
+`2026-09-10 07:17:41.55411+00`, which is not a valid `<lastmod>`. Next writes a
+string into the XML untouched, so the entire sitemap would have been
+syntactically wrong while every check in the repo passed. `films.ts` and
+`labs.ts` already type their timestamps as `string` for this reason; the fix was
+to match them and normalise in SQL. **Nothing but a test that reads a real row
+catches this class of bug.**
 
 Two items on that list are already done and should not be rebuilt:
 
@@ -148,11 +187,26 @@ signed-URL wording in 00_BACKLOG (P19)". That file's upload flow already says
 type and size are enforced in `confirmPhoto`, and explains why they moved out
 of the signature.
 
-**Phase 4** — Sentry on both runtimes, paid tiers when their triggers fire.
+**Phase 4 — reverse search is built; Sentry is not.**
+
+The reverse-search map filter is done and marked PROPOSED, per the note in the
+open-decisions list that it was a UI question with the schema and handler
+already behind it. `/labs?stock=<id>` filters the map and result list, and a
+film stock's page links into it with "Find these on the map" — shown even when
+the 10 km list found nothing, since that is exactly when somebody wants to
+widen the search. The chip sits above the other filters and removes rather than
+toggles, because it was set by a link from another page and there is nothing
+here to turn back on.
+
+**Sentry needs you, not code.** It wants a Sentry account and a DSN, and the
+task's own acceptance test is a planted error from each runtime — which cannot
+be verified without one. The call site is already there:
+`app/error.tsx` logs to the console with a comment naming it. See the human
+list below.
 
 ---
 
-## Two defects found while checking
+## Three defects found while checking
 
 Neither appears in any other document.
 
@@ -161,15 +215,37 @@ Neither appears in any other document.
 `/u/{username}`, which had not been built — signing in and clicking your own
 name was a 404. The route exists now.
 
-**`next build` requires a live database.** `/`, `/films` and `/films/[id]`
-declare no `dynamic` export, so they are statically prerendered and the build
-queries Postgres. That works on Vercel while the database is awake — but
+**~~`next build` requires a live database.~~ FIXED on
+`claude/phase-3-app-shell`.** `/films` and `/films/[id]` declared no `dynamic`
+export, so they were statically prerendered and the build queried Postgres.
 Supabase's free tier pauses a project after 7 days of inactivity, so **a deploy
-after a quiet week fails at build time**, not at runtime, and the error will
-read as a missing environment variable rather than as a paused project. Fix it
-before launch by either setting `revalidate` or `force-dynamic` on those three,
-or by going Supabase Pro, which ends the pause and is already on the Phase 4
-list for other reasons.
+after a quiet week failed at build time**, not at runtime, and the error read as
+a missing environment variable rather than as a paused project.
+
+Reproduced before fixing, by building `develop` in a worktree with no
+environment file: `Error occurred prerendering page "/films"` … `Missing or
+invalid environment variables: DATABASE_URL, …`. Both pages now declare
+`force-dynamic`, and the same build succeeds. `app/sitemap.ts` declares it too,
+for the same reason — a sitemap generated at build would have reintroduced the
+defect on its first day.
+
+**One correction to the original entry:** it listed `/` as a third page that
+queried Postgres. It does not. `app/page.tsx` is a placeholder `<h1>` with no
+data of any kind, so only the two film routes were ever affected.
+
+*Not* fixed by this: `revalidate` would not have worked. An ISR page is still
+prerendered at build, so it queries the database exactly when the problem
+occurs. Supabase Pro remains the other half of the answer, for the runtime pause
+rather than the build one.
+
+**Two `/u/` URLs serve the same page.** `handleOf` in the profile route strips
+a leading `@`, so `/u/@amp` and `/u/amp` both render — but every link in the
+application uses the bare form, including all nine `revalidatePath` calls in
+`app/u/actions.ts`. The sitemap therefore lists the bare form, since the `@`
+form would advertise URLs no revalidation ever refreshes. What is still missing
+is a `canonical` in the three `/u` routes' `generateMetadata`, so a crawler that
+finds the `@` form from somewhere is told which one counts. Small, and not done
+here because those are Track C's files.
 
 ---
 
@@ -188,16 +264,22 @@ Ordered by how much each unblocks, not by effort.
    Laboratory's atmosphere strip and exercises the custom domain, `publicUrl`,
    the image loader and Cloudflare's transformations in one go. P23 has never
    been exercised, and this is the cheapest way to prove it.
-3. **Verify the seven seeded Bangkok labs.** Nothing in
+3. **Create a Sentry project and give me the DSN.** It is the one code task
+   left and it cannot be finished without an account: the free tier needs
+   signing up for, and the acceptance test is a planted error caught from each
+   runtime, which needs a real DSN to catch it. Until then the product has no
+   alerting at all, and the first report of an outage will be a person — see
+   the last section of [runbook.md](../runbook.md).
+4. **Verify the seven seeded Bangkok labs.** Nothing in
    `db/seed/bangkok-labs.sql` has been checked against an actual lab — prices
    first, then hours. The seeded edit-history note says so on every listing until
    somebody corrects it.
-4. **Add the three labs A6 could not pin** — A&B Digital Lab, Flashbox Filmlab,
+5. **Add the three labs A6 could not pin** — A&B Digital Lab, Flashbox Filmlab,
    Warinda Studio. Drafted in
    [track-a-lab-seed-review.md](track-a-lab-seed-review.md); only the map pin was
    missing.
-5. **Review the film-stock seed.**
-6. **Launch:** publish the Google consent screen, custom domain and HTTPS on
+6. **Review the film-stock seed.**
+7. **Launch:** publish the Google consent screen, custom domain and HTTPS on
    Vercel, the production bucket, and a complete production environment — then
    **verify Vercel's Production environment actually overrides `R2_BUCKET`.**
    If it does not, production uploads land in the development bucket and nothing
@@ -215,17 +297,18 @@ Ordered by how much each unblocks, not by effort.
 | **Whether a photobook slug should follow its title** | It does not: minted once, never changed, so a rename cannot break a shared link. PROPOSED — the alternative needs a redirect table |
 | **Where a Photo in no Photobook surfaces on `/u/@username`** | **Answered, PROPOSED:** on its owner's profile under "NOT IN A PHOTOBOOK · N", owner-only. A visitor's view stays curated sets. Overturning it is one section and one query |
 | **The 25 MB ceiling and the JPEG/PNG/WebP/AVIF allowlist** | Both PROPOSED in `lib/photos/limits.ts`. Nothing upstream specifies either; widening the list later is one line, narrowing it after people have uploaded is not |
-| **Reverse search → map filter UI** | The schema and `/api/labs` already support `film_stock_id`, so this is only a UI question |
-| **The bilingual strategy, on paper twice** | `00_BACKLOG` lists it as unresolved while P22 already decides it (a hand-rolled `lib/i18n.ts`, not next-intl). Reconcile the two so 3.3 does not re-litigate it |
+| ~~**Reverse search → map filter UI**~~ | **Answered, PROPOSED:** `/labs?stock=<id>`, with a removable "Carries" chip above the other filters and "Find these on the map" on a stock's page. Built, so overturning it now means changing a UI rather than choosing one |
+| **The bilingual strategy, on paper twice** | Settled in code — P22's hand-rolled `lib/i18n.ts` is built and `00_BACKLOG` still lists the question as open. The remaining work is deleting the stale entry, not making the decision |
 
 ---
 
 ## Merge state
 
-`develop` is **59 commits ahead of `main`** — nothing since the architecture
-blueprint has reached `main`.
+`develop` is **68 commits ahead of `main`** — nothing since the architecture
+blueprint has reached `main` — and **9 of those are unpushed**.
 
-Track C's work — C2 through C5 — is **four commits on
-`claude/c2-storage-image-loader-a6c43f`, local only.** The branch has not been
-pushed and there is no pull request. Everything else on the shelf is already
-merged into `develop`.
+Track C is merged into `develop` (`eaa50b1`), including the R2 correction.
+
+Phase 3 is **5 commits on `claude/phase-3-app-shell`, local only**: the app
+shell, the sitemap fix, 3.1, 3.3's i18n, and 3.5 with the reverse-search
+filter. The branch has not been pushed and there is no pull request.

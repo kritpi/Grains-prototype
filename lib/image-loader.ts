@@ -57,6 +57,19 @@ export function publicUrl(storageKey: string): string {
 }
 
 /**
+ * Whether the configured origin is R2's public development URL.
+ *
+ * `pub-<hash>.r2.dev` is a hostname Cloudflare owns, not a zone anybody can
+ * configure, so Images transformations cannot be enabled on it and
+ * `/cdn-cgi/image/…` there is simply a key that does not exist. Matching the
+ * host exactly rather than looking for the substring anywhere: a custom domain
+ * legitimately called `r2.dev.example.com` is not this.
+ */
+function isDevelopmentOrigin(base: string): boolean {
+  return /^https?:\/\/[^/]*\.r2\.dev$/i.test(base);
+}
+
+/**
  * `next/image`'s custom loader — Cloudflare Images transformations on the R2
  * domain (P23).
  *
@@ -92,6 +105,23 @@ export default function r2ImageLoader({
 }): string {
   const base = origin();
   if (base === "" || !src.startsWith(`${base}/`)) return src;
+
+  // Development fallback: R2's public dev URL serves objects but cannot
+  // transform them, so the original is served untouched rather than a URL that
+  // would 404.
+  //
+  // **This is for local work before a custom domain exists, and nothing else.**
+  // It means full-size scans over the wire — a 6000px frame is several
+  // megabytes and a photobook of twenty is over 100 MB — on a rate-limited
+  // hostname nobody here controls, with every storage key printed into page
+  // source pointing at it. Production must be a custom domain; `pnpm r2:check`
+  // says so on every run that sees this.
+  //
+  // Gated on the hostname rather than on NODE_ENV on purpose: the thing that
+  // decides is whether transformations *can* run, which is a fact about the
+  // origin. A production deploy pointed at r2.dev would still be wrong, and
+  // r2:check is what catches that.
+  if (isDevelopmentOrigin(base)) return src;
 
   const key = src.slice(base.length + 1);
   const options = [`width=${width}`, "format=auto", "fit=scale-down"];

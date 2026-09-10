@@ -236,3 +236,65 @@
   align-self: flex-start;
   text-decoration: none;
 }
+
+/* --- Inspiration gallery -------------------------------------------------
+ *
+ * The section header is a row, not a stack: the prototype puts the eyebrow and
+ * "+ Add a sample" on one baseline with the space between them. The grid
+ * itself is PhotoGrid at `data-density="gallery"`, whose rules live with the
+ * component in components/books/photobook.css.
+ */
+.grains-gallery-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.grains-gallery-head .grains-stock-label {
+  flex: 1;
+}
+
+.grains-gallery-head .grains-facet {
+  flex: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* The design system's `.empty`, in this section's own vocabulary. The ring is
+ * the one deliberate exception to --radius: 0 — the component library writes
+ * it as `border-radius: 50% !important` against its own rule. */
+.grains-gallery-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  padding: 36px 18px;
+}
+
+.grains-gallery-ring {
+  width: 44px;
+  height: 44px;
+  border: 1.5px dashed var(--foreground);
+  border-radius: 50%;
+}
+
+.grains-gallery-empty h3 {
+  font: 500 15px var(--font-serif);
+}
+
+.grains-gallery-empty p {
+  font: 400 11.5px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+  max-width: 34ch;
+}
+
+/* Why the frames are ragged, said once, under the grid rather than over it —
+ * it explains what you are already looking at. */
+.grains-gallery-note {
+  font: 400 11.5px/1.7 var(--font-sans);
+  color: var(--ring);
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}

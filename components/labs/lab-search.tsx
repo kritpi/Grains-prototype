@@ -34,6 +34,14 @@ type LabSearchProps = {
   initial: Results | null;
   initialQuery: string | null;
   /**
+   * The film stock the reverse-search filter names, resolved server-side.
+   *
+   * The URL carries `?stock=<uuid>` because that is what the join needs, and
+   * this client has no way to reach the catalog — so the label is passed in.
+   * Null when nothing is filtered, and also when the id matches nothing.
+   */
+  stockLabel?: string | null;
+  /**
    * Where the server searched, when the URL says it by name rather than by
    * number — `/labs?area=Bang+Rak` carries no coordinates. Resolving it here
    * instead of redirecting to lat/lng keeps that URL a real page with results
@@ -48,6 +56,7 @@ export function LabSearch({
   initial,
   initialQuery,
   initialCenter,
+  stockLabel,
 }: LabSearchProps) {
   const [state, setState] = useQueryStates(labSearchParsers, {
     history: "push",
@@ -180,6 +189,7 @@ export function LabSearch({
           options={options}
           onChange={patch}
           resultCount={results?.total ?? 0}
+          stockLabel={stockLabel ?? null}
         />
 
         <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">

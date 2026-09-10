@@ -26,6 +26,7 @@ import {
   type DraftDay,
   type LabDraft,
 } from "./draft";
+import { AtmospherePhotos } from "./atmosphere-photos";
 import { PinPicker } from "./pin-picker";
 import { StockPicker } from "./stock-picker";
 
@@ -343,23 +344,7 @@ export function LabForm({ catalog, lab }: LabFormProps) {
       <ContactSection draft={draft} update={update} />
       <HoursSection draft={draft} update={update} />
 
-      <section>
-        <div className="grains-form-label">ATMOSPHERE PHOTOS</div>
-        <div className="grains-chips">
-          <button
-            type="button"
-            className="grains-photo-add"
-            disabled
-            aria-label="Add an atmosphere photo"
-          >
-            +
-          </button>
-        </div>
-        <p className="grains-hours-closed">
-          Venue documentation only — sample scans are never attached to a lab.
-          Uploading arrives with photos themselves.
-        </p>
-      </section>
+      <AtmospherePhotos labId={lab?.id} count={lab?.photos.length ?? 0} />
 
       <Field label="NOTE FOR THE HISTORY LOG · OPTIONAL">
         <input

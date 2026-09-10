@@ -58,9 +58,19 @@ const bucket = process.env.R2_BUCKET;
 // second one, and here the second one was good news.
 const readPathProblem = /r2\.cloudflarestorage\.com/.test(pub)
   ? "it is the S3 API endpoint, not a public domain — step 2 of docs/plans/r2-setup.md"
-  : /r2\.dev/.test(pub)
-    ? "it is an r2.dev development URL: rate-limited, and Images transformations do not run on it"
-    : null;
+  : null;
+
+/**
+ * R2's public development URL: usable, but not a finished configuration.
+ *
+ * It genuinely serves objects, so the read check below runs and should pass —
+ * this is not the S3 endpoint, which serves nothing to a browser at all. What
+ * it cannot do is transform, because it is not a zone anybody can configure.
+ * So this is a warning rather than a failure: the check stays useful to
+ * somebody working locally before they own a domain, and still says on every
+ * run that production needs one.
+ */
+const developmentOrigin = /^https?:\/\/[^/]*\.r2\.dev$/i.test(pub);
 
 console.log(`bucket ${bucket} · public ${pub}`);
 
@@ -246,21 +256,32 @@ if (readPathProblem) {
     `HTTP ${direct.status}${direct.detail ? ` ${direct.detail}` : ""}`,
   );
 
-  const resized = await fetch(
-    `${pub}/cdn-cgi/image/width=50,format=auto/${key}`,
-  ).catch((error) => ({ status: 0, detail: error.message }));
-  report(
-    "Images transformations run",
-    resized.status === 200,
-    `HTTP ${resized.status}${
-      resized.headers ? ` ${resized.headers.get("content-type") ?? ""}` : ""
-    }${resized.detail ? ` ${resized.detail}` : ""}`,
-  );
-  if (resized.status === 404) {
-    console.error(
-      "  A 404 here is usually the DNS record being grey-clouded rather than\n" +
-        "  proxied, or Transformations not enabled on the zone (step 5).",
+  if (developmentOrigin) {
+    // Not attempted: /cdn-cgi/image/ cannot exist on r2.dev, so requesting it
+    // would report a 404 as though something were misconfigured.
+    console.log(
+      "warn  Images transformations — not available on an r2.dev URL, and the\n" +
+        "      image loader skips them for this origin. Full-size objects are\n" +
+        "      served: a 6000px scan is several megabytes. Fine locally, wrong\n" +
+        "      for production — bind a custom domain before launch (step 2).",
     );
+  } else {
+    const resized = await fetch(
+      `${pub}/cdn-cgi/image/width=50,format=auto/${key}`,
+    ).catch((error) => ({ status: 0, detail: error.message }));
+    report(
+      "Images transformations run",
+      resized.status === 200,
+      `HTTP ${resized.status}${
+        resized.headers ? ` ${resized.headers.get("content-type") ?? ""}` : ""
+      }${resized.detail ? ` ${resized.detail}` : ""}`,
+    );
+    if (resized.status === 404) {
+      console.error(
+        "  A 404 here is usually the DNS record being grey-clouded rather than\n" +
+          "  proxied, or Transformations not enabled on the zone (step 5).",
+      );
+    }
   }
 }
 
@@ -277,5 +298,16 @@ if (wrote) {
   report("delete removes it", false, NO_OBJECT);
 }
 
-console.log(failed ? "\nR2 is not ready." : "\nR2 is wired correctly.");
+if (failed) {
+  console.log("\nR2 is not ready.");
+} else if (developmentOrigin) {
+  console.log(
+    "\nR2 works for local development. It is NOT ready for production:\n" +
+      "NEXT_PUBLIC_R2_PUBLIC_URL is an r2.dev URL, which is rate-limited, is a\n" +
+      "hostname we do not control, and cannot resize. Step 2 of\n" +
+      "docs/plans/r2-setup.md before launch.",
+  );
+} else {
+  console.log("\nR2 is wired correctly.");
+}
 process.exit(failed ? 1 : 0);

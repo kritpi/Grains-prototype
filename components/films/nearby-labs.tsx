@@ -142,6 +142,22 @@ export function NearbyLabs({ filmStockId }: { filmStockId: string }) {
             </span>
           </Link>
         ))}
+
+      {/* The way onto the map with this filter already applied (PROPOSED).
+       *
+       * This list is deliberately short — ten kilometres, no paging, no filters
+       * — because it answers "can I get this developed near me right now". The
+       * map answers everything after that: a wider radius, a process, an area
+       * across town. The stock travels as `?stock=`, which /labs turns into the
+       * removable "Carries" chip.
+       *
+       * Shown whatever the outcome above, including when nothing was found:
+       * "nothing within 10 km" is exactly when somebody wants to widen the
+       * search, and offering the map only on success would hide it precisely
+       * then. */}
+      <Link href={`/labs?stock=${filmStockId}`} className="grains-facet">
+        Find these on the map
+      </Link>
     </section>
   );
 }

@@ -47,6 +47,7 @@ All three architecture decisions are made, with the rationale, the rejected opti
 - [docs/api-surface.md](docs/api-surface.md) — every read, write and handler needed to put data behind the prototype
 - [docs/prd/](docs/prd/) — per-feature PRDs with decision rationale
 - [docs/plans/status.md](docs/plans/status.md) — where the project stands: the blocker, what is left, what needs a person
+- [docs/runbook.md](docs/runbook.md) — the four operations done under pressure: a dead site, a paused database, a production migration, a rotated key
 - [docs/plans/](docs/plans/) — implementation plans, including the four-phase [build plan](docs/plans/build-plan.html), and a progress file per track
 - [CONTEXT.md](CONTEXT.md) — domain vocabulary
 - [CLAUDE.md](CLAUDE.md) — guidance for working in this repo

@@ -179,6 +179,24 @@ export async function searchFilmStocks(
   };
 }
 
+/**
+ * Just the name, for labelling the reverse-search filter chip on /labs.
+ *
+ * `getFilmStock` would answer this too, but it joins for sample counts and
+ * edit history to render a whole page; this is called to put four words in a
+ * chip. Null when the id matches nothing — a stale link should show an
+ * unlabelled filter, not a 404 on a page that is still a valid search.
+ */
+export async function filmStockName(id: string): Promise<string | null> {
+  const rows = await getDb().execute<{ name: string; iso: number }>(
+    sql`select name, iso from film_stocks where id = ${id}::uuid`,
+  );
+  const row = rows[0];
+  // Identity is name + ISO (PRD B #2), so the ISO is part of the name as far
+  // as telling two catalog entries apart goes.
+  return row ? `${row.name} · ISO ${row.iso}` : null;
+}
+
 /** ISO values present in the catalog, for the facet row. */
 export async function listFilmStockIsos(): Promise<number[]> {
   const rows = await getDb().execute<{ iso: number }>(

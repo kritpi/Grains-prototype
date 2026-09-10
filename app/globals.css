@@ -118,13 +118,27 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Latin first, Thai second, in both stacks.
+   *
+   * A font stack falls through per *glyph*, not per element, so this is not a
+   * fallback in the "if the first fails" sense: Latin characters keep Geist and
+   * Instrument Serif, and Thai characters — which neither face contains — get
+   * Noto Sans Thai instead of whatever the device would otherwise substitute.
+   * That substitution is why Thai on an unprepared site looks pasted in, and it
+   * happens on a page that is entirely English the moment one lab has a Thai
+   * name.
+   *
+   * Written out rather than `@apply font-sans` because the utility resolves to
+   * a single family and there is no Tailwind token for "then Thai". */
   html {
-    @apply font-sans;
+    font-family:
+      var(--font-sans), var(--font-thai), ui-sans-serif, system-ui, sans-serif;
   }
   /* Editorial serif for headings and series titles. */
   h1,
   h2,
   h3 {
-    @apply font-serif font-normal;
+    font-family: var(--font-serif), var(--font-thai), Georgia, serif;
+    @apply font-normal;
   }
 }

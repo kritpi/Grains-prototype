@@ -15,6 +15,8 @@ type FilterPanelProps = {
   options: FilterOptions;
   onChange: (patch: Partial<LabSearchState>) => void;
   resultCount: number;
+  /** The film stock name behind `state.stock`, resolved by the server. */
+  stockLabel: string | null;
 };
 
 /** A flat, square toggle — the design has no pills and no rounded corners. */
@@ -63,6 +65,7 @@ export function FilterPanel({
   options,
   onChange,
   resultCount,
+  stockLabel,
 }: FilterPanelProps) {
   const active = hasActiveFilters(state);
 
@@ -76,7 +79,13 @@ export function FilterPanel({
           <button
             type="button"
             onClick={() =>
-              onChange({ process: [], scanner: [], service: [], open: false })
+              onChange({
+                process: [],
+                scanner: [],
+                service: [],
+                open: false,
+                stock: null,
+              })
             }
             className="font-sans text-xs text-muted-foreground underline hover:text-foreground"
           >
@@ -84,6 +93,43 @@ export function FilterPanel({
           </button>
         ) : null}
       </div>
+
+      {/* Reverse search, arriving from a film stock's page (PROPOSED).
+       *
+       * Above the fieldsets and shaped differently on purpose: every other
+       * filter here is one the reader set by tapping a toggle in this panel,
+       * and this one was set by following a link from somewhere else. A person
+       * who lands on a pre-filtered search needs to be told what it is filtered
+       * by before they read the results, or the short list reads as "there are
+       * hardly any labs near me".
+       *
+       * It removes rather than toggles, because there is nothing here to turn
+       * back on — the id came from a page this one does not know about.
+       */}
+      {state.stock ? (
+        <div className="mt-4 flex items-center gap-2 border border-foreground px-2.5 py-1.5">
+          <span className="font-sans text-xs tracking-wide text-muted-foreground uppercase">
+            Carries
+          </span>
+          <span className="min-w-0 flex-1 truncate font-sans text-xs">
+            {/* An id that resolves to nothing still filters — the search is
+                valid, it just names a stock that is no longer in the catalog. */}
+            {stockLabel ?? "a stock no longer in the catalog"}
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange({ stock: null })}
+            className="font-sans text-xs text-muted-foreground hover:text-foreground"
+            aria-label={
+              stockLabel
+                ? `Stop filtering by ${stockLabel}`
+                : "Stop filtering by film stock"
+            }
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
 
       <fieldset className="mt-4">
         <legend className="font-sans text-xs tracking-wide text-muted-foreground uppercase">

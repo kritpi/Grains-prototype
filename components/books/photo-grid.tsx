@@ -32,12 +32,34 @@ export type GridPhoto = {
 export function PhotoGrid({
   photos,
   hrefFor,
+  density = "book",
+  creditWord = "via",
 }: {
   photos: GridPhoto[];
   hrefFor: (photo: GridPhoto) => string;
+  /**
+   * How wide the columns want to be.
+   *
+   * `book` is two columns of large frames — a photobook is a small set shown
+   * as one thing. `gallery` is the film stock's inspiration grid, which the
+   * prototype sets at `columns: 200px`: many frames from many people, read as
+   * a wall rather than a sequence. Same component because the rule that
+   * matters — true aspect ratio, nothing cropped — is identical in both.
+   */
+  density?: "book" | "gallery";
+  /**
+   * The word before the handle.
+   *
+   * "via" is right in a Photobook, where a credit only ever appears on a
+   * Connection and means *this is someone else's frame, filed here*. It is
+   * wrong in a film stock's gallery, where every frame is by the person named
+   * and nothing has been re-filed — calling that "via" is the soft version of
+   * exactly the authorship problem gap plan K3 raised.
+   */
+  creditWord?: "via" | "by";
 }) {
   return (
-    <div className="grains-photo-grid">
+    <div className="grains-photo-grid" data-density={density}>
       {photos.map((photo, index) => {
         const label = [photo.frameSize, photo.format]
           .filter(Boolean)
@@ -58,12 +80,18 @@ export function PhotoGrid({
               // known — honest about being a photograph rather than empty,
               // since these are the content and not decoration.
               alt={label ? `Photograph — ${label}` : "Photograph"}
-              sizes="(min-width: 768px) 45vw, 100vw"
+              sizes={
+                density === "gallery"
+                  ? "(min-width: 768px) 220px, 50vw"
+                  : "(min-width: 768px) 45vw, 100vw"
+              }
               priority={index === 0}
             />
             {label ? <div className="grains-frame-label">{label}</div> : null}
             {photo.credit ? (
-              <div className="grains-frame-credit">via @{photo.credit}</div>
+              <div className="grains-frame-credit">
+                {creditWord} @{photo.credit}
+              </div>
             ) : null}
           </Link>
         );
