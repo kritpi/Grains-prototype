@@ -1,10 +1,10 @@
 # Track C — Media & Photobooks: progress
 
-**Track C is complete.** C1 done bar the entitlement; C2–C7 done. This file exists so the
+**Track C is complete.** C1's dashboard steps 2/3/5 are outstanding; C2–C7 done. This file exists so the
 next session does not have to reconstruct where things stand from a conversation
 it cannot see.
 
-Last updated 2026-09-08. C2 is on `claude/c2-storage-image-loader-a6c43f`, cut
+Last updated 2026-09-10. C2 is on `claude/c2-storage-image-loader-a6c43f`, cut
 from `develop`. The older `claude/track-c-media` branch is cut at `c0ce154`,
 which predates Tracks A and B — **do not use it**.
 
@@ -17,31 +17,40 @@ which predates Tracks A and B — **do not use it**.
 | [r2-setup.md](r2-setup.md) | the dashboard work, and what is done |
 | [track-b-progress.md](track-b-progress.md) | what B left for C |
 
-## Blocked: R2's S3 API returns `NotEntitled`
+## Resolved: the S3 API works; the custom domain is what is missing
 
-**C1 is done except that the S3 API does not work**, and it is a Cloudflare-side
-problem, not a configuration one. `pnpm r2:check` reproduces it in one command.
+**This section previously said the S3 API returned `NotEntitled` and that only a
+Cloudflare support ticket could fix it. Re-tested 2026-09-10: writes succeed.**
+Do not file that ticket.
 
-What is true:
+```
+ok    write over the S3 API  — pending/_check/5deda6f4-….png
+ok    read it back (HEAD)  — 70 bytes, image/png
+ok    delete removes it
+```
 
-- The R2 subscription reads **Active** (R2 Paid, renews Oct 8 2026)
-- Buckets `grains-photos-dev` and `grains-photos-prod` exist
-- Uploading an object through the R2 dashboard succeeds
-- `R2_ACCOUNT_ID` matches the S3 endpoint shown on the bucket's settings page
-- The API token is valid and correctly scoped — proven by the two buckets
-  returning *different* errors for the same credentials: `NotEntitled` on the
-  bucket the token covers, `AccessDenied` on the one it does not
+Two things are worth keeping from the episode, because both were process
+failures rather than Cloudflare's.
 
-What fails: every S3 operation on `grains-photos-dev` — `PutObject`,
-`ListObjectsV2`, `HeadBucket` — with `NotEntitled` 403, "Please enable R2
-through the Cloudflare Dashboard" (code 10042).
+**The proof was not a proof.** The argument ran: the same credentials give
+`NotEntitled` on the in-scope bucket and `AccessDenied` on the out-of-scope one,
+so the token is fine and the account must be at fault. But R2 stores a token's
+bucket scope *with the credential* and can refuse an out-of-scope bucket before
+resolving the account at all — scope first, entitlement second. The same pair of
+errors is what a non-R2 account id produces. It was a reasonable reading that got
+written down as settled.
 
-Already tried, no change: cancelling and reactivating the subscription, and
-issuing a fresh token afterwards. The error predates the cancellation. A support
-ticket is the remaining path.
+**The check hid the recovery.** `pnpm r2:check` exited on the first fault it
+found — the public URL, a *read*-path variable that shares nothing with the write
+path — so every write check sat behind that exit and never ran. The blocker had
+lifted and the one command meant to detect it could not. The script now runs both
+paths in one go and, on a write failure, probes `ListBuckets` (account-level,
+names no bucket) and `HeadBucket` to tell an account problem from a bucket or
+scope problem, plus the EU jurisdiction endpoint.
 
-**Do not spend time re-diagnosing this.** Run `pnpm r2:check`; if it still says
-`NotEntitled`, nothing in this repository will fix it.
+What is still true: **no real object has moved through the app's upload path.**
+`confirmPhoto` has never seen one. That now waits on the custom domain rather
+than on Cloudflare.
 
 ## What is not blocked
 
@@ -391,8 +400,9 @@ is empty). What that confirmed, and what no test covers:
   photograph is in 3 photobooks. Deleting removes it from all of them,
   including other people's, with no notice to them."
 
-The frames render broken, because no object has ever been uploaded. That is the
-entitlement, not the layout.
+The frames render broken, because no object has ever been uploaded and because
+`NEXT_PUBLIC_R2_PUBLIC_URL` still holds the S3 API endpoint. Neither is the
+layout.
 
 ## What is left
 
@@ -401,8 +411,8 @@ Track C is done. The remaining work is Phase 3, and
 file records: `site-header.tsx` links a signed-in user to `/u/{username}`, which
 now exists.
 
-Still blocked, and unchanged: no real object has moved through the upload path.
-`pnpm r2:check` does not even reach the entitlement, because step 2 of
-[r2-setup.md](r2-setup.md) has not been done and `NEXT_PUBLIC_R2_PUBLIC_URL`
-still holds the S3 API endpoint — so every image URL in the app currently points
-at an endpoint that answers 401.
+Still outstanding: no real object has moved through the app's upload path. The
+S3 API now accepts writes, so what remains is step 2 of
+[r2-setup.md](r2-setup.md) — `NEXT_PUBLIC_R2_PUBLIC_URL` still holds the S3 API
+endpoint, so every image URL in the app currently points at something that
+answers 401 to an unsigned request.
