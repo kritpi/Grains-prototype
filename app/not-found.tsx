@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { Notice } from "@/components/layout/notice";
+import { t } from "@/lib/i18n";
+import { currentLang } from "@/lib/i18n-server";
 
 export const metadata: Metadata = {
   title: "Not found · Grains",
@@ -22,29 +24,30 @@ export const metadata: Metadata = {
  * photobook can be deleted outright — so the copy does not accuse the reader of
  * mistyping.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const lang = await currentLang();
+
   return (
     <Notice
-      title="This page isn't here"
+      title={t(lang, "notFound.title")}
       actions={
         <>
           <Link
             href="/labs"
             className="border border-foreground px-3 py-1.5 font-sans text-xs hover:bg-foreground hover:text-background"
           >
-            Find a lab
+            {t(lang, "notFound.findLab")}
           </Link>
           <Link
             href="/films"
             className="border border-foreground px-3 py-1.5 font-sans text-xs hover:bg-foreground hover:text-background"
           >
-            Browse film stocks
+            {t(lang, "notFound.browseFilms")}
           </Link>
         </>
       }
     >
-      It may have been removed, or the address may be wrong. Nothing is lost on
-      your side.
+      {t(lang, "notFound.body")}
     </Notice>
   );
 }

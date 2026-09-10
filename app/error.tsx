@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { Notice } from "@/components/layout/notice";
+import { isLang, t, type Lang } from "@/lib/i18n";
 
 /**
  * The error boundary for everything under the root layout.
@@ -33,6 +34,29 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // The language, read off the element the root layout already stamped it on.
+  //
+  // A Client Component cannot call `currentLang()` — `cookies()` is
+  // server-only — and an error boundary receives only `error` and `reset`, so
+  // there is no prop to pass it through. `<html lang>` is the same value from
+  // the same cookie and is already in the document.
+  //
+  // `useSyncExternalStore` rather than state-in-an-effect, which is the obvious
+  // shape and is wrong twice: it is a lint error here (`set-state-in-effect`),
+  // and it renders English for a frame before correcting itself. This hook
+  // exists for exactly this — a value read from outside React, with separate
+  // server and client snapshots — so React reconciles the two instead of the
+  // page flashing through the wrong one.
+  //
+  // The subscribe callback is a no-op: `<html lang>` is written once per
+  // document by the root layout and cannot change without a navigation.
+  const declared = useSyncExternalStore(
+    () => () => {},
+    () => document.documentElement.lang,
+    () => "en",
+  );
+  const lang: Lang = isLang(declared) ? declared : "en";
+
   useEffect(() => {
     // Phase 4 installs Sentry; this is the call site it wants. Until then the
     // console is what a developer actually has, and in production this is the
@@ -42,7 +66,7 @@ export default function Error({
 
   return (
     <Notice
-      title="Something went wrong"
+      title={t(lang, "error.title")}
       actions={
         <>
           <button
@@ -50,23 +74,24 @@ export default function Error({
             onClick={reset}
             className="border border-foreground bg-foreground px-3 py-1.5 font-sans text-xs text-background hover:bg-transparent hover:text-foreground"
           >
-            Try again
+            {t(lang, "error.retry")}
           </button>
           <Link
             href="/labs"
             className="border border-foreground px-3 py-1.5 font-sans text-xs hover:bg-foreground hover:text-background"
           >
-            Find a lab
+            {t(lang, "notFound.findLab")}
           </Link>
         </>
       }
     >
-      This one is on us, not on you. Trying again often works — the database
-      pauses when the site has been quiet.
+      {t(lang, "error.body")}
       {error.digest ? (
         <>
           {" "}
-          <span className="text-ring">Reference {error.digest}.</span>
+          <span className="text-ring">
+            {t(lang, "error.reference")} {error.digest}.
+          </span>
         </>
       ) : null}
     </Notice>

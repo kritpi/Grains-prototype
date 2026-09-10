@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { t, type Lang, type StringKey } from "@/lib/i18n";
+
 /**
  * The section nav that sits beside the wordmark.
  *
@@ -37,19 +39,28 @@ import { usePathname } from "next/navigation";
  *    scroll on every screen of the site. Anything added to this row has to be
  *    measured at 375px signed *in*, not signed out.
  *
- * The TH/EN segmented control the prototype puts to the right of these is P22
- * and is not built either — it needs `lib/i18n.ts`, which does not exist yet.
+ * The TH/EN segmented control the prototype puts beside these is `LangToggle`,
+ * on the other side of the header with the profile — it is a preference, not a
+ * section.
  */
-const SECTIONS = [
-  { href: "/labs", label: "Labs" },
-  { href: "/films", label: "Film stocks" },
-] as const;
+const SECTIONS: { href: string; label: StringKey }[] = [
+  { href: "/labs", label: "nav.labs" },
+  { href: "/films", label: "nav.films" },
+];
 
-export function SiteNav() {
+/**
+ * `lang` is a prop rather than a `currentLang()` call because this is a Client
+ * Component — `cookies()` is server-only — and because the header above it has
+ * already read it for `<html lang>`.
+ */
+export function SiteNav({ lang }: { lang: Lang }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Sections" className="flex items-center gap-5">
+    <nav
+      aria-label={t(lang, "nav.sections")}
+      className="flex items-center gap-5"
+    >
       {SECTIONS.map((section) => {
         // `/films` is active on `/films/[id]` too — a stock's detail page is
         // still the Films section — but a prefix test alone would light "Labs"
@@ -68,7 +79,7 @@ export function SiteNav() {
             aria-current={active ? "page" : undefined}
             className="font-sans text-[13px] font-bold text-ring transition-colors hover:text-foreground data-[tabon=true]:text-foreground"
           >
-            {section.label}
+            {t(lang, section.label)}
           </Link>
         );
       })}
