@@ -34,7 +34,12 @@ const STATIC_PATHS = ["/", "/labs", "/films"] as const;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = siteUrl();
-  const now = new Date();
+
+  // The same W3C Datetime shape the query layer produces, seconds and no
+  // milliseconds. `MetadataRoute.Sitemap` would take a `Date` here just as
+  // happily, but then the file would emit two different formats in one document
+  // for no reason a reader could work out.
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 
   const [labs, films, profiles] = await Promise.all([
     listLabUrls(),

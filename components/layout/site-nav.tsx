@@ -28,8 +28,14 @@ import { usePathname } from "next/navigation";
  *    because its mobile layout puts `Labs · Films · + · Profile` in a bottom tab
  *    bar. That bar is not built. Hiding the links below 768px to match the
  *    prototype would reproduce exactly the bug this replaces, so they stay
- *    inline; two short items fit a 390px frame beside the wordmark. When the
- *    bottom bar is built, this is what moves into it.
+ *    inline. When the bottom bar is built, this is what moves into it.
+ *
+ *    Two short items do fit a 375px frame beside the wordmark, but only
+ *    because `site-header.tsx` now truncates the handle: signed in with a
+ *    30-character username — the maximum `lib/username.ts` allows — the page
+ *    measured 395px against a 375px viewport before that, which is horizontal
+ *    scroll on every screen of the site. Anything added to this row has to be
+ *    measured at 375px signed *in*, not signed out.
  *
  * The TH/EN segmented control the prototype puts to the right of these is P22
  * and is not built either — it needs `lib/i18n.ts`, which does not exist yet.

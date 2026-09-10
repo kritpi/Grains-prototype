@@ -3,19 +3,25 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { LabTx } from "@/lib/queries/lab-edits";
-import { listProfileUrls } from "@/lib/queries/sitemap";
+import {
+  listFilmStockUrls,
+  listLabUrls,
+  listProfileUrls,
+} from "@/lib/queries/sitemap";
 import { hasDatabase } from "../db/client";
 import { testDb, withRollback, type TestDb } from "../db/tx";
 
 /**
  * What the sitemap says about people.
  *
- * `listLabUrls` and `listFilmStockUrls` are a select and a map with no
- * branching, and `grains-dev` already holds rows for both — there is nothing a
- * test could assert that reading the query does not already tell you.
- * `listProfileUrls` is the opposite: a union with two gates and a path that
- * changes shape depending on whether `slug` came back null. Every case below is
- * one that would ship broken and look fine.
+ * `listProfileUrls` carries all the branching: a union with two gates and a
+ * path whose shape depends on whether `slug` came back null. Every case below
+ * is one that would ship broken and look fine.
+ *
+ * `listLabUrls` and `listFilmStockUrls` are a select and a map, and are covered
+ * only for the timestamp format — see the second block. A conversion that is
+ * right in one of three places is the failure worth catching, and the format
+ * was wrong in all three until a test looked.
  *
  * Rolled back, so three tracks can share one `grains-dev`.
  */
@@ -139,14 +145,83 @@ describe.skipIf(!hasDatabase)("listProfileUrls", () => {
 
       const entries = await listProfileUrls(tx);
       const profile = entries.find((entry) => entry.path === `/u/${handle}`);
-      const newest = entries
+      const books = entries
         .filter((entry) => entry.path.startsWith(`/u/${handle}/`))
-        .map((entry) => entry.lastModified.getTime());
+        .map((entry) => entry.lastModified);
 
       // The profile's date is the max of its books, not an arbitrary one —
       // otherwise a crawler is told the page is a month stale the day it
-      // changed.
-      expect(profile?.lastModified.getTime()).toBe(Math.max(...newest));
+      // changed. ISO-8601 in a fixed zone sorts lexicographically, which is
+      // half the reason for normalising it in the first place.
+      expect(books).toHaveLength(2);
+      expect(profile?.lastModified).toBe(books.slice().sort().at(-1));
+    });
+  });
+
+  /**
+   * The one that would have shipped broken.
+   *
+   * `execute<T>()` is an unchecked cast, so a `Date` annotation on a column that
+   * arrives as text compiles and type-checks and is simply untrue. Postgres
+   * renders `timestamptz` as `2026-09-10 07:17:41.55411+00` — a space rather
+   * than `T`, an offset without minutes — and Next writes a string into
+   * `<lastmod>` untouched. That is not a W3C Datetime, so the whole sitemap
+   * would have been syntactically wrong while every check in the repo passed.
+   */
+  it("returns a W3C Datetime, not Postgres's own rendering", async () => {
+    await withRollback(db, async (tx) => {
+      const id = await user(tx, "amp");
+      await book(tx, id);
+      const rows = await tx.execute<{ username: string }>(
+        sql`select username from users where id = ${id}`,
+      );
+
+      const entries = await listProfileUrls(tx);
+      const mine = entries.filter((entry) =>
+        entry.path.includes(rows[0].username),
+      );
+
+      expect(mine.length).toBeGreaterThan(0);
+      for (const entry of mine) {
+        expect(typeof entry.lastModified).toBe("string");
+        expect(entry.lastModified).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+        );
+        // Parseable everywhere, which the unconverted form is not.
+        expect(Number.isNaN(Date.parse(entry.lastModified))).toBe(false);
+      }
+    });
+  });
+});
+
+describe.skipIf(!hasDatabase)("the other sitemap queries", () => {
+  let db: TestDb;
+  let end: () => Promise<void>;
+
+  beforeAll(() => {
+    ({ db, end } = testDb());
+  });
+
+  afterAll(async () => {
+    if (end) await end();
+  });
+
+  // These two are a select and a map, but they carry the same timestamp
+  // conversion, and a conversion that is right in one of three places is the
+  // failure worth catching. grains-dev already holds labs and film stocks.
+  it("formats lab and film-stock dates the same way", async () => {
+    await withRollback(db, async (tx) => {
+      const entries = [
+        ...(await listLabUrls(tx)),
+        ...(await listFilmStockUrls(tx)),
+      ];
+
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(entry.lastModified).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+        );
+      }
     });
   });
 });

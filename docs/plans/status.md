@@ -149,6 +149,22 @@ Three notes on what landed:
 - **`robots.txt` is closed by default and only opens on production.** A Vercel
   preview is the whole app on a public hostname reading `grains-dev`, which
   holds unverified seed prices for real, named businesses.
+- **A long handle now truncates in the header.** A username may be 30
+  characters, and signed in at 375px the page measured 395px — horizontal
+  scroll on every screen of the site. The handle is the only unbounded element
+  in the header, so it is the one that gives; the full value stays in `title`.
+  Anything added to that row has to be measured at 375px signed *in*.
+
+**One trap worth knowing, found the hard way here.** `execute<T>()` is an
+unchecked cast: it tells TypeScript what to believe and verifies nothing. The
+sitemap's timestamps were annotated `Date`, compiled clean, type-checked clean,
+and were strings at runtime — and Postgres renders `timestamptz` as
+`2026-09-10 07:17:41.55411+00`, which is not a valid `<lastmod>`. Next writes a
+string into the XML untouched, so the entire sitemap would have been
+syntactically wrong while every check in the repo passed. `films.ts` and
+`labs.ts` already type their timestamps as `string` for this reason; the fix was
+to match them and normalise in SQL. **Nothing but a test that reads a real row
+catches this class of bug.**
 
 Two items on that list are already done and should not be rebuilt:
 

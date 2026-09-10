@@ -35,7 +35,11 @@ export function siteUrl(): string {
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (vercel) return normalise(vercel);
 
-  return "http://localhost:3000";
+  // The port matters even though this branch never runs in production: a
+  // hardcoded 3000 while the server is on 3001 prints a sitemap full of URLs
+  // that do not resolve, which is a confusing thing to hand somebody who is
+  // checking the sitemap locally. Next sets PORT when `-p` is passed.
+  return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
 /**
