@@ -297,17 +297,18 @@ Ordered by how much each unblocks, not by effort.
 | **Whether a photobook slug should follow its title** | It does not: minted once, never changed, so a rename cannot break a shared link. PROPOSED — the alternative needs a redirect table |
 | **Where a Photo in no Photobook surfaces on `/u/@username`** | **Answered, PROPOSED:** on its owner's profile under "NOT IN A PHOTOBOOK · N", owner-only. A visitor's view stays curated sets. Overturning it is one section and one query |
 | **The 25 MB ceiling and the JPEG/PNG/WebP/AVIF allowlist** | Both PROPOSED in `lib/photos/limits.ts`. Nothing upstream specifies either; widening the list later is one line, narrowing it after people have uploaded is not |
-| **Reverse search → map filter UI** | The schema and `/api/labs` already support `film_stock_id`, so this is only a UI question |
-| **The bilingual strategy, on paper twice** | `00_BACKLOG` lists it as unresolved while P22 already decides it (a hand-rolled `lib/i18n.ts`, not next-intl). Reconcile the two so 3.3 does not re-litigate it |
+| ~~**Reverse search → map filter UI**~~ | **Answered, PROPOSED:** `/labs?stock=<id>`, with a removable "Carries" chip above the other filters and "Find these on the map" on a stock's page. Built, so overturning it now means changing a UI rather than choosing one |
+| **The bilingual strategy, on paper twice** | Settled in code — P22's hand-rolled `lib/i18n.ts` is built and `00_BACKLOG` still lists the question as open. The remaining work is deleting the stale entry, not making the decision |
 
 ---
 
 ## Merge state
 
-`develop` is **59 commits ahead of `main`** — nothing since the architecture
-blueprint has reached `main`.
+`develop` is **68 commits ahead of `main`** — nothing since the architecture
+blueprint has reached `main` — and **9 of those are unpushed**.
 
-Track C's work — C2 through C5 — is **four commits on
-`claude/c2-storage-image-loader-a6c43f`, local only.** The branch has not been
-pushed and there is no pull request. Everything else on the shelf is already
-merged into `develop`.
+Track C is merged into `develop` (`eaa50b1`), including the R2 correction.
+
+Phase 3 is **5 commits on `claude/phase-3-app-shell`, local only**: the app
+shell, the sitemap fix, 3.1, 3.3's i18n, and 3.5 with the reverse-search
+filter. The branch has not been pushed and there is no pull request.
