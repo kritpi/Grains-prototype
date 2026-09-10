@@ -56,6 +56,16 @@ export const labSearchParsers = {
   scanner: parseAsArrayOf(parseAsString).withDefault([]),
   service: parseAsArrayOf(parseAsString).withDefault([]),
   open: parseAsBoolean.withDefault(false),
+  /**
+   * Reverse search: only labs that carry this film stock (PROPOSED).
+   *
+   * A stock id rather than a name, because the filter is a join on
+   * `lab_stock.film_stock_id` and a name is not unique — identity is name +
+   * ISO (PRD B #2). It is the one filter whose chip cannot be labelled from the
+   * URL alone, so `/labs` resolves the id to a name server-side and passes it
+   * down; see `stockLabel` in lab-search.tsx.
+   */
+  stock: parseAsString,
 };
 
 export type LabSearchState = {
@@ -66,6 +76,7 @@ export type LabSearchState = {
   scanner: string[];
   service: string[];
   open: boolean;
+  stock: string | null;
 };
 
 /** True when the search is narrowed by anything other than where and how far. */
@@ -74,7 +85,8 @@ export function hasActiveFilters(state: LabSearchState): boolean {
     state.process.length > 0 ||
     state.scanner.length > 0 ||
     state.service.length > 0 ||
-    state.open
+    state.open ||
+    state.stock !== null
   );
 }
 
@@ -99,6 +111,7 @@ export function toApiQuery(
     for (const s of state.scanner) params.append("scanner", s);
     for (const s of state.service) params.append("service", s);
     if (state.open) params.set("open_now", "true");
+    if (state.stock) params.set("film_stock_id", state.stock);
   }
 
   return params.toString();

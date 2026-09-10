@@ -9,7 +9,8 @@ That distinction earned its keep: two things the plan says are outstanding are
 already built, one thing nothing mentions is a live bug, and the blocker this
 file opened with had already been lifted without anyone noticing. Where this
 file and [build-plan.html](build-plan.html) disagree, this one was checked more recently — but check again rather than
-trusting it. Track C is finished, so the next thing to move is Phase 3.
+trusting it. Track C and most of Phase 3 are finished; what is left is mostly
+not code.
 
 ---
 
@@ -90,8 +91,8 @@ Then re-run `pnpm r2:check`; all five lines should read `ok`.
 | **A** — lab discovery & map | A1–A7 done, merged into `develop` |
 | **B** — curation & invariants | B1–B5 done, merged into `develop` |
 | **C** — media & photobooks | **complete.** C1 done bar the entitlement; C2–C7 done |
-| **Phase 3** — integration & ship | partly done ahead of schedule, see below |
-| **Phase 4** — hardening | not started |
+| **Phase 3** — integration & ship | 3.1, 3.2, 3.3 and 3.5 done; see below |
+| **Phase 4** — hardening | reverse-search filter done; Sentry needs an account |
 
 The whole suite is **301 tests, green, nothing skipped**, run against
 `grains-dev` with no residue left behind.
@@ -118,24 +119,31 @@ decisions.** No feature area is unbuilt — A, B and C are all complete.
 shipped it. The build plan still lists it as an afternoon of Phase 3 work; it is
 not.
 
-**3.1 is half done.** `NearbyLabs` is wired into `/films/[id]`, and the photo
-metadata form already uses Track B's real film-stock typeahead rather than the
-fixture the plan assumes it would need. What remains of 3.1:
+**3.1 is done.** The film-stock gallery is `PhotoGrid` over
+`listGalleryPhotos`, with a denser column width for a wall of many people's
+frames and "by" rather than "via" under each — every frame there is by the
+person named, and calling that "via" is the soft version of gap plan K3. The
+lab form's atmosphere slot is wired to `requestUploadUrl` + `confirmLabPhoto`,
+and stays disabled while *creating* a lab because a key is
+`labs/{labId}/{uuid}` and there is no id yet.
 
-- the film-stock gallery grid on `/films/[id]` — the slot is drawn and says
-  what it is waiting for. **C6's `components/books/photo-grid.tsx` is the grid
-  it was waiting for**, and `listGalleryPhotos` is the query, so this is now
-  composition rather than new work
-- the lab form's atmosphere-photo slot, still a disabled `+`, wired to
-  `requestUploadUrl({ kind: 'lab_atmosphere' })` + `confirmLabPhoto`
+Two prototype deviations recorded in the code rather than resolved: the
+gallery has no format/scanner filter chips (they need a query that takes more
+than a stock and a cursor), and "+ Add a sample" links to your profile instead
+of opening a second uploader, because PRD D #10 put the upload surface next to
+the cap meter that constrains it.
 
-**3.3 shell and polish** is now mostly done. `app/not-found.tsx`,
-`app/error.tsx`, `app/sitemap.ts`, `app/robots.ts` and the section nav all
-landed on `claude/phase-3-app-shell`. What is left of 3.3 is `lib/i18n.ts` with
-the Thai fallback font and `<html lang>` (P22), which was scoped out as its own
-piece of work.
+**3.3 shell and polish is done.** `app/not-found.tsx`, `app/error.tsx`,
+`app/sitemap.ts`, `app/robots.ts`, the section nav, and `lib/i18n.ts` with the
+Thai face and `<html lang>` (P22) all landed on `claude/phase-3-app-shell`.
 
-Three notes on what landed:
+**3.5 is done too** — [runbook.md](../runbook.md) covers a dead site, a paused
+database, a production migration, a rotated credential and a restore. It says
+out loud which parts have never been rehearsed, and that the free tier takes no
+backups at all, so today there is nothing to restore *from*. That is the
+document's biggest finding and it is a plan decision, not an operational one.
+
+Four notes on what landed:
 
 - **The nav has two items, not the prototype's three.** Labs and Film stocks.
   The prototype's chrome also carries "Photobooks", but that predates PRD D #9 —
@@ -179,7 +187,22 @@ signed-URL wording in 00_BACKLOG (P19)". That file's upload flow already says
 type and size are enforced in `confirmPhoto`, and explains why they moved out
 of the signature.
 
-**Phase 4** — Sentry on both runtimes, paid tiers when their triggers fire.
+**Phase 4 — reverse search is built; Sentry is not.**
+
+The reverse-search map filter is done and marked PROPOSED, per the note in the
+open-decisions list that it was a UI question with the schema and handler
+already behind it. `/labs?stock=<id>` filters the map and result list, and a
+film stock's page links into it with "Find these on the map" — shown even when
+the 10 km list found nothing, since that is exactly when somebody wants to
+widen the search. The chip sits above the other filters and removes rather than
+toggles, because it was set by a link from another page and there is nothing
+here to turn back on.
+
+**Sentry needs you, not code.** It wants a Sentry account and a DSN, and the
+task's own acceptance test is a planted error from each runtime — which cannot
+be verified without one. The call site is already there:
+`app/error.tsx` logs to the console with a comment naming it. See the human
+list below.
 
 ---
 
@@ -241,16 +264,22 @@ Ordered by how much each unblocks, not by effort.
    Laboratory's atmosphere strip and exercises the custom domain, `publicUrl`,
    the image loader and Cloudflare's transformations in one go. P23 has never
    been exercised, and this is the cheapest way to prove it.
-3. **Verify the seven seeded Bangkok labs.** Nothing in
+3. **Create a Sentry project and give me the DSN.** It is the one code task
+   left and it cannot be finished without an account: the free tier needs
+   signing up for, and the acceptance test is a planted error caught from each
+   runtime, which needs a real DSN to catch it. Until then the product has no
+   alerting at all, and the first report of an outage will be a person — see
+   the last section of [runbook.md](../runbook.md).
+4. **Verify the seven seeded Bangkok labs.** Nothing in
    `db/seed/bangkok-labs.sql` has been checked against an actual lab — prices
    first, then hours. The seeded edit-history note says so on every listing until
    somebody corrects it.
-4. **Add the three labs A6 could not pin** — A&B Digital Lab, Flashbox Filmlab,
+5. **Add the three labs A6 could not pin** — A&B Digital Lab, Flashbox Filmlab,
    Warinda Studio. Drafted in
    [track-a-lab-seed-review.md](track-a-lab-seed-review.md); only the map pin was
    missing.
-5. **Review the film-stock seed.**
-6. **Launch:** publish the Google consent screen, custom domain and HTTPS on
+6. **Review the film-stock seed.**
+7. **Launch:** publish the Google consent screen, custom domain and HTTPS on
    Vercel, the production bucket, and a complete production environment — then
    **verify Vercel's Production environment actually overrides `R2_BUCKET`.**
    If it does not, production uploads land in the development bucket and nothing

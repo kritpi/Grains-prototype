@@ -7,6 +7,7 @@ import {
   type LabSearchState,
 } from "@/components/labs/search-state";
 import { chemProcess } from "@/lib/db/schema";
+import { filmStockName } from "@/lib/queries/films";
 import {
   DEFAULT_RADIUS_M,
   listAreas,
@@ -75,7 +76,16 @@ export default async function LabsPage({ searchParams }: PageProps<"/labs">) {
     scanner: asArray(params.scanner),
     service: asArray(params.service),
     open: params.open === "true" || params.open === "1",
+    stock:
+      (Array.isArray(params.stock) ? params.stock[0] : params.stock) ?? null,
   };
+
+  // The stock filter arrives as an id — that is what the join needs — but a
+  // chip reading "Carries: 0f3c…" is not a filter anybody can act on. The name
+  // is resolved here rather than in the client, which has no way to reach the
+  // catalog, and an id that matches nothing yields no label rather than a 404:
+  // the search itself is still valid, it simply returns nothing.
+  const stockLabel = state.stock ? await filmStockName(state.stock) : null;
 
   // The first page, rendered here rather than fetched after hydration. The
   // query string travels with it so the client can tell it already holds the
@@ -91,6 +101,7 @@ export default async function LabsPage({ searchParams }: PageProps<"/labs">) {
         scanner: state.scanner,
         service: state.service,
         openNow: state.open,
+        filmStockId: state.stock ?? undefined,
       })
     : null;
 
@@ -105,6 +116,7 @@ export default async function LabsPage({ searchParams }: PageProps<"/labs">) {
         initial={initial}
         initialQuery={initialQuery}
         initialCenter={located ? { lat: state.lat!, lng: state.lng! } : null}
+        stockLabel={stockLabel}
       />
     </>
   );
