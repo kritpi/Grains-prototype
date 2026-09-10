@@ -156,8 +156,9 @@ would be undefined exactly where the image `src` is built. Nothing leaks — the
 value is already in the `src` of every image on every page. The other three
 carry the opposite rule and must never be prefixed.
 
-`SUPABASE_URL` goes away with `lib/labs/photo-url.ts` in C2. Leave it for now;
-it is optional and unset, so nothing reads it.
+`SUPABASE_URL` is gone — C2 deleted it along with `lib/labs/photo-url.ts`. The
+four keys above are now required by `lib/env.ts`, so an install without them
+fails on the first page that reads the environment rather than only on upload.
 
 I will add the four names to `.env.example` — tell me the public URL and I will
 fill that one in, since it is not a secret. **Do not paste the token values into
@@ -167,12 +168,15 @@ chat.** Put them in the env file yourself; I never read those.
 
 ## When it is done
 
-Tell me and I will start C2: `lib/storage.ts` against R2, `lib/image-loader.ts`
-pointing at `/cdn-cgi/image/`, and deleting Track A's `photo-url.ts` stand-in.
+C2 has landed: `lib/storage.ts` against R2, `lib/image-loader.ts` pointing at
+`/cdn-cgi/image/`, and Track A's `photo-url.ts` stand-in deleted.
 
-The quickest way to know it worked, once C2 lands, is the lab detail page: the
-mock fixture already has `lab_photos` rows, so atmosphere photos should appear
-on **Amp's Laboratory** without anything being uploaded.
+The quickest way to know steps 2 and 5 worked is the lab detail page. The mock
+fixture already has `lab_photos` rows for **Amp's Laboratory**, so uploading
+three images through the R2 dashboard at the keys those rows name makes the
+atmosphere strip render — custom domain, `publicUrl`, the loader and
+transformations, with nothing uploaded through the app. The keys are in
+docs/plans/track-c-progress.md.
 
 ## What is still true afterwards
 

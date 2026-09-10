@@ -32,23 +32,31 @@ const schema = z.object({
   AUTH_SECRET: z.string().min(32),
 
   /**
-   * Supabase project URL, used to build public object URLs for lab atmosphere
-   * photos.
+   * Cloudflare R2 — write credentials for the object store, read only by
+   * `lib/storage.ts`. Server-only, and emphatically so: together they are write
+   * access to the bucket. None of them is ever prefixed `NEXT_PUBLIC_`.
    *
-   * Optional, and deliberately so: the `photos` bucket is created in Track C
-   * (C1, a dashboard step), and until it exists there is nothing to serve and
-   * no rows to serve it for. A lab page without this variable simply omits its
-   * photo section rather than failing to render, which is what lets Track A
-   * finish ahead of the storage setup.
+   * Required rather than optional, unlike the `SUPABASE_URL` these replaced.
+   * That key could be absent because nothing wrote storage yet and a lab page
+   * had to render without it; storage is now load-bearing for uploads,
+   * photobooks and every image on the site, so an install without it is
+   * misconfigured rather than merely early.
    *
-   * An empty string is read as absent, not as an invalid URL: `.env.example`
-   * ships the key with `""`, and copying that file is the documented way to
-   * start — so the placeholder must not fail validation on every page.
+   * The public read origin, `NEXT_PUBLIC_R2_PUBLIC_URL`, is deliberately not
+   * here. It has to be legible in the browser, where `env()` cannot run, so
+   * `lib/image-loader.ts` reads it directly from `process.env` for Next to
+   * inline. Its shape is checked by `pnpm r2:check`, which can tell an S3 API
+   * endpoint from a custom domain and explain the difference.
    */
-  SUPABASE_URL: z.preprocess(
-    (value) => (value === "" ? undefined : value),
-    z.url().optional(),
-  ),
+  R2_ACCOUNT_ID: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
+  /**
+   * Which bucket the S3 API writes to. Vercel overrides this per environment;
+   * if Production does not, production uploads land in the development bucket
+   * and nothing errors — see docs/plans/r2-setup.md.
+   */
+  R2_BUCKET: z.string().min(1),
 });
 
 export type Env = z.infer<typeof schema>;

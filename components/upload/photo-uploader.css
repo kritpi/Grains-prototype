@@ -1,0 +1,113 @@
+/* Photo upload — the one surface that puts a Photo into the world.
+ *
+ * There is no prototype screen to match. The prototype's only upload
+ * affordance is `addSample` on the film-stock gallery, which is the surface
+ * film-stock PRD §3 explicitly rules out; the photobook gap plan records the
+ * absence as J10. So this is built from the component library's primitives —
+ * the empty state's dashed-tile-plus-Fraunces-headline shape, the two input
+ * weights, one signal-coloured action — rather than from a screen, and the
+ * deviation is written here rather than left to be discovered.
+ *
+ * Colours map onto app/globals.css, never onto the prototype's own palette,
+ * for the reason lab-form.css gives: the palette is a foundation decision (P7)
+ * and is not this track's to move.
+ *
+ * The form controls themselves come from lab-form.css, which photo-uploader.tsx
+ * imports — the film-stock picker embedded here is that form's component and
+ * carries its classes. Only what is genuinely new lives below.
+ */
+
+.grains-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Idle: a slot kept rather than a button hidden. The dashed border is the
+ * empty-state vocabulary — "zero is an invitation, not an absence". */
+.grains-upload-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px dashed var(--foreground);
+  background: transparent;
+  padding: 28px 20px;
+  cursor: pointer;
+  width: 100%;
+  color: var(--foreground);
+}
+
+.grains-upload-drop:disabled {
+  border-color: var(--border);
+  color: var(--ring);
+  cursor: not-allowed;
+}
+
+.grains-upload-headline {
+  font: 400 20px var(--font-serif);
+}
+
+.grains-upload-lede {
+  font: 400 11.5px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+/* Frame respect: the preview is the photograph's own shape, never a crop. It is
+ * the same rule the photobook grid is built on, and the moment somebody first
+ * sees their picture in this product is the wrong moment to break it. */
+.grains-upload-frame {
+  border: 1.5px solid var(--foreground);
+  background: var(--secondary);
+  max-height: 420px;
+  max-width: 100%;
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+.grains-upload-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.grains-upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.grains-upload-span {
+  grid-column: 1 / -1;
+}
+
+/* Upload progress. A film scan is several megabytes over a phone connection, so
+ * a bar that moves is the difference between "working" and "broken". Ink, not
+ * signal — signal is reserved for the save action and for problems. */
+.grains-upload-bar {
+  height: 3px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.grains-upload-bar-fill {
+  height: 100%;
+  background: var(--foreground);
+  transition: width 0.18s linear;
+}
+
+.grains-upload-status {
+  font: 400 11.5px var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-upload-chosen {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1.5px solid var(--border);
+  padding: 8px 10px;
+  font: 400 13px var(--font-sans);
+  background: var(--background);
+}

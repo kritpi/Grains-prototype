@@ -1,0 +1,534 @@
+/* Photobook portfolio — profile, photobook, photo detail.
+ *
+ * Transcribed from the `portfolio`, `book` and `photo` screens of
+ * docs/design/grains-prototype.html: the flex ratios, paddings, type sizes and
+ * border weights below are the prototype's own values, not approximations.
+ *
+ * Colours map onto app/globals.css rather than restating the prototype's
+ * palette, the same rule lab-form.css follows — the palette is a foundation
+ * decision (P7) and is not this track's to move. The prototype's tokens map
+ * --paper -> --background, --ink -> --foreground, --ash -> --muted-foreground,
+ * --faint -> --ring, --hair -> --border, --flag/--signal -> --destructive,
+ * --sunk -> --secondary.
+ *
+ * TWO DELIBERATE DEVIATIONS FROM THE PROTOTYPE, both because CLAUDE.md's design
+ * direction is explicit and the rest of the codebase already follows it:
+ *
+ *   1. No border-radius. The prototype rounds the new-photobook tile (8px), the
+ *      metadata rail (8px) and several buttons (4px); CLAUDE.md says "no
+ *      rounded corners (sharp, flat rectangles only)" and lab-form.css has none.
+ *      The avatar keeps its circle — that is a shape, not a rounded rectangle.
+ *   2. No monospace. The prototype sets the profile URL in ui-monospace;
+ *      CLAUDE.md rules out monospace and typewriter faces outright, so it is
+ *      set in the sans at the same size.
+ *
+ * Recorded here rather than silently resolved, because a deviation somebody can
+ * find is fine and a silent one is what causes a rebuild.
+ */
+
+.grains-profile,
+.grains-book {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 26px 20px 34px;
+}
+
+/* --- Profile header ------------------------------------------------------ */
+
+.grains-profile-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 18px;
+}
+
+.grains-identity {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* A circle, which is a shape rather than a rounded rectangle — see the header. */
+.grains-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--foreground);
+  background: var(--secondary);
+  display: grid;
+  place-items: center;
+  font: 500 22px var(--font-serif);
+  flex: none;
+  overflow: hidden;
+}
+
+.grains-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grains-handle {
+  margin: 0;
+  font: 500 32px/1.05 var(--font-serif);
+}
+
+/* The prototype sets this in ui-monospace. See deviation 2. */
+.grains-profile-url {
+  font: 400 11px var(--font-sans);
+  color: var(--ring);
+  margin-top: 4px;
+}
+
+.grains-profile-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.grains-stats {
+  display: flex;
+  gap: 14px;
+}
+
+.grains-stat {
+  text-align: right;
+  font: 400 11px var(--font-sans);
+  color: var(--ring);
+}
+
+.grains-stat b {
+  display: block;
+  font: 500 16px var(--font-sans);
+  color: var(--foreground);
+}
+
+/* The cap meter, next to the action it constrains (PRD D #10). */
+.grains-cap {
+  font: 400 11px var(--font-sans);
+  color: var(--ring);
+}
+
+/* --- Section headers and empty states ------------------------------------ */
+
+.grains-section-label {
+  font: 700 10.5px var(--font-sans);
+  letter-spacing: 0.1em;
+  color: var(--ring);
+}
+
+.grains-empty {
+  padding: 48px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.grains-empty p {
+  margin: 0;
+  font: 400 13px/1.7 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-empty-action {
+  border: 1.5px solid var(--foreground);
+  padding: 10px 18px;
+  font: 700 13px var(--font-sans);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+/* --- Photobook cards ------------------------------------------------------ */
+
+.grains-book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 20px;
+}
+
+.grains-book-card {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  text-align: left;
+}
+
+/* The 3-up mosaic. A Photobook is a set, so the cover previews mixed aspect
+ * ratios honestly rather than cropping one frame to 3:2 (gap plan J7). */
+.grains-cover {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 3px;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+}
+
+.grains-cover-slot {
+  border: 2px solid var(--foreground);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+.grains-cover-slot:first-child {
+  grid-row: 1 / 3;
+}
+
+.grains-cover-slot:nth-child(2),
+.grains-cover-slot:nth-child(3) {
+  border-left: 0;
+}
+
+.grains-cover-slot:nth-child(3) {
+  border-top: 0;
+}
+
+/* object-cover in the mosaic and only here: these are fixed slots in a preview,
+ * not the frames themselves. Frame respect is the rule inside a Photobook. */
+.grains-cover-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grains-book-title {
+  font: 500 18px var(--font-serif);
+}
+
+.grains-book-meta {
+  font: 400 11px var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+
+.grains-book-note {
+  font: 400 11.5px/1.5 var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 6px;
+}
+
+.grains-new-book {
+  border: 1.5px dashed var(--foreground);
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  font: 700 12.5px var(--font-sans);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  width: 100%;
+}
+
+/* --- Photobook detail ----------------------------------------------------- */
+
+.grains-crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  color: var(--ring);
+}
+
+.grains-crumb a {
+  text-decoration: underline;
+}
+
+.grains-book-h1 {
+  margin: 8px 0 0;
+  font: 500 30px/1.1 var(--font-serif);
+}
+
+.grains-book-lede {
+  font: 400 12px var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 8px;
+}
+
+/* The artist's note: once for the whole collection, never per frame (PRD D #7). */
+.grains-note-quote {
+  margin: 12px 0 0;
+  font: 400 13px/1.7 var(--font-sans);
+  color: var(--muted-foreground);
+  max-width: 56ch;
+  border-left: 2px solid var(--border);
+  padding-left: 14px;
+}
+
+/* --- The true-aspect grid ------------------------------------------------- */
+
+/* Mobile is one full-width column so every frame keeps its ratio at maximum
+ * size; desktop is a 2-column masonry, deliberately ragged. No cropping and no
+ * uniform tiles — this is the core visual promise of the feature (gap plan K2),
+ * and it is why the frames carry width/height from the row and never
+ * object-fit: cover. */
+.grains-photo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .grains-photo-grid {
+    display: block;
+    column-count: 2;
+    column-gap: 20px;
+  }
+
+  .grains-frame {
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
+}
+
+.grains-frame {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.grains-frame img {
+  border: 1.5px solid var(--foreground);
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grains-frame-label {
+  font: 400 10px var(--font-sans);
+  color: var(--ring);
+  margin-top: 7px;
+}
+
+/* Own photos show no credit line at all; only a Connection carries one (K3). */
+.grains-frame-credit {
+  font: 400 10px var(--font-sans);
+  color: var(--ring);
+  margin-top: 3px;
+}
+
+/* --- Photo detail --------------------------------------------------------- */
+
+.grains-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 26px 20px 40px;
+}
+
+.grains-photo-frame {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.grains-photo-frame img {
+  border: 1.5px solid var(--foreground);
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grains-photo-rail {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.grains-photo-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  color: var(--ring);
+}
+
+.grains-photo-nav a,
+.grains-photo-nav button {
+  font: 700 13px var(--font-sans);
+  color: var(--foreground);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.grains-photo-nav [aria-disabled="true"] {
+  color: var(--ring);
+  pointer-events: none;
+}
+
+.grains-photo-h1 {
+  margin: 8px 0 0;
+  font: 500 26px/1.15 var(--font-serif);
+}
+
+.grains-photo-by {
+  font: 400 12.5px var(--font-sans);
+  color: var(--muted-foreground);
+  margin-top: 6px;
+  text-decoration: underline;
+  display: inline-block;
+}
+
+/* The one place the reference model is demonstrated rather than asserted. */
+.grains-also {
+  font: 400 11px var(--font-sans);
+  color: var(--ring);
+  margin-top: 6px;
+}
+
+.grains-meta-rail {
+  border: 2px solid var(--foreground);
+  padding: 6px 16px 10px;
+}
+
+/* Every row renders, blank included: a fixed order is what makes an absent
+ * field read as "not tagged" rather than as a different layout (gap plan L5). */
+.grains-meta-row {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px dotted var(--border);
+}
+
+.grains-meta-row:last-child {
+  border-bottom: 0;
+}
+
+.grains-meta-row dt {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ring);
+}
+
+.grains-meta-row dd {
+  margin: 0;
+  font: 400 13px var(--font-sans);
+  text-align: right;
+}
+
+.grains-meta-row dd[data-empty="true"] {
+  color: var(--ring);
+  font-style: italic;
+}
+
+/* --- Actions -------------------------------------------------------------- */
+
+.grains-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.grains-action {
+  border: 1.5px solid var(--foreground);
+  padding: 11px 18px;
+  font: 700 13.5px var(--font-sans);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+/* Signal is reserved for destruction and for problems, nothing else. */
+.grains-action-danger {
+  border-color: var(--destructive);
+  color: var(--destructive);
+}
+
+.grains-confirm {
+  border: 1.5px solid var(--destructive);
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grains-confirm p {
+  margin: 0;
+  font: 400 12.5px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-confirm-go {
+  background: var(--destructive);
+  color: #fdfdfc;
+  border: 1.5px solid var(--destructive);
+  padding: 9px 16px;
+  font: 700 12.5px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-confirm-cancel {
+  border: 1.5px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  padding: 9px 16px;
+  font: 700 12.5px var(--font-sans);
+  cursor: pointer;
+}
+
+/* --- Connect sheet -------------------------------------------------------- */
+
+.grains-sheet {
+  border: 2px solid var(--foreground);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grains-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--border);
+  font: 400 13px var(--font-sans);
+  width: 100%;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+  color: var(--foreground);
+}
+
+.grains-sheet-row:last-of-type {
+  border-bottom: 0;
+}
+
+/* The same 14px box the service checklist uses, so a tick means one thing
+ * everywhere in the product. */
+.grains-sheet-box {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--foreground);
+  display: grid;
+  place-items: center;
+  font: 700 10px var(--font-sans);
+  flex: none;
+}
+
+.grains-sheet-row[data-on="true"] .grains-sheet-box {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.grains-sheet-note {
+  font: 400 11px/1.6 var(--font-sans);
+  color: var(--ring);
+}

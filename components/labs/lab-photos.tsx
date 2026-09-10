@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 
 /**
  * Lab atmosphere photos — the storefront, so a first-time visitor recognises the
@@ -21,11 +21,12 @@
  * draws them, for the same reason an unticked service box beats a missing line:
  * a lab with no storefront photo is a gap somebody could fill.
  *
- * Plain `<img>` rather than `next/image`. The custom loader that points at
- * Supabase's image transforms is Track C's `lib/image-loader.ts` (P23) and does
- * not exist yet; configuring `next/image` for a host twice, once here and once
- * properly, would leave the wrong one behind. Width and height come from the
- * row, so the layout reserves the right box and nothing shifts on load.
+ * `next/image` with `fill`, now that C2's loader exists. The row carries the
+ * stored dimensions, but they are not what should be requested: the frames are
+ * fixed boxes a fraction of the page wide, and passing a 6000 px intrinsic width
+ * would have Cloudflare bill a 6000 px variant to fill a 700 px slot. `sizes`
+ * describes the boxes instead, and the parent reserves the space, so nothing
+ * shifts on load either way.
  */
 
 type LabPhoto = {
@@ -40,27 +41,30 @@ function Frame({
   nameEn,
   index,
   total,
-  className,
+  sizes,
 }: {
   photo: LabPhoto;
   nameEn: string;
   index: number;
   total: number;
-  className?: string;
+  sizes: string;
 }) {
   return (
-    <img
+    <Image
       src={photo.url}
-      width={photo.width}
-      height={photo.height}
+      fill
+      sizes={sizes}
       // Nobody types alt text for these — there is no field for it — so it is
       // composed from what is known. Not empty: these are content rather than
       // decoration, and "photo 2 of 4" is at least an honest account of what is
       // being skipped.
       alt={`${nameEn} — atmosphere photo ${index + 1} of ${total}`}
-      loading={index === 0 ? "eager" : "lazy"}
-      decoding="async"
-      className={className}
+      priority={index === 0}
+      // object-cover here and only here: these slots are fixed shapes in the
+      // layout, and the photo fills them. Frame respect is the rule for a Photo
+      // in a photobook — a print — not for a snapshot of a shopfront being used
+      // as a signpost.
+      className="object-cover"
     />
   );
 }
@@ -78,31 +82,34 @@ export function LabPhotos({
   return (
     <section aria-label={`Photographs of ${nameEn}`}>
       <div className="flex h-[300px] gap-0.5 sm:h-[360px]">
-        {/* The wide frame. object-cover here and only here: this one slot is a
-            fixed shape in the layout, and the photo fills it. Frame respect is
-            the rule for a Photo in a photobook — a print — not for a snapshot of
-            a shopfront being used as a signpost. */}
-        <div className="min-w-0 flex-[2] border border-border" data-stripe="">
+        {/* The wide frame. `relative` is what `fill` measures against. */}
+        <div
+          className="relative min-w-0 flex-[2] border border-border"
+          data-stripe=""
+        >
           {lead ? (
             <Frame
               photo={lead}
               nameEn={nameEn}
               index={0}
               total={photos.length}
-              className="h-full w-full object-cover"
+              sizes="(min-width: 1024px) 640px, 66vw"
             />
           ) : null}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="min-h-0 flex-1 border border-border" data-stripe="">
+          <div
+            className="relative min-h-0 flex-1 border border-border"
+            data-stripe=""
+          >
             {second ? (
               <Frame
                 photo={second}
                 nameEn={nameEn}
                 index={1}
                 total={photos.length}
-                className="h-full w-full object-cover"
+                sizes="(min-width: 1024px) 320px, 33vw"
               />
             ) : null}
           </div>
