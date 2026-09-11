@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { photoKey } from "@/lib/photos/keys";
 import {
+  addOwnPhoto,
   appendPhotobookItem,
   connectPhoto,
   deletePhotobook,
@@ -76,6 +77,86 @@ describe.skipIf(!hasDatabase)("photobook writes", () => {
        order by position
     `);
   }
+
+  describe("addOwnPhoto", () => {
+    it("files your own Photo into your own Photobook", async () => {
+      await withRollback(db, async (tx) => {
+        const me = await user(tx, "me");
+        const mine = await photo(tx, me);
+        const shelf = await book(tx, me);
+
+        expect(await addOwnPhoto(tx, shelf, mine, me)).toEqual({ ok: true });
+
+        const items = await itemsOf(tx, shelf);
+        expect(items).toHaveLength(1);
+        expect(items[0].photo_id).toBe(mine);
+      });
+    });
+
+    it("refuses the same Photo twice without moving it", async () => {
+      await withRollback(db, async (tx) => {
+        const me = await user(tx, "me");
+        const first = await photo(tx, me);
+        const second = await photo(tx, me);
+        const shelf = await book(tx, me);
+
+        await addOwnPhoto(tx, shelf, first, me);
+        await addOwnPhoto(tx, shelf, second, me);
+        expect(await addOwnPhoto(tx, shelf, first, me)).toEqual({
+          ok: false,
+          reason: "already-there",
+        });
+
+        // Position is the curation, so a re-add must not send it to the end.
+        const items = await itemsOf(tx, shelf);
+        expect(items.map((i) => i.photo_id)).toEqual([first, second]);
+      });
+    });
+
+    it("refuses somebody else's Photo, and says to connect it", async () => {
+      // Not a permission check — anyone may put a public Photo in their book —
+      // but a routing one. That path is a Connection, and it carries a credit.
+      await withRollback(db, async (tx) => {
+        const uploader = await user(tx, "uploader");
+        const me = await user(tx, "me");
+        const theirs = await photo(tx, uploader);
+        const shelf = await book(tx, me);
+
+        expect(await addOwnPhoto(tx, shelf, theirs, me)).toEqual({
+          ok: false,
+          reason: "not-your-photo",
+        });
+        expect(await itemsOf(tx, shelf)).toHaveLength(0);
+      });
+    });
+
+    it("refuses a photobook that is not yours", async () => {
+      await withRollback(db, async (tx) => {
+        const me = await user(tx, "me");
+        const stranger = await user(tx, "stranger");
+        const mine = await photo(tx, me);
+        const notMine = await book(tx, stranger);
+
+        expect(await addOwnPhoto(tx, notMine, mine, me)).toEqual({
+          ok: false,
+          reason: "not-your-photobook",
+        });
+        expect(await itemsOf(tx, notMine)).toHaveLength(0);
+      });
+    });
+
+    it("refuses a Photo that is not there", async () => {
+      await withRollback(db, async (tx) => {
+        const me = await user(tx, "me");
+        const shelf = await book(tx, me);
+
+        expect(await addOwnPhoto(tx, shelf, randomUUID(), me)).toEqual({
+          ok: false,
+          reason: "no-such-photo",
+        });
+      });
+    });
+  });
 
   describe("connectPhoto", () => {
     it("connects somebody else's Photo by reference", async () => {

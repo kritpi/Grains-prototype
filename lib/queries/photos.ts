@@ -483,3 +483,51 @@ export async function listUnfiledPhotos(
     uploaderUsername: null,
   }));
 }
+
+/**
+ * The owner's Photos, each marked with whether this Photobook already holds it.
+ *
+ * Everything the "add photographs" picker needs in one statement, and the same
+ * shape `listPhotobooksForConnect` produces for the Connect sheet — one row per
+ * candidate, carrying its current state, because the picker toggles rather than
+ * only adds. A sheet that could add but not show what was already filed would
+ * make "add" look idempotent and "remove" look impossible.
+ *
+ * Unbounded, and safe to be: a person's originals are capped at `UPLOAD_CAP`
+ * (PRD D #5), so this is fifty rows at the very most. Connections are not
+ * listed — a Photo that is somebody else's is Connected from its own page,
+ * where the credit line and the reference model are visible.
+ */
+export async function listOwnPhotosForBook(
+  ownerId: string,
+  photobookId: string,
+): Promise<(GalleryPhoto & { inBook: boolean })[]> {
+  const rows = await getDb().execute<{
+    id: string;
+    storage_key: string;
+    width: number;
+    height: number;
+    frame_size: string | null;
+    format: FilmFormat | null;
+    in_book: boolean;
+  }>(sql`
+    select p.id, p.storage_key, p.width, p.height, p.frame_size, p.format,
+           exists (select 1 from photobook_items i
+                    where i.photo_id = p.id
+                      and i.photobook_id = ${photobookId}::uuid) as in_book
+      from photos p
+     where p.owner_id = ${ownerId}
+     order by p.created_at desc
+  `);
+
+  return rows.map((row) => ({
+    id: row.id,
+    storageKey: row.storage_key,
+    width: row.width,
+    height: row.height,
+    frameSize: row.frame_size,
+    format: row.format,
+    uploaderUsername: null,
+    inBook: row.in_book,
+  }));
+}

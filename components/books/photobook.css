@@ -504,6 +504,72 @@
   cursor: pointer;
 }
 
+/* --- The owner's photo picker --------------------------------------------- */
+
+/* Square tiles, unlike everything else in this stylesheet.
+ *
+ * The grid a photobook is made of respects true aspect ratios and crops
+ * nothing, and that rule is the whole feature. This is not that grid: it is a
+ * chooser, and a ragged masonry of twelve frames is harder to pick from than a
+ * row of even targets. The photograph is shown at its real proportions the
+ * moment it is filed — one tap away, on the page below. */
+.grains-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grains-pick {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border: 1.5px solid var(--border);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.grains-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.72;
+}
+
+.grains-pick[data-on="true"] {
+  border-color: var(--foreground);
+}
+
+.grains-pick[data-on="true"] img {
+  opacity: 1;
+}
+
+.grains-pick:disabled {
+  cursor: not-allowed;
+}
+
+/* The same 14px box the service checklist and the connect sheet use, so a tick
+ * means one thing everywhere in the product. */
+.grains-pick-tick {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  font: 700 10px var(--font-sans);
+  display: grid;
+  place-items: center;
+}
+
+.grains-pick[data-on="true"] .grains-pick-tick {
+  background: var(--foreground);
+  color: var(--background);
+}
+
 /* --- Connect sheet -------------------------------------------------------- */
 
 .grains-sheet {

@@ -13,7 +13,11 @@ import type { PhotoDetail } from "@/lib/queries/photos";
  * Delete.
  *
  * Connect is absent rather than disabled, because connecting your own Photo is
- * a no-op under the reference model — it is already yours (PRD D #12).
+ * a no-op under the reference model — it is already yours (PRD D #12). That is
+ * not the same as filing it, which is ordinary curation and stays allowed: the
+ * page renders `ConnectSheet` in its `file` mode alongside these two. Reading
+ * the absence of Connect as "an owner has nothing to add to a photobook" is
+ * what left an uploaded photograph with no way into one.
  *
  * **Delete states the cascade in plain numbers before it happens.** Under
  * PRD D #6 this is an uploader's only recourse over how their work is being
