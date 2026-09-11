@@ -89,18 +89,23 @@ export function LabMetaLine({
  * Only for the two states somebody asserted. A lab closed for the evening gets
  * no banner: that is a clock reading, not a claim, and burying the page under a
  * notice every night would be false urgency.
+ *
+ * Achromatic, not red. "Somebody told us this shut" is a fact about the world,
+ * not a fault in the page, and status never borrows the signal colour — the
+ * design system's do-not list is explicit about it. Weight carries the two
+ * states instead; see .grains-status-banner.
  */
 export function LabStatusBanner({ status, statusNote }: StatusProps) {
   if (status === "open") return null;
 
   return (
-    <div className="border border-destructive px-5 py-3">
-      <p className="font-sans text-[10px] font-bold tracking-[0.12em] text-destructive uppercase">
+    <div className="grains-status-banner" data-status={status}>
+      <p className="grains-status-banner-label">
         {status === "temporarily_closed"
           ? "Temporarily closed"
           : "Permanently closed"}
       </p>
-      <p className="mt-1 font-sans text-[13px] leading-relaxed">
+      <p className="grains-status-banner-body">
         {status === "temporarily_closed"
           ? // The note is the whole point of the override — "Renovating until
             // October" is the information, and the flag alone is not.

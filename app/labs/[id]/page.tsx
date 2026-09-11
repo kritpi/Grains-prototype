@@ -229,6 +229,9 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
               lastEditedAt={lab.lastEditedAt}
               lastEditorUsername={lab.lastEditorUsername}
               status={lab.status}
+              statusNote={lab.statusNote}
+              version={lab.version}
+              signedIn={Boolean(viewer?.username)}
             />
           </div>
 

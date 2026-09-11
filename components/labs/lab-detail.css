@@ -112,12 +112,27 @@
   gap: 7px;
 }
 
+/* The design system's badge dot is the signal colour. It read --destructive
+ * while signal and failure shared one token; --primary is that colour now. */
 .grains-badge i {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--destructive);
+  background: var(--primary);
   align-self: center;
+}
+
+/* A vote in flight. Every chip in the row goes quiet, because the optimistic
+ * count has already moved and pressing a second one would queue a write
+ * against a number that is still settling. */
+.grains-badge:disabled {
+  color: var(--g-quiet);
+  border-color: var(--border);
+  cursor: progress;
+}
+
+.grains-badge:disabled i {
+  background: var(--g-faint);
 }
 
 .grains-badge[data-zero="true"] {
@@ -181,4 +196,175 @@ a.grains-badge:hover {
 [data-filled="false"] {
   color: var(--g-quiet);
   font-style: italic;
+}
+
+/* ── Reporting a status change ───────────────────────────────────────────── */
+
+/* A disclosure under the "Mark as closed" link, not a popover: it pushes the
+ * column rather than covering it, which keeps the status pill and the hours
+ * table — the two things a reader checks before deciding — visible while they
+ * decide. */
+.grains-statusset {
+  margin-top: 10px;
+  border: 1.5px solid var(--foreground);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grains-statusset-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.grains-statusset-legend {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-quiet);
+}
+
+.grains-statusset-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font: 400 12.5px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-statusset-row input {
+  margin: 2px 0 0;
+  accent-color: var(--foreground);
+  flex: none;
+}
+
+.grains-statusset-row input:disabled,
+.grains-statusset-row:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--g-quiet);
+}
+
+.grains-statusset-label {
+  display: block;
+  font-weight: 700;
+}
+
+.grains-statusset-help {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin-top: 1px;
+}
+
+.grains-statusset-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.grains-statusset-note span {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g-quiet);
+}
+
+/* The confirm step for a permanent closure. Ink rather than red: it is asking
+ * a question, and the answer below it is the thing that carries the weight. */
+.grains-statusset-confirm {
+  margin: 0;
+  background: var(--secondary);
+  padding: 9px 11px;
+  font: 400 12px/1.6 var(--font-sans);
+}
+
+.grains-statusset-problem {
+  margin: 0;
+  border: 1.5px solid var(--destructive);
+  padding: 8px 10px;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--destructive);
+}
+
+.grains-statusset-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Ink by default. It turns --destructive only once the choice is a permanent
+ * closure, which is the one irreversible-in-practice option in the set —
+ * everything else here is a correction somebody else can correct back. */
+.grains-statusset-save {
+  border: 1.5px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+  padding: 8px 13px;
+  font: 700 12px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-statusset-save[data-danger="true"] {
+  border-color: var(--destructive);
+  background: var(--destructive);
+}
+
+.grains-statusset-save:disabled {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--g-quiet);
+  cursor: progress;
+}
+
+.grains-statusset-cancel {
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: 400 12px var(--font-sans);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.grains-statusset-cancel:disabled {
+  color: var(--g-quiet);
+  cursor: not-allowed;
+}
+
+/* ── The banner for a lab somebody has marked closed ─────────────────────── */
+
+/* Achromatic, like every other status surface. Status in Grains never borrows
+ * the process key or the signal colour (design system, do-not list), and this
+ * banner was the one place that did: red read as "something is wrong" when the
+ * truth is "somebody told us this shut", which is a fact, not a fault. The
+ * weight difference carries the two states instead — ash for a closure that
+ * keeps the lab in search, quiet grey for one that removes it. */
+.grains-status-banner {
+  border: 1.5px solid var(--g-faint);
+  padding: 12px 20px;
+}
+
+.grains-status-banner[data-status="permanently_closed"] {
+  border-color: var(--border);
+}
+
+.grains-status-banner-label {
+  margin: 0;
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--status-temporary);
+}
+
+.grains-status-banner[data-status="permanently_closed"]
+  .grains-status-banner-label {
+  color: var(--status-permanent);
+}
+
+.grains-status-banner-body {
+  margin: 4px 0 0;
+  font: 400 13px/1.6 var(--font-sans);
 }

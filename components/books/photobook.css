@@ -488,7 +488,7 @@
 
 .grains-confirm-go {
   background: var(--destructive);
-  color: #fdfdfc;
+  color: var(--background);
   border: 1.5px solid var(--destructive);
   padding: 9px 16px;
   font: 700 12.5px var(--font-sans);

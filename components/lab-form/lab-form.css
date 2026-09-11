@@ -413,7 +413,7 @@
   border: 1.5px solid var(--foreground);
   border-radius: 50% 50% 50% 0;
   rotate: -45deg;
-  background: var(--destructive);
+  background: var(--primary);
 }
 
 /* Atmosphere photos: a 45° hairline hatch, the texture reserved for lab content.
