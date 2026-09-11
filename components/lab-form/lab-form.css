@@ -432,6 +432,105 @@
   color: var(--g-quiet);
 }
 
+/* The tiles beside it — what is already on the lab, and what is on its way.
+ *
+ * The prototype draws exactly this: 84px squares in a wrapping row, each with a
+ * small ✕ hanging off its top-right corner, and the dashed "+" as the last one.
+ * The form used to render only the count, which meant a contributor could add a
+ * photograph but never see it, check it, or take it down again — the "+" was a
+ * one-way door.
+ *
+ * Two departures from the prototype's inline styles, both the house rule rather
+ * than a preference: no border-radius (--radius is 0 product-wide, and the
+ * prototype's 4px corners and 50% ✕ are the exported artifact's own styling),
+ * and the hatch stays under a tile only while its photograph is still landing. */
+.grains-photo-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.grains-photo-tile {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border: 1.5px solid var(--foreground);
+}
+
+.grains-photo-tile img {
+  width: 100%;
+  height: 100%;
+  /* object-cover here, as on the lab page's mosaic and for the same reason:
+   * these are fixed squares in a form, not prints. Frame respect is the rule
+   * for a Photo in a photobook. */
+  object-fit: cover;
+  display: block;
+}
+
+/* Mid-upload: the picture is there to be checked, and the tile says it is not
+ * finished. A spinner would say less. */
+.grains-photo-tile[data-pending="true"] {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.grains-photo-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  font: 700 10px var(--font-sans);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.grains-photo-remove:disabled {
+  border-color: var(--border);
+  color: var(--g-quiet);
+  cursor: not-allowed;
+}
+
+/* The same two-step the photobook's delete uses, in this stylesheet's names:
+ * removing a photograph takes it off the lab page immediately and cannot be
+ * undone, and one mis-tap on a 20px target should not be enough to do it. */
+.grains-photo-confirm {
+  border: 1.5px solid var(--destructive);
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grains-photo-confirm p {
+  margin: 0;
+  font: 400 12.5px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-photo-confirm-go {
+  background: var(--destructive);
+  color: var(--background);
+  border: 1.5px solid var(--destructive);
+  padding: 9px 16px;
+  font: 700 12.5px var(--font-sans);
+  cursor: pointer;
+}
+
+/* What just happened, said by the section that did it. Photographs are not part
+ * of the draft the Save button diffs — they commit on their own — so without a
+ * line here the form went on saying "Nothing changed yet." directly underneath
+ * a photograph that had in fact been saved. */
+.grains-photo-outcome {
+  font: 400 11.5px var(--font-sans);
+  color: var(--muted-foreground);
+}
+
 /* The film stock picker: a search box, its matches, and the way to add one. */
 .grains-picker {
   display: flex;

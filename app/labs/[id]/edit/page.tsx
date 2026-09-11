@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { LabForm } from "@/components/lab-form/lab-form";
 import { BackLink } from "@/components/layout/back-link";
 import { requireUser } from "@/lib/auth";
+import { publicUrl } from "@/lib/image-loader";
 import { listFormCatalog } from "@/lib/queries/catalogs";
 import { getLab } from "@/lib/queries/labs";
 
@@ -40,12 +41,22 @@ export default async function EditLabPage({
   const [lab, catalog] = await Promise.all([getLab(id), listFormCatalog()]);
   if (!lab) notFound();
 
+  // Resolved here rather than in the form, exactly as the lab page does it: a
+  // stored key becomes a path under the public domain, and that rewrite stays
+  // on the server side of the boundary.
+  const photos = lab.photos.map((photo) => ({
+    id: photo.id,
+    url: publicUrl(photo.storageKey),
+    width: photo.width,
+    height: photo.height,
+  }));
+
   return (
     <main>
       {/* Back to the lab, not to the search: an edit is reached from the page
           it edits, and that is where abandoning it should land. */}
       <BackLink href={`/labs/${lab.id}`} label={lab.nameEn} />
-      <LabForm catalog={catalog} lab={lab} />
+      <LabForm catalog={catalog} lab={lab} photos={photos} />
     </main>
   );
 }

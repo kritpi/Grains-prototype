@@ -45,7 +45,7 @@ import {
   saveDraft,
   type StoredDraft,
 } from "./draft-storage";
-import { AtmospherePhotos } from "./atmosphere-photos";
+import { AtmospherePhotos, type LabFormPhoto } from "./atmosphere-photos";
 import { PinPicker } from "./pin-picker";
 import { StockPicker } from "./stock-picker";
 
@@ -69,6 +69,14 @@ type LabFormProps = {
   catalog: FormCatalog;
   /** Absent in create mode. Present, and the diff's baseline, in edit mode. */
   lab?: LabDetail;
+  /**
+   * The lab's atmosphere photographs, resolved to public URLs by the page.
+   *
+   * Separate from `lab` because they are not part of the draft: a photograph
+   * commits the moment it is uploaded rather than when Save is pressed, so it
+   * is neither diffed nor sent with the edit. See `AtmospherePhotos`.
+   */
+  photos?: LabFormPhoto[];
 };
 
 /**
@@ -89,7 +97,7 @@ type LabFormProps = {
  * grid is the pricing grid, the services are a checklist, the week is seven
  * rows, and an un-offered process keeps its slot rather than disappearing.
  */
-export function LabForm({ catalog, lab }: LabFormProps) {
+export function LabForm({ catalog, lab, photos = [] }: LabFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<LabActionResult | null>(null);
@@ -560,7 +568,7 @@ export function LabForm({ catalog, lab }: LabFormProps) {
       <ContactSection draft={draft} update={update} />
       <HoursSection draft={draft} update={update} />
 
-      <AtmospherePhotos labId={lab?.id} count={lab?.photos.length ?? 0} />
+      <AtmospherePhotos labId={lab?.id} photos={photos} />
 
       <Field label="NOTE FOR THE HISTORY LOG · OPTIONAL">
         <input

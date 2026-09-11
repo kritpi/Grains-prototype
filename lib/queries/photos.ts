@@ -214,6 +214,34 @@ export async function insertLabPhoto(
   return rows[0].id;
 }
 
+/**
+ * Remove venue documentation, returning the lab it belonged to and the object
+ * to delete with it.
+ *
+ * **No owner clause, and that is not an oversight.** `uploaded_by` on this
+ * table is provenance rather than ownership — the comment on `insertLabPhoto`
+ * says so — and a lab's page is edited by anyone signed in under PRD A's trust
+ * model. A photograph of the wrong shopfront that only its uploader could take
+ * down would be a page nobody else could correct, which is the opposite of how
+ * every other field on a lab works.
+ *
+ * Returns null when the row was already gone, which the caller must not treat
+ * as licence to delete the object: the key is only known to have been this
+ * row's if this delete is the one that removed it.
+ */
+export async function deleteLabPhoto(
+  tx: LabTx,
+  id: string,
+): Promise<{ labId: string; storageKey: string } | null> {
+  const rows = await tx.execute<{ lab_id: string; storage_key: string }>(sql`
+    delete from lab_photos
+     where id = ${id}::uuid
+    returning lab_id, storage_key
+  `);
+  const row = rows[0];
+  return row ? { labId: row.lab_id, storageKey: row.storage_key } : null;
+}
+
 // ---------------------------------------------------------------------------
 // The Film Stock Gallery, and the reference model's one visible proof.
 // ---------------------------------------------------------------------------
