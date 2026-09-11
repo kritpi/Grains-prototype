@@ -77,6 +77,12 @@
   --color-proc-ecn2: var(--g-proc-ecn2);
   --color-proc-e6: var(--g-proc-e6);
   --color-proc-bw: var(--g-proc-bw);
+
+  /* Tertiary text and non-interactive boundaries, as utilities.
+     `text-ring` / `border-ring` used to stand in for these, which tied the
+     whole interface's quiet text to the focus-ring colour. */
+  --color-quiet: var(--g-quiet);
+  --color-faint: var(--g-faint);
 }
 
 :root {

@@ -200,7 +200,7 @@
 .grains-stock-label {
   font: 700 10px var(--font-sans);
   letter-spacing: 0.12em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-stock-empty {
@@ -294,7 +294,7 @@
  * it explains what you are already looking at. */
 .grains-gallery-note {
   font: 400 11.5px/1.7 var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   border-top: 1px solid var(--border);
   padding-top: 14px;
 }

@@ -76,7 +76,7 @@ export function LabSupplies({ supplies }: Pick<LabDetail, "supplies">) {
             {supplies.map((supply) => (
               <li
                 key={supply.id}
-                className="border border-ring px-2.5 py-1 font-sans text-xs text-muted-foreground"
+                className="border border-faint px-2.5 py-1 font-sans text-xs text-muted-foreground"
               >
                 {supply.labelEn ?? supply.customLabel}
               </li>

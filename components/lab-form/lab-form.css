@@ -74,7 +74,7 @@
 .grains-form-label {
   font: 700 10px var(--font-sans);
   letter-spacing: 0.1em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-form-field {
@@ -116,7 +116,7 @@
 
 .grains-input::placeholder,
 .grains-input-cell::placeholder {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-input:focus-visible,
@@ -168,7 +168,7 @@
   display: flex;
   font: 700 9px var(--font-sans);
   letter-spacing: 0.06em;
-  color: var(--ring);
+  color: var(--g-quiet);
   padding: 8px 12px;
   border-bottom: 1.5px solid var(--foreground);
   background: var(--secondary);
@@ -211,7 +211,7 @@
   justify-content: flex-end;
   font: 700 9px var(--font-sans);
   letter-spacing: 0.06em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-matrix-turn input {
@@ -266,7 +266,7 @@
 
 .grains-row-remove {
   font: 700 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   background: none;
   border: 0;
   cursor: pointer;
@@ -308,7 +308,7 @@
 /* A dashed note is the system's shape for "here is a caveat", used for the
  * nearby-duplicate warning and the hours explainer alike. */
 .grains-note {
-  border: 1px dashed var(--ring);
+  border: 1px dashed var(--g-faint);
   padding: 8px 10px;
   font: 400 11px/1.6 var(--font-sans);
   color: var(--muted-foreground);
@@ -340,7 +340,7 @@
 
 .grains-hours-closed {
   font: 400 11.5px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* The one signal-coloured action on the screen, and the only one anywhere in
@@ -361,7 +361,7 @@
 
 .grains-save:disabled {
   background: transparent;
-  color: var(--ring);
+  color: var(--g-quiet);
   border-color: var(--border);
   cursor: not-allowed;
 }
@@ -446,7 +446,7 @@
 
 .grains-photo-add:disabled {
   border-color: var(--border);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* The film stock picker: a search box, its matches, and the way to add one. */
@@ -488,7 +488,7 @@
 
 .grains-ghost:disabled,
 .grains-secondary:disabled {
-  color: var(--ring);
+  color: var(--g-quiet);
   cursor: not-allowed;
 }
 
@@ -609,7 +609,7 @@
   font: 700 10px var(--font-sans);
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-bottom: 4px;
 }
 
@@ -619,7 +619,7 @@
 }
 
 .grains-conflict-values s {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-conflict-leaf,
@@ -639,7 +639,7 @@
 .grains-conflict-pick {
   background: transparent;
   border: 0;
-  color: var(--ring);
+  color: var(--g-quiet);
   font: 700 11px var(--font-sans);
   padding: 7px 12px;
   cursor: pointer;

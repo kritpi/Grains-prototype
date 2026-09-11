@@ -78,7 +78,7 @@
   font-style: italic;
 }
 .grains-status[data-status="closed"] {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* Services read as a checklist, so an un-offered service is an unticked box
@@ -95,10 +95,10 @@
 }
 
 [data-svstate="unknown"] {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 [data-svstate="unknown"] .grains-svbox {
-  border-color: var(--ring);
+  border-color: var(--g-quiet);
 }
 
 /* A badge nobody has endorsed keeps its slot, dashed — an invitation rather
@@ -121,12 +121,12 @@
 }
 
 .grains-badge[data-zero="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   border-style: dashed;
-  border-color: var(--ring);
+  border-color: var(--g-quiet);
 }
 .grains-badge[data-zero="true"] i {
-  background: var(--ring);
+  background: var(--g-faint);
 }
 
 /* Pressable, and visibly pressed.
@@ -179,6 +179,6 @@ a.grains-badge:hover {
 
 /* A field nobody has filled in: stated, not omitted. */
 [data-filled="false"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   font-style: italic;
 }

@@ -40,7 +40,7 @@
 
 .grains-upload-drop:disabled {
   border-color: var(--border);
-  color: var(--ring);
+  color: var(--g-quiet);
   cursor: not-allowed;
 }
 

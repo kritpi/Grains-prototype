@@ -8,7 +8,8 @@
  * palette, the same rule lab-form.css follows — the palette is a foundation
  * decision (P7) and is not this track's to move. The prototype's tokens map
  * --paper -> --background, --ink -> --foreground, --ash -> --muted-foreground,
- * --faint -> --ring, --hair -> --border, --flag/--signal -> --destructive,
+ * --faint -> --g-quiet (text) or --g-faint (borders), --hair -> --border,
+ * --flag -> --destructive, --signal -> --primary,
  * --sunk -> --secondary.
  *
  * TWO DELIBERATE DEVIATIONS FROM THE PROTOTYPE, both because CLAUDE.md's design
@@ -80,7 +81,7 @@
 /* The prototype sets this in ui-monospace. See deviation 2. */
 .grains-profile-url {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 4px;
 }
 
@@ -99,7 +100,7 @@
 .grains-stat {
   text-align: right;
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-stat b {
@@ -111,7 +112,7 @@
 /* The cap meter, next to the action it constrains (PRD D #10). */
 .grains-cap {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* --- Section headers and empty states ------------------------------------ */
@@ -119,7 +120,7 @@
 .grains-section-label {
   font: 700 10.5px var(--font-sans);
   letter-spacing: 0.1em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-empty {
@@ -237,7 +238,7 @@
   gap: 10px;
   font: 700 10px var(--font-sans);
   letter-spacing: 0.12em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-crumb a {
@@ -326,14 +327,14 @@
 
 .grains-frame-label {
   font: 400 10px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 7px;
 }
 
 /* Own photos show no credit line at all; only a Connection carries one (K3). */
 .grains-frame-credit {
   font: 400 10px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 3px;
 }
 
@@ -373,7 +374,7 @@
   gap: 10px;
   font: 700 10px var(--font-sans);
   letter-spacing: 0.12em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-photo-nav a,
@@ -386,7 +387,7 @@
 }
 
 .grains-photo-nav [aria-disabled="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   pointer-events: none;
 }
 
@@ -406,7 +407,7 @@
 /* The one place the reference model is demonstrated rather than asserted. */
 .grains-also {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 6px;
 }
 
@@ -434,7 +435,7 @@
   font: 700 10px var(--font-sans);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-meta-row dd {
@@ -444,7 +445,7 @@
 }
 
 .grains-meta-row dd[data-empty="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   font-style: italic;
 }
 
@@ -550,5 +551,5 @@
 
 .grains-sheet-note {
   font: 400 11px/1.6 var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
