@@ -101,8 +101,12 @@
   width: 100%;
 }
 
+/* --input, not --border: this hairline is the only boundary a grid cell has,
+ * and --border is 1.36:1 against paper — below WCAG 1.4.11's 3:1 for a UI
+ * component. The two weights stay distinguishable; the lighter one is now
+ * visible. */
 .grains-input-cell {
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--input);
   padding: 8px 10px;
   font: 400 13px var(--font-sans);
   background: var(--background);
@@ -340,11 +344,16 @@
 }
 
 /* The one signal-coloured action on the screen, and the only one anywhere in
- * this form: saving is the thing this page exists for. */
+ * this form: saving is the thing this page exists for.
+ *
+ * --primary, not --destructive. Those were the same token until the palette
+ * was reconciled, which meant this button and .grains-problem below it — the
+ * banner that says the save failed — were painted the same colour. Red on a
+ * button now means "this is the action"; red as text means "this went wrong". */
 .grains-save {
-  border: 1.5px solid var(--destructive);
-  background: var(--destructive);
-  color: #fdfdfc;
+  border: 1.5px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
   padding: 12px 20px;
   font: 700 14px var(--font-sans);
   cursor: pointer;
@@ -463,4 +472,194 @@
 
 .grains-picker-match:hover {
   border-color: var(--foreground);
+}
+
+/* A third button weight, below .grains-secondary: an escape hatch that should
+ * be reachable without competing with the two real choices beside it. */
+.grains-ghost {
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  padding: 8px 0;
+  font: 400 12px var(--font-sans);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.grains-ghost:disabled,
+.grains-secondary:disabled {
+  color: var(--ring);
+  cursor: not-allowed;
+}
+
+/* ── Restoring a kept draft ─────────────────────────────────────────────── */
+
+.grains-restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1.5px solid var(--foreground);
+  background: var(--secondary);
+  padding: 12px 14px;
+  font: 400 13px/1.5 var(--font-sans);
+}
+
+.grains-restore-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.grains-restore-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Version conflict ───────────────────────────────────────────────────── */
+
+/* Ink, not --destructive.
+ *
+ * A version collision is not a failure of anything the contributor typed —
+ * nothing they wrote is wrong and nothing is lost. It is a state that needs a
+ * decision, so it reads as one: a filled ink bar, the same weight the design
+ * system gives any other structural header. Painting it in failure red also
+ * put it a shade away from the signal-red "Merge and save" sitting inside it,
+ * which undid the point of separating action from failure. Red as text in
+ * .grains-problem still means "this went wrong"; red on a button still means
+ * "this is the action"; neither is now competing with the other here. */
+.grains-conflict {
+  border: 1.5px solid var(--foreground);
+}
+
+.grains-conflict-head {
+  background: var(--foreground);
+  color: var(--background);
+  padding: 11px 15px;
+}
+
+.grains-conflict-title {
+  margin: 0;
+  font:
+    400 17px/1.25 var(--font-serif),
+    Georgia,
+    serif;
+  color: var(--background);
+}
+
+/* The heading takes focus when the panel opens, so it needs a ring that reads
+ * against the filled bar rather than the page. */
+.grains-conflict-title:focus-visible {
+  outline: 2px solid var(--background);
+  outline-offset: 2px;
+}
+
+.grains-conflict-sub {
+  margin: 3px 0 0;
+  font: 400 12px var(--font-sans);
+  opacity: 0.9;
+}
+
+.grains-conflict-body {
+  padding: 14px 15px;
+}
+
+.grains-conflict-auto,
+.grains-conflict-clear {
+  margin: 0;
+  background: var(--secondary);
+  padding: 10px 12px;
+  font: 400 12.5px/1.6 var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-conflict-auto strong,
+.grains-conflict-clear strong {
+  color: var(--foreground);
+}
+
+.grains-conflict-rows {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.grains-conflict-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.grains-conflict-row:last-child {
+  border-bottom: 0;
+}
+
+.grains-conflict-field {
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.grains-conflict-name {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ring);
+  margin-bottom: 4px;
+}
+
+.grains-conflict-values {
+  font: 400 13px/1.5 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.grains-conflict-values s {
+  color: var(--ring);
+}
+
+.grains-conflict-leaf,
+.grains-conflict-side {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+/* Two radios drawn as one segmented control — the same data-on mechanic every
+ * other toggle in the form uses, so the selected half is filled. */
+.grains-conflict-choice {
+  display: inline-flex;
+  border: 1.5px solid var(--foreground);
+  flex: none;
+}
+
+.grains-conflict-pick {
+  background: transparent;
+  border: 0;
+  color: var(--ring);
+  font: 700 11px var(--font-sans);
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.grains-conflict-pick + .grains-conflict-pick {
+  border-left: 1.5px solid var(--foreground);
+}
+
+.grains-conflict-pick[data-on="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.grains-conflict-foot {
+  border-top: 1.5px solid var(--foreground);
+  padding: 12px 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }

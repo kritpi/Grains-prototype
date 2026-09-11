@@ -1,15 +1,20 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { createLab, updateLab, type LabActionResult } from "@/app/labs/actions";
+import {
+  formatChangePath,
+  formatEditAge,
+} from "@/components/labs/edit-log-format";
 import { DAY_LABELS } from "@/lib/labs/hours";
 import {
   CONTACT_CHANNELS,
   type ChemProcess,
   type ContactChannel,
   type FilmFormat,
+  type HistoryChange,
 } from "@/lib/labs/paths";
 import type { FormCatalog } from "@/lib/queries/catalogs";
 import type { LabDetail } from "@/lib/queries/labs";
@@ -26,6 +31,20 @@ import {
   type DraftDay,
   type LabDraft,
 } from "./draft";
+import {
+  applyMerge,
+  defaultResolution,
+  planMerge,
+  type MergePlan,
+  type Resolution,
+} from "./conflict";
+import {
+  clearDraft,
+  draftKey,
+  loadDraft,
+  saveDraft,
+  type StoredDraft,
+} from "./draft-storage";
 import { AtmospherePhotos } from "./atmosphere-photos";
 import { PinPicker } from "./pin-picker";
 import { StockPicker } from "./stock-picker";
@@ -84,12 +103,47 @@ export function LabForm({ catalog, lab }: LabFormProps) {
   // Held in state rather than a ref because the diff reads it during render,
   // and a ref read during render is a value React does not promise is stable.
   // It is initialised once and never set: that is what makes it a baseline.
-  const [initial] = useState<LabDraft>(() =>
+  /**
+   * The lab a save is written against — derived, not synced.
+   *
+   * This is the difference between recovering from a conflict and looping on
+   * it. `updateLab` refuses a stale version, and while the version came
+   * straight off an unchanging prop, every retry re-sent the same stale number
+   * and failed identically — with the button still enabled, so the only way
+   * out was a reload that discarded everything typed.
+   *
+   * A merge stores the lab it rebased onto here. Whichever of the two is newer
+   * wins, so a `revalidatePath` that lands a fresher prop is picked up without
+   * an effect to copy it across.
+   */
+  const [rebased, setRebased] = useState<LabDetail | null>(null);
+  const base =
+    rebased !== null && (lab === undefined || rebased.version > lab.version)
+      ? rebased
+      : lab;
+
+  // The baseline is a draft rather than the lab row, so what is compared is two
+  // objects of the same shape. Comparing "180" against 180 is a formatting
+  // question, and answering it in two places is how a form starts reporting
+  // changes nobody made.
+  //
+  // Held in state rather than a ref because the diff reads it during render,
+  // and a ref read during render is a value React does not promise is stable.
+  // It is set exactly once more than it used to be: a merge moves the baseline
+  // to the lab the merge was resolved against.
+  const [initial, setInitial] = useState<LabDraft>(() =>
     lab ? draftFromLab(lab) : emptyDraft(),
   );
   const [draft, setDraft] = useState<LabDraft>(() =>
     lab ? draftFromLab(lab) : emptyDraft(),
   );
+
+  /** Set when a save lost the race and there is a merge to resolve. */
+  const [conflict, setConflict] = useState<{
+    server: LabDetail;
+    plan: MergePlan;
+    resolution: Resolution;
+  } | null>(null);
 
   const creating = lab === undefined;
   const gate = createGate(draft);
@@ -98,6 +152,49 @@ export function LabForm({ catalog, lab }: LabFormProps) {
     [creating, initial, draft],
   );
 
+  // ── keeping the draft on the device ────────────────────────────────────
+  const storageKey = useMemo(() => draftKey(lab?.id), [lab?.id]);
+  const [restorable, setRestorable] = useState<StoredDraft | null>(null);
+  /**
+   * Whether it is safe to start writing.
+   *
+   * False only while an offer to restore is on screen: persisting on mount
+   * would overwrite the very draft being offered, which is the one bug this
+   * whole mechanism exists to avoid.
+   */
+  const [restoreSettled, setRestoreSettled] = useState(true);
+  const readStorage = useRef(false);
+
+  // localStorage cannot be read while rendering — this component is a client
+  // component but still server-rendered, so a lazy `useState` initialiser
+  // would run where `window` does not exist. Reading after mount and setting
+  // state is the only order available, which is why the rule is suppressed
+  // here and nowhere else in this file.
+  useEffect(() => {
+    if (readStorage.current) return;
+    readStorage.current = true;
+    const stored = loadDraft(storageKey);
+    if (!stored) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
+    setRestorable(stored);
+    setRestoreSettled(false);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!restoreSettled) return;
+    // Debounced: a keystroke is not a save, and serialising the whole draft on
+    // every one of them is work nobody asked for.
+    const timer = window.setTimeout(() => {
+      saveDraft(storageKey, {
+        baseVersion: base?.version ?? 0,
+        draft,
+        note,
+        savedAt: Date.now(),
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [draft, note, base?.version, storageKey, restoreSettled]);
+
   const update = (change: (next: LabDraft) => void) =>
     setDraft((current) => {
       const next = structuredClone(current);
@@ -105,21 +202,131 @@ export function LabForm({ catalog, lab }: LabFormProps) {
       return next;
     });
 
-  function save() {
+  /**
+   * One submit path, with the baseline and the draft passed in rather than
+   * read from state.
+   *
+   * A merge sets three pieces of state and submits in the same tick, and the
+   * updates are not visible to this closure when it runs. Passing them makes
+   * the second conflict in a row plan against the right baseline instead of
+   * the one two saves ago.
+   */
+  function submitUpdate(
+    target: LabDetail,
+    baseline: LabDraft,
+    nextDraft: LabDraft,
+    nextChanges: HistoryChange[],
+  ) {
     setResult(null);
     startTransition(async () => {
-      const outcome = creating
-        ? await createLab(draftToCreateInput(draft), note)
-        : await updateLab(lab!.id, lab!.version, changes, note);
-
+      const outcome = await updateLab(
+        target.id,
+        target.version,
+        nextChanges,
+        note,
+      );
       setResult(outcome);
-      if (outcome.ok) router.push(`/labs/${outcome.id}`);
+
+      if (outcome.ok) {
+        clearDraft(storageKey);
+        router.push(`/labs/${outcome.id}`);
+        return;
+      }
+
+      // `current` is null when the lab became unreadable between the refused
+      // write and the re-read. There is nothing to merge against, so the
+      // message stands alone and no panel opens.
+      if (outcome.reason === "conflict" && outcome.current) {
+        const plan = planMerge(baseline, nextDraft, outcome.current);
+        setConflict({
+          server: outcome.current,
+          plan,
+          resolution: defaultResolution(plan),
+        });
+      }
     });
   }
 
+  function save() {
+    if (creating) {
+      setResult(null);
+      startTransition(async () => {
+        const outcome = await createLab(draftToCreateInput(draft), note);
+        setResult(outcome);
+        if (outcome.ok) {
+          clearDraft(storageKey);
+          router.push(`/labs/${outcome.id}`);
+        }
+      });
+      return;
+    }
+    submitUpdate(base!, initial, draft, changes);
+  }
+
+  /**
+   * Rebase onto the lab as it now is, then save.
+   *
+   * Resetting the baseline is the load-bearing half: the merged draft is
+   * expressed relative to the server's state, so diffing it against the old
+   * baseline would re-send leaves that are already committed.
+   */
+  function mergeAndSave() {
+    if (!conflict) return;
+    const merged = applyMerge(
+      draft,
+      conflict.server,
+      conflict.plan,
+      conflict.resolution,
+    );
+    const nextBaseline = draftFromLab(conflict.server);
+    const nextChanges = diffDraft(nextBaseline, merged);
+
+    setRebased(conflict.server);
+    setInitial(nextBaseline);
+    setDraft(merged);
+    setConflict(null);
+
+    // Taking every contested slot from the server can leave nothing to write.
+    // That is a resolved conflict, not a failed save.
+    if (nextChanges.length === 0) {
+      setResult({ ok: false, reason: "unchanged" });
+      return;
+    }
+    submitUpdate(conflict.server, nextBaseline, merged, nextChanges);
+  }
+
+  /** Abandon this editor's version and continue from the server's. */
+  function takeServerVersion() {
+    if (!conflict) return;
+    const theirs = draftFromLab(conflict.server);
+    setRebased(conflict.server);
+    setInitial(theirs);
+    setDraft(theirs);
+    setConflict(null);
+    setResult(null);
+    clearDraft(storageKey);
+  }
+
+  function restoreDraft() {
+    if (restorable) {
+      setDraft(restorable.draft);
+      setNote(restorable.note);
+    }
+    setRestorable(null);
+    setRestoreSettled(true);
+  }
+
+  function discardStoredDraft() {
+    clearDraft(storageKey);
+    setRestorable(null);
+    setRestoreSettled(true);
+  }
+
+  // An unresolved conflict blocks the save outright. Leaving it enabled is
+  // what made the old failure a loop rather than a message.
   const canSave = creating
     ? gate.ready && !pending
-    : changes.length > 0 && !pending;
+    : changes.length > 0 && !pending && conflict === null;
 
   return (
     <form
@@ -141,6 +348,15 @@ export function LabForm({ catalog, lab }: LabFormProps) {
           change is attributed to you and reversible by anyone.
         </p>
       </header>
+
+      {restorable && (
+        <RestoreOffer
+          stored={restorable}
+          currentVersion={base?.version}
+          onRestore={restoreDraft}
+          onDiscard={discardStoredDraft}
+        />
+      )}
 
       {creating && (
         <div className="grains-form-grid">
@@ -355,10 +571,37 @@ export function LabForm({ catalog, lab }: LabFormProps) {
         />
       </Field>
 
-      <Problems result={result} />
+      <Problems result={result} hasPanel={conflict !== null} />
+
+      {conflict && (
+        <ConflictResolver
+          server={conflict.server}
+          plan={conflict.plan}
+          resolution={conflict.resolution}
+          pending={pending}
+          onChoose={(slot, side) =>
+            setConflict((current) =>
+              current === null
+                ? current
+                : {
+                    ...current,
+                    resolution: { ...current.resolution, [slot]: side },
+                  },
+            )
+          }
+          onMerge={mergeAndSave}
+          onTakeServer={takeServerVersion}
+          onDismiss={() => setConflict(null)}
+        />
+      )}
 
       <div className="grains-actions">
-        <button type="submit" className="grains-save" disabled={!canSave}>
+        <button
+          type="submit"
+          className="grains-save"
+          disabled={!canSave}
+          aria-busy={pending}
+        >
           {pending
             ? "Saving…"
             : creating
@@ -841,17 +1084,25 @@ function CustomRows({
  * The version is stale, so reloading is the only honest next step — anything
  * else would be this form quietly deciding whose edit wins.
  */
-function Problems({ result }: { result: LabActionResult | null }) {
+function Problems({
+  result,
+  hasPanel,
+}: {
+  result: LabActionResult | null;
+  hasPanel: boolean;
+}) {
   if (result === null || result.ok) return null;
 
   if (result.reason === "conflict") {
+    // With a panel open the message belongs in it, next to the choice it is
+    // asking for. Repeating it here would be two voices on one problem.
+    if (hasPanel) return null;
     return (
-      <div className="grains-problem">
-        <strong>Somebody edited this lab while you had it open.</strong>
+      <div className="grains-problem" role="alert">
+        <strong>This lab cannot be loaded any more.</strong>
         <p style={{ margin: "6px 0 0" }}>
-          It is now called “{result.current?.nameEn ?? "unknown"}” and is on
-          version {result.current?.version ?? "?"}. Reload to see what changed —
-          your text is still on this page until you do.
+          Somebody edited it while you had it open, and it no longer reads back
+          from here. Nothing was saved and your text is still on this page.
         </p>
       </div>
     );
@@ -859,13 +1110,13 @@ function Problems({ result }: { result: LabActionResult | null }) {
 
   if (result.reason === "cascade") {
     return (
-      <div className="grains-problem">
+      <div className="grains-problem" role="alert">
         <strong>
           Removing that process would delete pricing this save does not mention.
         </strong>
         <ul>
           {result.missing.map((path) => (
-            <li key={path}>{path}</li>
+            <li key={path}>{formatChangePath(path)}</li>
           ))}
         </ul>
       </div>
@@ -873,19 +1124,23 @@ function Problems({ result }: { result: LabActionResult | null }) {
   }
 
   if (result.reason === "rejected") {
-    return <div className="grains-problem">{result.message}</div>;
+    return (
+      <div className="grains-problem" role="alert">
+        {result.message}
+      </div>
+    );
   }
 
   if (result.reason === "unchanged") {
     return (
-      <div className="grains-problem">
+      <div className="grains-problem" role="alert">
         Nothing changed, so nothing was saved.
       </div>
     );
   }
 
   return (
-    <div className="grains-problem">
+    <div className="grains-problem" role="alert">
       <strong>That could not be saved.</strong>
       <ul>
         {result.issues.map((issue) => (
@@ -893,6 +1148,221 @@ function Problems({ result }: { result: LabActionResult | null }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * The offer to bring back what somebody typed last time.
+ *
+ * An offer rather than an automatic restore, and that is the whole design.
+ * Silently replaying a draft typed against version 4 onto a lab that is now
+ * version 7 would revert three edits nobody asked it to revert — the failure
+ * this form is otherwise careful to make impossible. So the staleness is
+ * stated and the choice is theirs.
+ */
+function RestoreOffer({
+  stored,
+  currentVersion,
+  onRestore,
+  onDiscard,
+}: {
+  stored: StoredDraft;
+  currentVersion: number | undefined;
+  onRestore: () => void;
+  onDiscard: () => void;
+}) {
+  const stale =
+    currentVersion !== undefined && stored.baseVersion < currentVersion;
+
+  return (
+    <div className="grains-restore">
+      <div>
+        <strong>
+          You have unsaved edits from{" "}
+          {formatEditAge(new Date(stored.savedAt).toISOString())}.
+        </strong>
+        <p className="grains-restore-note">
+          {stale
+            ? "The lab has changed since you typed them, so restoring will ask you what to keep."
+            : "They were kept on this device only."}
+        </p>
+      </div>
+      <div className="grains-restore-actions">
+        <button type="button" className="grains-secondary" onClick={onRestore}>
+          Restore
+        </button>
+        <button type="button" className="grains-ghost" onClick={onDiscard}>
+          Discard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Resolving a version collision.
+ *
+ * In place of the action row rather than in a dialog: the fields being compared
+ * are on this page, and a modal would cover the evidence while asking about it.
+ * It is a `region`, not an `alertdialog`, for the same reason — nothing here
+ * should trap focus.
+ *
+ * Contested rows default to **theirs**. Defaulting to mine would quietly revert
+ * a stranger's correction, which is the exact failure the leaf-path diff exists
+ * to prevent; making an override deliberate is the point. Most conflicts have
+ * no contested rows at all — two people editing different parts of a lab — and
+ * those collapse to one sentence and one button.
+ */
+function ConflictResolver({
+  server,
+  plan,
+  resolution,
+  pending,
+  onChoose,
+  onMerge,
+  onTakeServer,
+  onDismiss,
+}: {
+  server: LabDetail;
+  plan: MergePlan;
+  resolution: Resolution;
+  pending: boolean;
+  onChoose: (slot: string, side: "mine" | "theirs") => void;
+  onMerge: () => void;
+  onTakeServer: () => void;
+  onDismiss: () => void;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  // Focus moves to the heading because the save did not happen and nothing
+  // else says so to a keyboard or screen-reader user: the button they pressed
+  // is now disabled and the panel is below it.
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+
+  const editor = server.lastEditorUsername
+    ? `@${server.lastEditorUsername}`
+    : "Somebody";
+  const when = server.lastEditedAt ? formatEditAge(server.lastEditedAt) : null;
+
+  return (
+    <section
+      className="grains-conflict"
+      role="region"
+      aria-labelledby="grains-conflict-heading"
+    >
+      <div className="grains-conflict-head">
+        <h2
+          id="grains-conflict-heading"
+          ref={heading}
+          tabIndex={-1}
+          className="grains-conflict-title"
+        >
+          {editor} edited this lab while you had it open
+        </h2>
+        <p className="grains-conflict-sub">
+          {when ? `${when} · ` : ""}it is now version {server.version}. Nothing
+          you typed has been lost.
+        </p>
+      </div>
+
+      <div className="grains-conflict-body">
+        {plan.autoLabels.length > 0 && (
+          <p className="grains-conflict-auto">
+            <strong>
+              {plan.autoLabels.length} of their change
+              {plan.autoLabels.length === 1 ? "" : "s"} do
+              {plan.autoLabels.length === 1 ? "es" : ""} not touch yours
+            </strong>{" "}
+            and will be kept: {plan.autoLabels.join(", ")}.
+          </p>
+        )}
+
+        {plan.contested.length === 0 ? (
+          <p className="grains-conflict-clear">
+            Nothing you changed overlaps what they changed, so this merges
+            cleanly.
+          </p>
+        ) : (
+          <ul className="grains-conflict-rows">
+            {plan.contested.map((row) => {
+              const chosen = resolution[row.slot] ?? "theirs";
+              const labelId = `conflict-${row.slot.replace(/[^a-z0-9]/gi, "-")}`;
+              return (
+                <li key={row.slot} className="grains-conflict-row">
+                  <div className="grains-conflict-field">
+                    <div id={labelId} className="grains-conflict-name">
+                      {row.label}
+                    </div>
+                    {row.leaves.map((leaf) => (
+                      <div key={leaf.label} className="grains-conflict-values">
+                        {row.leaves.length > 1 && (
+                          <span className="grains-conflict-leaf">
+                            {leaf.label}:{" "}
+                          </span>
+                        )}
+                        <s>{leaf.base}</s> → {leaf.theirs}{" "}
+                        <span className="grains-conflict-side">theirs</span> ·{" "}
+                        {leaf.mine}{" "}
+                        <span className="grains-conflict-side">yours</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    className="grains-conflict-choice"
+                    role="radiogroup"
+                    aria-labelledby={labelId}
+                  >
+                    {(["mine", "theirs"] as const).map((side) => (
+                      <button
+                        key={side}
+                        type="button"
+                        role="radio"
+                        aria-checked={chosen === side}
+                        data-on={chosen === side}
+                        className="grains-conflict-pick"
+                        onClick={() => onChoose(row.slot, side)}
+                      >
+                        {side === "mine" ? "Keep mine" : "Take theirs"}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="grains-conflict-foot">
+        <button
+          type="button"
+          className="grains-save"
+          onClick={onMerge}
+          disabled={pending}
+          aria-busy={pending}
+        >
+          {pending ? "Saving…" : "Merge and save"}
+        </button>
+        <button
+          type="button"
+          className="grains-secondary"
+          onClick={onDismiss}
+          disabled={pending}
+        >
+          Keep editing
+        </button>
+        <button
+          type="button"
+          className="grains-ghost"
+          onClick={onTakeServer}
+          disabled={pending}
+        >
+          Discard mine, take theirs
+        </button>
+      </div>
+    </section>
   );
 }
 
