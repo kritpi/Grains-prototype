@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+import {
+  LOCATE_HINT,
+  LOCATE_OPTIONS,
+  locateFailure,
+  locateMessage,
+  locateSupport,
+  type LocateFailure,
+} from "@/lib/geolocation";
 import type { LabArea } from "@/lib/queries/labs";
 
 type LocationPromptProps = {
@@ -17,25 +25,39 @@ type LocationPromptProps = {
  * geolocate button from the start rather than appearing only after a refusal.
  * That also means someone who never grants location can still use the product,
  * and the areas below are ordinary links, so each is a crawlable entry point.
+ *
+ * The button says what it is about to do before it does it, and each way of
+ * failing says which one it was. Both were one sentence — "Could not read your
+ * location" — which left a reader unable to tell a permission they had blocked
+ * from a page that was never allowed to ask. See `lib/geolocation.ts`.
  */
 export function LocationPrompt({ areas, onLocate }: LocationPromptProps) {
-  const [status, setStatus] = useState<"idle" | "locating" | "denied">("idle");
+  const [status, setStatus] = useState<
+    | { kind: "idle" }
+    | { kind: "locating" }
+    | { kind: "failed"; why: LocateFailure }
+  >({ kind: "idle" });
 
   function locate() {
-    if (!("geolocation" in navigator)) {
-      setStatus("denied");
+    const support = locateSupport();
+    if (support !== "ok") {
+      setStatus({ kind: "failed", why: support });
       return;
     }
-    setStatus("locating");
+
+    setStatus({ kind: "locating" });
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        // Five decimal places is about a metre, which is more than a radius
+        // search needs and considerably less than a raw reading puts in the
+        // address bar.
         onLocate(
           Number(position.coords.latitude.toFixed(5)),
           Number(position.coords.longitude.toFixed(5)),
         );
       },
-      () => setStatus("denied"),
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+      (error) => setStatus({ kind: "failed", why: locateFailure(error) }),
+      LOCATE_OPTIONS,
     );
   }
 
@@ -49,17 +71,17 @@ export function LocationPrompt({ areas, onLocate }: LocationPromptProps) {
       <button
         type="button"
         onClick={locate}
-        disabled={status === "locating"}
+        disabled={status.kind === "locating"}
         className="mt-8 border border-foreground bg-foreground px-4 py-2 font-sans text-sm text-background hover:bg-transparent hover:text-foreground disabled:opacity-60"
       >
-        {status === "locating" ? "Locating…" : "Use my location"}
+        {status.kind === "locating" ? "Locating…" : "Use my location"}
       </button>
 
-      {status === "denied" ? (
-        <p className="mt-3 font-sans text-xs text-muted-foreground">
-          Could not read your location. Pick an area below instead.
-        </p>
-      ) : null}
+      <p className="mt-3 font-sans text-xs text-muted-foreground">
+        {status.kind === "failed"
+          ? `${locateMessage(status.why)} Pick an area below instead.`
+          : LOCATE_HINT}
+      </p>
 
       {areas.length > 0 ? (
         <div className="mt-12">

@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import {
+  LOCATE_HINT,
+  LOCATE_OPTIONS,
+  locateFailure,
+  locateMessage,
+  locateSupport,
+  type LocateFailure,
+} from "@/lib/geolocation";
+
 type NearbyLab = {
   id: string;
   nameEn: string;
@@ -29,7 +38,7 @@ export function NearbyLabs({ filmStockId }: { filmStockId: string }) {
   const [state, setState] = useState<
     | { kind: "idle" }
     | { kind: "locating" }
-    | { kind: "denied" }
+    | { kind: "failed"; why: LocateFailure }
     | { kind: "done"; labs: NearbyLab[] }
   >({ kind: "idle" });
 
@@ -64,6 +73,15 @@ export function NearbyLabs({ filmStockId }: { filmStockId: string }) {
   }, [coords, filmStockId]);
 
   function locate() {
+    // The guard /labs has always had. Without it a browser with no geolocation
+    // — or a page the browser will not let ask, which is any dev server reached
+    // over the LAN — threw inside the handler and the section simply stopped.
+    const support = locateSupport();
+    if (support !== "ok") {
+      setState({ kind: "failed", why: support });
+      return;
+    }
+
     setState({ kind: "locating" });
     navigator.geolocation.getCurrentPosition(
       (position) =>
@@ -71,8 +89,8 @@ export function NearbyLabs({ filmStockId }: { filmStockId: string }) {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         }),
-      () => setState({ kind: "denied" }),
-      { timeout: 10_000 },
+      (error) => setState({ kind: "failed", why: locateFailure(error) }),
+      LOCATE_OPTIONS,
     );
   }
 
@@ -83,24 +101,28 @@ export function NearbyLabs({ filmStockId }: { filmStockId: string }) {
       </div>
 
       {state.kind === "idle" && (
-        <button
-          type="button"
-          className="grains-facet self-start"
-          onClick={locate}
-        >
-          Use my location
-        </button>
+        <>
+          <button
+            type="button"
+            className="grains-facet self-start"
+            onClick={locate}
+          >
+            Use my location
+          </button>
+          <p className="grains-stock-meta">{LOCATE_HINT}</p>
+        </>
       )}
 
       {state.kind === "locating" && (
         <p className="grains-stock-empty">Finding you…</p>
       )}
 
-      {state.kind === "denied" && (
+      {state.kind === "failed" && (
         <p className="grains-stock-empty">
-          Without a location there is nothing to measure from.{" "}
+          {locateMessage(state.why)} Without a location there is nothing to
+          measure from —{" "}
           <Link href="/labs" className="underline">
-            Search an area instead
+            search an area instead
           </Link>
           .
         </p>
