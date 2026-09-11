@@ -102,27 +102,37 @@
   width: 100%;
 }
 
-[data-ratio="1/1"] {
-  aspect-ratio: 1/1;
-}
-[data-ratio="3/2"] {
-  aspect-ratio: 3/2;
-}
-[data-ratio="6/7"] {
-  aspect-ratio: 6/7;
-}
+/* The [data-ratio] utility lives in app/globals.css. */
 
+/* Angles and stop positions are the prototype's, per process; the colours come
+ * from the primitive tier so they cannot drift from the process key. */
 [data-duo="c41"] {
-  background: linear-gradient(155deg, #f0b570, #3a2308 78%);
+  background: linear-gradient(
+    155deg,
+    var(--g-duo-c41-from),
+    var(--g-duo-c41-to) 78%
+  );
 }
 [data-duo="ecn2"] {
-  background: linear-gradient(165deg, #5fd6c2, #082623 80%);
+  background: linear-gradient(
+    165deg,
+    var(--g-duo-ecn2-from),
+    var(--g-duo-ecn2-to) 80%
+  );
 }
 [data-duo="e6"] {
-  background: linear-gradient(155deg, #6e8cff, #050a2e 80%);
+  background: linear-gradient(
+    155deg,
+    var(--g-duo-e6-from),
+    var(--g-duo-e6-to) 80%
+  );
 }
 [data-duo="bw"] {
-  background: linear-gradient(155deg, #f4f4f2, #0d0d0c 82%);
+  background: linear-gradient(
+    155deg,
+    var(--g-duo-bw-from),
+    var(--g-duo-bw-to) 82%
+  );
 }
 
 .grains-stock-count {

@@ -11,6 +11,8 @@ import type {
 } from "@/lib/queries/labs";
 import { FilterPanel } from "./filter-panel";
 import { LabCard } from "./lab-card";
+import { LabCardSkeleton } from "@/components/layout/skeleton";
+
 import { NoLabsNearby, NoMatches } from "./empty-state";
 import { LocationPrompt } from "./location-prompt";
 import {
@@ -172,6 +174,30 @@ export function LabSearch({
   const center: [number, number] = [search.lng!, search.lat!];
   const labs = results?.labs ?? [];
 
+  /**
+   * What a screen reader is told when the result set changes.
+   *
+   * The list rewrites itself on every chip, every radius step and every map
+   * pan, and none of that was announced — `aria-busy` said the list was
+   * working and nothing ever said what it found.
+   *
+   * Deliberately empty while a search is in flight. "Searching…" politely
+   * queued behind whatever is being read would arrive after the answer had
+   * already replaced it, and `aria-busy` on the list carries "working"
+   * without words. So this announces outcomes only: one per landed result
+   * set, which also means a burst of filter toggles produces one announcement
+   * per real answer rather than one per keystroke.
+   */
+  const outcome = error
+    ? "Search failed."
+    : pending
+      ? ""
+      : labs.length > 0
+        ? `${results?.total ?? labs.length} ${(results?.total ?? labs.length) === 1 ? "lab" : "labs"} within ${Math.round(search.r / 1000)} km.`
+        : filtered
+          ? "No labs match these filters."
+          : "No labs found nearby.";
+
   // On a wide screen this is a fixed viewport frame rather than a scrolling
   // page: the map holds still and the result list scrolls inside itself.
   //
@@ -192,6 +218,17 @@ export function LabSearch({
           stockLabel={stockLabel ?? null}
         />
 
+        {/* Polite and atomic: a result count is not urgent, and it reads as one
+            sentence rather than as a diff of the previous one. */}
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {outcome}
+        </p>
+
         <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {error ? (
             <div className="px-5 py-10">
@@ -199,9 +236,14 @@ export function LabSearch({
               <p className="mt-2 text-sm text-muted-foreground">{error}</p>
             </div>
           ) : pending && labs.length === 0 ? (
-            <p className="px-5 py-10 font-sans text-xs text-muted-foreground">
-              Searching…
-            </p>
+            // Rows rather than the word "Searching…": this is the same wait
+            // app/labs/loading.tsx covers on a cold navigation, and the two
+            // should not look like different states of the same list.
+            <ul aria-busy="true">
+              <LabCardSkeleton width="76%" />
+              <LabCardSkeleton width="54%" />
+              <LabCardSkeleton width="68%" />
+            </ul>
           ) : labs.length > 0 ? (
             <ul aria-busy={pending}>
               {labs.map((lab) => (

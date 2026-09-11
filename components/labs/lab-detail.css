@@ -6,33 +6,14 @@
  * writing them as conditional class strings in the markup buries the rule that
  * is actually being expressed.
  *
- * Colours map onto the palette already in app/globals.css rather than
- * redefining it. The prototype's own tokens are a shade different — its paper is
- * #FDFDFC where ours is #F9F8F6 — but the palette is a foundation decision (P7,
- * enforced in globals.css) and is not Track A's to move. Only the process
- * colours are genuinely new, and those are data vocabulary rather than palette:
- * a process is identified by its colour everywhere it appears.
+ * Colours map onto the palette in app/globals.css rather than redefining it,
+ * and the palette is a foundation decision (P7) rather than this track's to
+ * move. The process key is data vocabulary rather than theme, but it is
+ * declared once, as the [data-process] contract in globals.css, because two
+ * component stylesheets used to hold identical copies of it.
  */
 
-/* Chemical process identity colours, straight from the prototype. */
-/* C-41 pairs with dark ink, not paper — the one process colour light enough
- * that the component library specifies #0D0D0C on it. */
-[data-process="c41"] {
-  --proc: #c97112;
-  --proc-ink: #0d0d0c;
-}
-[data-process="ecn2"] {
-  --proc: #0e8c7d;
-  --proc-ink: #ffffff;
-}
-[data-process="e6"] {
-  --proc: #1d4fd8;
-  --proc-ink: #ffffff;
-}
-[data-process="bw"] {
-  --proc: var(--foreground);
-  --proc-ink: var(--background);
-}
+/* The [data-process] contract lives in app/globals.css. */
 
 /* A filled chip when the lab offers the process, an outline when it does not. */
 .grains-proc {

@@ -7,35 +7,15 @@
  * and differ only where an input differs from a value: two input weights, and a
  * chip that toggles rather than reports.
  *
- * Colours map onto app/globals.css rather than restating the prototype's own
- * palette, which runs a shade lighter (#FDFDFC paper against our #F9F8F6). The
- * palette is a foundation decision (P7) and is not this track's to move. The
- * process colours are the exception and are copied exactly, because a process is
- * identified by its colour everywhere it appears — that is data vocabulary, not
- * theme.
+ * Colours map onto app/globals.css rather than restating them, and the palette
+ * is a foundation decision (P7) rather than this track's to move. The process
+ * key is data vocabulary rather than theme — a process is identified by its
+ * colour everywhere it appears — but it is declared once, as the
+ * [data-process] contract in globals.css, because this stylesheet and
+ * lab-detail.css used to hold identical copies of it.
  */
 
-/* Process identity, same values as the detail page. Repeated rather than
- * imported: this stylesheet loads on /labs/new, where nothing else on the page
- * needs the detail view's rules. */
-/* C-41's ink pairing is dark, not paper: the component library pairs #C97112
- * with #0D0D0C, and white on that amber is the weaker of the two. */
-[data-process="c41"] {
-  --proc: #c97112;
-  --proc-ink: #0d0d0c;
-}
-[data-process="ecn2"] {
-  --proc: #0e8c7d;
-  --proc-ink: #ffffff;
-}
-[data-process="e6"] {
-  --proc: #1d4fd8;
-  --proc-ink: #ffffff;
-}
-[data-process="bw"] {
-  --proc: var(--foreground);
-  --proc-ink: var(--background);
-}
+/* The [data-process] contract lives in app/globals.css. */
 
 .grains-form {
   display: flex;
@@ -136,9 +116,12 @@
   cursor: pointer;
 }
 
+/* Unselected: the border carries the process colour, the label carries the
+ * text-safe variant of it. They differ for C-41 — 3.38:1 clears the 3:1 a
+ * border needs and misses the 4.5:1 a label does. */
 .grains-toggle[data-process] {
   border-color: var(--proc);
-  color: var(--proc);
+  color: var(--proc-text);
 }
 
 .grains-toggle[data-on="true"] {

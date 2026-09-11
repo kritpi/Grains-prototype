@@ -128,6 +128,18 @@
   --g-proc-e6: #1d4fd8;
   --g-proc-bw: var(--g-ink);
 
+  /* Duotone stops — placeholder art standing in for a community photo,
+     keyed to the stock's process. Decoration rather than a role, so they sit
+     in the primitive tier and are consumed directly by [data-duo]. */
+  --g-duo-c41-from: #f0b570;
+  --g-duo-c41-to: #3a2308;
+  --g-duo-ecn2-from: #5fd6c2;
+  --g-duo-ecn2-to: #082623;
+  --g-duo-e6-from: #6e8cff;
+  --g-duo-e6-to: #050a2e;
+  --g-duo-bw-from: #f4f4f2;
+  --g-duo-bw-to: #0d0d0c;
+
   /* ─────────────────────────────────────────────────────────────────────────
    * Tier 2 — semantic roles, named as the framework names them.
    *
@@ -200,6 +212,69 @@
   --sidebar-accent-foreground: var(--g-ink);
   --sidebar-border: var(--g-hair);
   --sidebar-ring: var(--border-focus);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * The process key as an attribute contract.
+ *
+ * `data-process` sets three locals, and the third is the one that was missing:
+ *
+ *   --proc       the fill
+ *   --proc-ink   text *on* that fill
+ *   --proc-text  the colour when the process is the foreground — an unselected
+ *                chip's text and border
+ *
+ * C-41 is why --proc-text exists. #c97112 is a legible background and a 3.38:1
+ * illegible foreground, and `.grains-toggle[data-process]` was using the fill
+ * as text. The other three pass either way and point at the same value, so the
+ * contract stays uniform and a future colour change cannot silently regress
+ * one of them.
+ *
+ * This lives here rather than in a component stylesheet because it was living
+ * in *two* — lab-detail.css and lab-form.css held byte-identical copies, and
+ * /films/[id] imported the detail page's stylesheet purely to borrow it. One
+ * definition, loaded by the root layout, is what stops the two drifting.
+ * ─────────────────────────────────────────────────────────────────────────── */
+[data-process="c41"] {
+  --proc: var(--g-proc-c41);
+  --proc-text: var(--g-proc-c41-text);
+  --proc-ink: var(--g-ink);
+}
+[data-process="ecn2"] {
+  --proc: var(--g-proc-ecn2);
+  --proc-text: var(--g-proc-ecn2);
+  --proc-ink: var(--g-paper);
+}
+[data-process="e6"] {
+  --proc: var(--g-proc-e6);
+  --proc-text: var(--g-proc-e6);
+  --proc-ink: var(--g-paper);
+}
+[data-process="bw"] {
+  --proc: var(--g-proc-bw);
+  --proc-text: var(--g-proc-bw);
+  --proc-ink: var(--g-paper);
+}
+
+/* The three frames film actually comes in.
+ *
+ * A shared utility rather than films.css's, because it is now read by the film
+ * catalogue, a stock's gallery, and every loading skeleton that reserves a
+ * frame before its image arrives — and a skeleton on /u/@someone would
+ * otherwise collapse to zero height, since that route has no reason to import
+ * the film stylesheet.
+ *
+ * Reserving the ratio is the point: nothing here is cropped to square up a
+ * grid, so a placeholder that guessed one shape would reflow the page the
+ * moment the real frame loaded. */
+[data-ratio="1/1"] {
+  aspect-ratio: 1/1;
+}
+[data-ratio="3/2"] {
+  aspect-ratio: 3/2;
+}
+[data-ratio="6/7"] {
+  aspect-ratio: 6/7;
 }
 
 @layer base {
