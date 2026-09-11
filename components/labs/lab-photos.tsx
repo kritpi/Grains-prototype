@@ -122,11 +122,18 @@ export function LabPhotos({
   // Arrow keys, on the document while the dialog is open. On the dialog element
   // itself they would only fire while something inside it has focus, and the
   // first thing a reader does in a lightbox is move the mouse.
+  //
+  // Escape is handled here too, even though a modal <dialog> closes on Escape
+  // by itself. It did not always fire when the dialog element rather than
+  // something inside it held focus, and a lightbox that will not close is a
+  // trap — so the platform's behaviour is the mechanism and this is the belt.
+  // Closing twice is a no-op.
   useEffect(() => {
     if (open === null) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "ArrowRight") step(1);
       if (event.key === "ArrowLeft") step(-1);
+      if (event.key === "Escape") dialog.current?.close();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);

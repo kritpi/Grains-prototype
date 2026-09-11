@@ -299,6 +299,7 @@ a.grains-badge:hover {
  * photograph, so it keeps its own proportions and is bounded by the viewport
  * rather than by a box. */
 .grains-lightbox-stage {
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   background: var(--secondary);
@@ -306,12 +307,16 @@ a.grains-badge:hover {
   place-items: center;
 }
 
+/* The 160px is the two bars plus room for them to wrap, which they do on a
+ * narrow viewport — measured against `calc(94vh - 86px)`, which was the two
+ * bars at their unwrapped height and let a tall frame overflow its own stage by
+ * a few pixels. `overflow: auto` above is the backstop, not the plan. */
 .grains-lightbox-stage img {
   display: block;
   width: auto;
   height: auto;
   max-width: min(1100px, 94vw);
-  max-height: calc(94vh - 86px);
+  max-height: calc(94vh - 160px);
 }
 
 @media (max-width: 560px) {
