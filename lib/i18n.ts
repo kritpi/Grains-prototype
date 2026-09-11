@@ -50,6 +50,26 @@ export function isLang(value: unknown): value is Lang {
 }
 
 /**
+ * The address of the current page in the other language.
+ *
+ * `?lang=` on top of the query string that is already there — not instead of
+ * it. The toggle used to link to the bare string `?lang=th`, and a relative
+ * reference beginning with `?` replaces the whole query: switching language on
+ * `/labs?lat=13.7&lng=100.5&process=c41` arrived at `/labs`, dropping somebody
+ * mid-search back to the location prompt. `proxy.ts` preserves whatever it is
+ * given and always did; the link was giving it nothing.
+ *
+ * Pure, and takes the search string rather than reading it, so it is testable
+ * without a router — which is the assertion `tests/i18n.test.ts` believed it
+ * was making against the proxy.
+ */
+export function langHref(pathname: string, search: string, lang: Lang): string {
+  const params = new URLSearchParams(search);
+  params.set("lang", lang);
+  return `${pathname}?${params.toString()}`;
+}
+
+/**
  * The strings.
  *
  * Keyed by where they appear rather than by their English text, so changing the
