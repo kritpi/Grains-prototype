@@ -65,17 +65,26 @@ python3 .claude/skills/prototype-fidelity/scripts/extract_prototype.py
 
 This is where the drift started, and it is worth one explicit check.
 
-`app/globals.css` was written from the *prose* in CLAUDE.md ("warm fine-art
-paper, e.g. `#F9F8F6`"). The design system uses different values. They have never
-been formally reconciled, which means:
+`app/globals.css` now carries the reconciled palette in three tiers —
+primitives (`--g-*`, the only place a hex belongs), semantic roles named as
+`tokens/colors.json` names them, and the shadcn bridge those roles feed. Read
+that block before reaching for a value; it records which design-system colours
+were corrected for contrast and why.
 
 - **Do not read a hex value out of the prototype and paste it into a component.**
-  Map it onto the existing semantic token instead — `--paper` → `--background`,
-  `--ink` → `--foreground`, `--ash` → `--muted-foreground`, `--faint` → `--ring`,
-  `--hair` → `--border`, `--signal` → `--destructive`, `--sunk` → `--secondary`.
-- **The palette is a foundation decision (P7) and is not a track's to move.** If
-  the difference actually matters for what you are building, raise it rather than
-  changing `globals.css` from a feature branch.
+  Map it onto a semantic token instead — `--paper` → `--background`,
+  `--ink` → `--foreground`, `--ash` → `--muted-foreground`,
+  `--faint` → `--border-strong` (boundaries) or `--g-quiet` (small text — the
+  design system's `--faint` is 3.23:1 and fails AA as type),
+  `--hair` → `--border`, `--sunk` → `--secondary`.
+- **`--signal` and `--destructive` are two different things now.** The action
+  colour is `--primary` (signal, `#c7301a`): filled save and publish buttons,
+  one per screen. `--destructive` is failure and deletion only. They were one
+  token until Phase 0, which is why the save button and the error banner used
+  to be the same colour — do not re-merge them.
+- **The palette is still a foundation decision (P7) and is not a track's to
+  move.** Adding a primitive or repointing a role affects every screen: raise it
+  rather than editing `globals.css` from a feature branch.
 - **Genuinely new vocabulary is different from palette.** The per-process colours
   (`c41` amber, `ecn2` teal, `e6` blue, `bw` ink) are data identity, not theme.
   They belong in a component-scoped stylesheet — see
