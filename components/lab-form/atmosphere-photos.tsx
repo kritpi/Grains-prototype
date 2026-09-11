@@ -154,8 +154,8 @@ export function AtmospherePhotos({
 
       setOutcome("Photograph added — it is on the lab page now.");
       // The lab page and this form both read `lab_photos`; the server action
-      // has already revalidated the former. The refresh is what replaces the
-      // local preview with the real row, so the preview is held until it lands.
+      // has already revalidated the former. This is what re-reads the rows here,
+      // turning the local preview into a real tile a moment later.
       router.refresh();
     } catch (error) {
       setProblem(
@@ -164,8 +164,10 @@ export function AtmospherePhotos({
           : "The upload did not finish. Try again.",
       );
     } finally {
-      release();
+      // Clear the tile before revoking its URL, not after: the other order
+      // points a rendered <img> at an address that no longer resolves.
       setPending(null);
+      release();
       if (input.current) input.current.value = "";
     }
   }
