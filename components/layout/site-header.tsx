@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { LangToggle } from "@/components/layout/lang-toggle";
+import {
+  LangToggle,
+  LangToggleFallback,
+} from "@/components/layout/lang-toggle";
 import { SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { currentUser, signOut } from "@/lib/auth";
@@ -25,14 +29,23 @@ export async function SiteHeader() {
       {/* Wordmark and sections read as one group on the left; the prototype
           sets them 14px apart and the sections 20px from each other. */}
       <div className="flex shrink-0 items-center gap-3.5">
-        <Link href="/" className="text-xl">
+        {/* /labs, not / — the landing page is a redirect to it, and a
+            wordmark that costs an extra hop is a wordmark nobody clicks. */}
+        <Link href="/labs" className="text-xl">
           Grains
         </Link>
         <SiteNav lang={lang} />
       </div>
 
       <nav className="flex min-w-0 items-center gap-4 text-sm">
-        <LangToggle lang={lang} />
+        {/* The toggle reads the current query string so switching language
+            does not throw away a search, which makes it a Client Component and
+            this boundary mandatory: without it every statically prerendered
+            page would opt out of prerendering because the root layout reads
+            searchParams. */}
+        <Suspense fallback={<LangToggleFallback lang={lang} />}>
+          <LangToggle lang={lang} />
+        </Suspense>
         {user ? (
           <>
             {user.username ? (
