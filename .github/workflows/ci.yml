@@ -7,8 +7,13 @@ on:
 
 # CI deliberately does not build and does not touch a database. Vercel builds
 # every push with the real environment, and the schema tests need credentials
-# CI has no business holding. What is left is the three checks that catch
+# CI has no business holding. What is left is the four checks that catch
 # mistakes without secrets.
+#
+# `pnpm test` belongs in that set: the tests that need a database skip
+# themselves when DATABASE_URL is absent (tests/setup.ts), so the suite runs
+# here as the pure half of itself — parsing, path grammars, diffing, merge
+# resolution — and those are exactly the rules a typo breaks silently.
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -29,3 +34,5 @@ jobs:
       - run: pnpm typecheck
 
       - run: pnpm format:check
+
+      - run: pnpm test
