@@ -5,8 +5,8 @@
  * film-stock PRD §3 explicitly rules out; the photobook gap plan records the
  * absence as J10. So this is built from the component library's primitives —
  * the empty state's dashed-tile-plus-Fraunces-headline shape, the two input
- * weights, one signal-coloured action — rather than from a screen, and the
- * deviation is written here rather than left to be discovered.
+ * weights, one filled action — rather than from a screen, and the deviation is
+ * written here rather than left to be discovered.
  *
  * Colours map onto app/globals.css, never onto the prototype's own palette,
  * for the reason lab-form.css gives: the palette is a foundation decision (P7)
@@ -99,6 +99,37 @@
 .grains-upload-status {
   font: 400 11.5px var(--font-sans);
   color: var(--muted-foreground);
+}
+
+/* The commit action: filled ink, not signal.
+ *
+ * It used to borrow .grains-save from the lab form, which paints with
+ * --primary — the design system's signal red, and genuinely the one action
+ * colour. It was never --destructive, and that is exactly the problem: a person
+ * about to publish their own photograph reads a saturated red button as a
+ * warning about what they are doing, whatever the token behind it is called.
+ * Red carries that meaning here in a way it does not on "Save — goes live now",
+ * where the surrounding page is a data form rather than somebody's picture.
+ *
+ * So this one button departs, deliberately and narrowly. The palette is a
+ * foundation decision (P7) and the lab form's save is still signal; changing
+ * --primary everywhere is a design review, not a side effect of fixing an
+ * upload screen. Ink filled is the rest of this stylesheet's vocabulary anyway
+ * — the drop zone's dashed border and the progress bar are both ink. */
+.grains-upload-save {
+  border: 1.5px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+  padding: 12px 20px;
+  font: 700 14px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-upload-save:disabled {
+  background: transparent;
+  color: var(--g-quiet);
+  border-color: var(--border);
+  cursor: not-allowed;
 }
 
 .grains-upload-chosen {
