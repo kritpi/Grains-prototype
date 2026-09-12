@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { LabDetail } from "@/lib/queries/labs";
 
 import { EditHistoryLink } from "./edit-history-link";
+import { LabStatusControl } from "./lab-status-control";
 import { formatEditAge } from "./edit-log-format";
 import { SectionLabel } from "./lab-section";
 
@@ -19,10 +20,12 @@ import { SectionLabel } from "./lab-section";
  * log below the fold on this page, fetched lazily, and jumping to it keeps both
  * — the count is still the affordance, it just does not cost a navigation.
  *
- * "Mark as closed" is `setLabStatus`, which is Track B's action and does not
- * exist. It points at the edit route rather than being a dead button: that is
- * where the status lives once the form is built, and a link that lands somewhere
- * sensible beats a control that does nothing.
+ * "Mark as closed" is `setLabStatus`, and it now calls it. It spent a while
+ * pointing at the edit route instead, on the reasoning that the status would
+ * live in the form once that was built — it never did, so the whole
+ * `lab_status` lifecycle was unreachable and every lab read "open" forever.
+ * See lab-status-control.tsx for why the control is a disclosure rather than
+ * the prototype's single toggle.
  */
 export function LabContribution({
   labId,
@@ -30,10 +33,18 @@ export function LabContribution({
   lastEditedAt,
   lastEditorUsername,
   status,
+  statusNote,
+  version,
+  signedIn,
 }: Pick<
   LabDetail,
-  "editCount" | "lastEditedAt" | "lastEditorUsername" | "status"
-> & { labId: string }) {
+  | "editCount"
+  | "lastEditedAt"
+  | "lastEditorUsername"
+  | "status"
+  | "statusNote"
+  | "version"
+> & { labId: string; signedIn: boolean }) {
   return (
     <div className="min-w-0 flex-1 basis-52">
       <SectionLabel>Contribution</SectionLabel>
@@ -56,12 +67,13 @@ export function LabContribution({
 
       <div className="mt-2 flex flex-col items-start gap-1.5">
         <EditHistoryLink count={editCount} />
-        <Link
-          href={`/labs/${labId}/edit`}
-          className="font-sans text-xs underline underline-offset-2 hover:no-underline"
-        >
-          {status === "permanently_closed" ? "Reopen" : "Mark as closed"}
-        </Link>
+        <LabStatusControl
+          labId={labId}
+          version={version}
+          status={status}
+          statusNote={statusNote}
+          signedIn={signedIn}
+        />
       </div>
     </div>
   );
@@ -80,7 +92,7 @@ export function SuggestEditButton({ labId }: { labId: string }) {
     <div className="border-t border-border pt-4">
       <Link
         href={`/labs/${labId}/edit`}
-        className="inline-block border-[1.5px] border-destructive bg-destructive px-4 py-2.5 font-sans text-sm font-bold text-background hover:bg-transparent hover:text-destructive"
+        className="inline-block border-[1.5px] border-primary bg-primary px-4 py-2.5 font-sans text-sm font-bold text-primary-foreground hover:bg-transparent hover:text-primary"
       >
         Suggest an edit
       </Link>

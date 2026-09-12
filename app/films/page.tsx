@@ -40,7 +40,7 @@ export default async function FilmsPage() {
 
   return (
     <main>
-      <BackLink href="/" label="Grains" />
+      <BackLink href="/labs" label="Labs" />
       <FilmCatalog stocks={stocks} />
     </main>
   );

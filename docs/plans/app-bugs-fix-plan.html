@@ -1,0 +1,236 @@
+<title>Grains — Eight Reported App Bugs</title>
+<style>
+  :root{
+    --paper:#F9F8F6; --ink:#141412; --ash:#55554F; --faint:#8B8B84;
+    --hair:#D8D7D1; --sunk:#F1F0EC; --flag:#B3402A;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);margin:0;
+       font:400 14px/1.65 ui-sans-serif,-apple-system,"Helvetica Neue",sans-serif}
+  main{max-width:1000px;margin:0 auto;padding:56px 28px 96px}
+  h1{font:400 40px/1.1 "Instrument Serif",Georgia,serif;margin:0 0 10px;letter-spacing:-.01em}
+  h2{font:400 26px/1.2 "Instrument Serif",Georgia,serif;margin:56px 0 6px;
+     border-top:1px solid var(--hair);padding-top:22px}
+  h3{font:600 12px/1.4 ui-sans-serif,sans-serif;letter-spacing:.12em;text-transform:uppercase;
+     color:var(--faint);margin:30px 0 10px}
+  p{margin:0 0 14px;max-width:74ch}
+  .lede{color:var(--ash);font-size:15px;max-width:74ch}
+  .meta{font:400 11.5px ui-monospace,monospace;color:var(--faint);letter-spacing:.04em;
+        text-transform:uppercase;margin-bottom:28px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 8px;font-size:13px}
+  nav.toc a{color:var(--ash);text-decoration:none;border-bottom:1px solid var(--hair)}
+  code{font:400 12px ui-monospace,monospace;background:var(--sunk);padding:1px 4px}
+  pre{font:400 12px/1.5 ui-monospace,monospace;background:var(--sunk);padding:12px 14px;
+      overflow-x:auto;margin:0 0 14px;max-width:100%}
+  pre code{background:none;padding:0}
+  ol,ul{max-width:74ch;padding-left:20px}
+  li{margin-bottom:7px}
+  ul.check{list-style:none;padding-left:0}
+  ul.check li{padding-left:26px;position:relative}
+  ul.check li::before{content:"";position:absolute;left:0;top:5px;width:12px;height:12px;
+      border:1px solid var(--ink);background:#fff}
+  p a,li a,td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--hair)}
+  .note{border-left:2px solid var(--flag);padding:2px 0 2px 14px;color:var(--ash);
+        margin:18px 0;max-width:74ch}
+  .phase{border:1px solid var(--hair);padding:18px 20px;margin:0 0 14px;background:#fff}
+  .tag{font:600 10px ui-sans-serif,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+       white-space:nowrap;padding:2px 6px;border:1px solid var(--ink)}
+  .tag.decided{background:var(--ink);color:var(--paper)}
+  .tag.proposed{color:var(--flag);border-color:var(--flag)}
+  .cause{color:var(--ash)}
+</style>
+
+<main>
+  <h1>Eight reported app bugs</h1>
+  <div class="meta">Branch claude/app-bugs-improvements-9651cf · 2026-09-11</div>
+
+  <p class="lede">Eight issues reported from using the running app. They are not one
+  theme: two are genuine missing features — there is no delete path for a lab
+  atmosphere photo, and no way at all to put your own photo into your own photobook
+  — three are UI built to show a number where it should show the thing, one is a
+  routing decision, one is a colour, and one is a question about geolocation that
+  the UI should have answered by itself.</p>
+
+  <nav class="toc">
+    <a href="#one">1 Language toggle</a>
+    <a href="#two">2 Landing page</a>
+    <a href="#three">3 Use my location</a>
+    <a href="#four">4 Lab edit photos</a>
+    <a href="#five">5 Lab detail gallery</a>
+    <a href="#six">6 Add to photobook</a>
+    <a href="#seven">7 Add a sample</a>
+    <a href="#eight">8 Button colour</a>
+    <a href="#verify">Verification</a>
+  </nav>
+
+  <h3>Decisions taken with the user before writing this</h3>
+  <div class="phase">
+    <ul>
+      <li><span class="tag decided">Decided</span> <code>/</code> redirects to <code>/labs</code>; lab URLs stay as they are.</li>
+      <li><span class="tag decided">Decided</span> Only the uploader's button changes colour — the palette is untouched.</li>
+      <li><span class="tag decided">Decided</span> Own-photo filing gets <b>both</b> surfaces: the photobook page and the photo page.</li>
+      <li><span class="tag decided">Decided</span> <b>Anyone signed in</b> may delete a lab atmosphere photo, matching how lab edits already work (<code>app/labs/[id]/edit/page.tsx:26</code>).</li>
+    </ul>
+  </div>
+
+  <div class="note">Before writing any of the UI below, load the
+  <code>prototype-fidelity</code> skill and read the visual contract. The photo
+  viewer (5) and the picker sheet (6) are new components — exactly the case that
+  skill exists for.</div>
+
+  <h2 id="one">1 · The language toggle needs a page reload</h2>
+  <p class="cause"><b>Cause.</b> <code>components/layout/lang-toggle.tsx:32</code> renders
+  <code>&lt;Link href="?lang=th"&gt;</code>. <code>proxy.ts:28</code> turns that into a cookie
+  and a redirect, but <code>&lt;Link&gt;</code> does a <i>soft</i> navigation: the root layout is
+  the only thing that calls <code>currentLang()</code> (<code>app/layout.tsx:52</code>), and a
+  shared layout is not re-rendered when you navigate to the same route.
+  <code>&lt;html lang&gt;</code> is written once per document and cannot change without a
+  document load either.</p>
+  <p class="cause">A second, quieter bug rides along: a <code>?</code>-only href replaces the
+  whole query string, so switching language on <code>/labs?lat=…&amp;process=c41</code> lands on
+  bare <code>/labs</code> and throws the search away. <code>tests/i18n.test.ts:99</code> believes
+  this is covered, but it only tests <code>proxy()</code> against a hand-built URL — the proxy
+  preserves params; the link never supplies them.</p>
+  <ul class="check">
+    <li>Add a pure <code>langHref(pathname, search, lang)</code> to <code>lib/i18n.ts</code>.</li>
+    <li>Make <code>lang-toggle.tsx</code> a client component using <code>usePathname()</code> +
+        <code>useSearchParams()</code>, rendering plain <code>&lt;a&gt;</code> elements — a real
+        document navigation is what makes the cookie take effect immediately, and it
+        removes the prefetch hazard.</li>
+    <li>Wrap the toggle in <code>&lt;Suspense&gt;</code> in <code>site-header.tsx:35</code>.</li>
+    <li>Extend <code>tests/i18n.test.ts</code> to cover <code>langHref</code> — the assertion the
+        existing test thought it was making.</li>
+  </ul>
+
+  <h2 id="two">2 · <code>/labs</code> as the landing page</h2>
+  <ul class="check">
+    <li><code>app/page.tsx</code> becomes <code>redirect("/labs")</code>.</li>
+    <li>Point the wordmark at <code>/labs</code> (<code>site-header.tsx:28</code>).</li>
+    <li>Remove the <code>BackLink</code> on <code>app/labs/page.tsx:112</code>; repoint the one on
+        <code>app/films/page.tsx:43</code> at <code>/labs</code>.</li>
+    <li>Drop <code>"/"</code> from <code>STATIC_PATHS</code> in <code>app/sitemap.ts:32</code>.</li>
+    <li>Update <code>app/not-found.tsx:18</code>, whose copy calls the home page a wordmark.</li>
+  </ul>
+
+  <h2 id="three">3 · Does “Use my location” ask for location?</h2>
+  <p><b>Yes</b> — <code>components/labs/location-prompt.tsx:30</code> calls
+  <code>navigator.geolocation.getCurrentPosition</code>, which triggers the browser
+  permission prompt and only works in a secure context. That the user could not tell
+  is the actual defect: the button says nothing about what it will do, and every
+  failure — denied, unavailable, timed out, insecure page — collapses into one
+  sentence.</p>
+  <ul class="check">
+    <li>A line under the button saying it uses the browser's location and will ask.</li>
+    <li>Branch on <code>GeolocationPositionError.code</code>, and check
+        <code>window.isSecureContext</code> up front.</li>
+    <li>Same treatment for <code>components/films/nearby-labs.tsx:66</code>, which lacks even
+        the <code>"geolocation" in navigator</code> guard.</li>
+  </ul>
+
+  <h2 id="four">4 · Lab edit: photos invisible, no preview, Save disabled</h2>
+  <p>Three things in one component, <code>components/lab-form/atmosphere-photos.tsx</code>.</p>
+  <ul class="check">
+    <li><b>Existing photos never render.</b> <code>lab-form.tsx:563</code> passes only a count;
+        the rows are already loaded by <code>getLab</code>. Pass the rows, resolve them with
+        <code>publicUrl</code> in the edit page, render thumbnails.</li>
+    <li><b>No remove control anywhere in the codebase.</b> Add
+        <code>deleteLabPhotoRow</code> (<code>lib/queries/photos.ts</code>) and a
+        <code>deleteLabPhoto</code> action that also calls <code>deleteObject</code>, then
+        revalidates both lab paths.</li>
+    <li><b>No preview.</b> The object URL at lines 46–49 is created to measure and
+        revoked without ever being shown. Hold it in state — the <code>Picked</code> pattern in
+        <code>photo-uploader.tsx:43-49</code>.</li>
+    <li><b>“Cannot save with only the image changed.”</b> Photos are outside
+        <code>LabDraft</code>, so <code>canSave</code> stays false under “Nothing changed yet.”
+        Nothing is lost — the upload commits at select time — but the form says the
+        opposite. Have the photo section report its own outcome; leave the diff gate alone.</li>
+    <li>Add the client-side <code>checkUpload</code> pre-flight the community uploader has.</li>
+  </ul>
+
+  <h2 id="five">5 · Lab detail: photos not visible, “+N more” inert</h2>
+  <p><b>Diagnose the “not visible” half first.</b> The query returns every photo and
+  <code>LabPhotos</code> renders them, so blank frames point at the image origin:
+  <code>publicUrl</code> builds <code>${NEXT_PUBLIC_R2_PUBLIC_URL}/${key}</code> and a wrong value
+  404s behind the hatched placeholder. Env files are off limits to the agent, so the
+  user runs:</p>
+  <pre><code>pnpm r2:check</code></pre>
+  <ul class="check">
+    <li>Add <code>components/labs/lab-photo-viewer.tsx</code> — every frame and the “+N more”
+        tile become buttons opening a modal carousel at that index, with ← / → , Esc,
+        a counter and the same caption.</li>
+    <li>Native <code>&lt;dialog&gt;</code> + <code>showModal()</code> rather than a new dependency;
+        there is no dialog or carousel in <code>components/ui/</code> today.</li>
+    <li>Keep <code>LabPhotos</code> server-rendered for the two visible frames so the LCP
+        image keeps <code>priority</code>.</li>
+  </ul>
+
+  <h2 id="six">6 · Cannot add your own photos to your own photobook</h2>
+  <p class="cause"><b>Cause.</b> The feature was never built. <code>appendPhotobookItem</code>
+  exists and its own doc says filing your own photo is ordinary curation — but its
+  only caller is the upload path. The one “add” action the UI can reach routes to
+  <code>connectPhoto</code>, which hard-refuses your own photo. The photobook page never
+  calls <code>currentUser()</code>, and the photo page deliberately skips fetching connect
+  targets for the owner. Every route out is closed.
+  <code>docs/prd/photobook-portfolio.md:90</code> asks for exactly this affordance.</p>
+  <ul class="check">
+    <li><code>lib/queries/books.ts</code> — <code>addOwnPhoto(tx, photobookId, photoId, ownerId)</code>,
+        a sibling of <code>connectPhoto</code> rather than a flag on it.</li>
+    <li><code>lib/queries/photos.ts</code> — <code>listOwnPhotosForBook(ownerId, photobookId)</code>
+        with an <code>inBook</code> flag.</li>
+    <li><code>app/u/actions.ts</code> — <code>fileIntoPhotobook</code>;
+        <code>removeFromPhotobook</code> already un-files.</li>
+    <li><b>Surface A</b> — make the photobook page owner-aware and add
+        <code>components/books/add-to-book.tsx</code>, a picker with ticks; give the empty
+        state this action instead of a dead sentence.</li>
+    <li><b>Surface B</b> — on the photo page, an owner gets a “File into photobook”
+        sheet beside Edit/Delete, reusing <code>ConnectSheet</code>. Correct the doc comment
+        at <code>photo-owner-actions.tsx:14</code>, which states the opposite.</li>
+  </ul>
+
+  <h2 id="seven">7 · “+ Add a sample” on the film stock page</h2>
+  <p>It links to your own profile root — no anchor, so you land above an UPLOAD
+  section that is the last block on the page, and no stock id, so the stock you came
+  from is not preselected. Remove the link and rewrite deviation note 2 in the file's
+  doc comment to record that the affordance was removed rather than relocated.</p>
+
+  <h2 id="eight">8 · “Upload photograph” is red</h2>
+  <p>It is <b>not</b> the destructive token. <code>.grains-save</code> paints with
+  <code>--primary</code>, the signal red the design system calls “the one action color” —
+  the stylesheet even carries a comment about the two having been separated precisely
+  so this button and the failure banner stop matching. Per the decision taken, change
+  only this button.</p>
+  <ul class="check">
+    <li>Give the uploader's button its own class in <code>photo-uploader.css</code> with the
+        ink/outline treatment <code>.grains-action</code> uses.</li>
+    <li>Check <code>.grains-upload-drop</code> in the same pass so the drop zone and the
+        commit button do not disagree.</li>
+  </ul>
+  <p class="cause">Accepted trade: the lab form's “Save — goes live now” stays signal
+  red while the uploader's commit button is ink. That is the cost of not touching the
+  palette from a feature branch (CLAUDE.md P7).</p>
+
+  <h2 id="verify">Verification</h2>
+  <pre><code>pnpm lint &amp;&amp; pnpm typecheck &amp;&amp; pnpm test &amp;&amp; pnpm build</code></pre>
+  <ol>
+    <li><b>Language</b> — on <code>/labs?lat=13.75&amp;lng=100.5&amp;process=c41</code>, click TH:
+        header, nav and <code>&lt;html lang&gt;</code> all switch with no manual reload, and every
+        query param survives.</li>
+    <li><b>Landing</b> — <code>/</code> lands on <code>/labs</code>; the wordmark and both
+        breadcrumbs go somewhere real; <code>/sitemap.xml</code> no longer lists <code>/</code>.</li>
+    <li><b>Location</b> — the button explains itself; deny the permission and confirm
+        the message says denied, not a generic failure.</li>
+    <li><b>Lab edit</b> — existing photos show with a remove control; picking a file
+        previews immediately; removing one clears it from <code>/labs/[id]</code> too.</li>
+    <li><b>Lab detail</b> — clicking a frame or “+N more” opens the carousel; ← / → /
+        Esc work and the counter is right.</li>
+    <li><b>Photobook</b> — from an empty photobook, add one of your own photos; the
+        photo's page offers “File into photobook”; a visitor's Connect flow is unchanged.</li>
+    <li><b>Film stock</b> — no “Add a sample” link remains.</li>
+    <li><b>Uploader</b> — the commit button is no longer red.</li>
+  </ol>
+  <p>Tests to add: <code>langHref</code> in <code>tests/i18n.test.ts</code>; the new
+  <code>addOwnPhoto</code> and <code>deleteLabPhoto</code> query functions alongside the existing
+  <code>tests/db/</code> suites, which skip themselves when <code>DIRECT_URL</code> is absent.</p>
+  <p>One commit per issue, in the order above — they touch mostly disjoint files, and
+  5's first half may turn out to be configuration rather than code.</p>
+</main>

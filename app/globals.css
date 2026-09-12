@@ -68,56 +68,239 @@
   --radius-2xl: var(--radius);
   --radius-3xl: var(--radius);
   --radius-4xl: var(--radius);
+
+  /* The process key, exposed as utilities. Values live in the primitive tier
+     below; Phase 3 maps them onto [data-process] and deletes the literals now
+     scattered through four component stylesheets. */
+  --color-proc-c41: var(--g-proc-c41);
+  --color-proc-c41-text: var(--g-proc-c41-text);
+  --color-proc-ecn2: var(--g-proc-ecn2);
+  --color-proc-e6: var(--g-proc-e6);
+  --color-proc-bw: var(--g-proc-bw);
+
+  /* Tertiary text and non-interactive boundaries, as utilities.
+     `text-ring` / `border-ring` used to stand in for these, which tied the
+     whole interface's quiet text to the focus-ring colour. */
+  --color-quiet: var(--g-quiet);
+  --color-faint: var(--g-faint);
 }
 
 :root {
   --radius: 0rem;
 
-  /* paper and ink */
-  --background: #f9f8f6; /* warm fine-art paper */
-  --foreground: #141412; /* ink */
-  --card: #ffffff; /* a sheet laid on the paper */
-  --card-foreground: #141412;
-  --popover: #ffffff;
-  --popover-foreground: #141412;
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Tier 1 — primitives. The only place in the codebase a colour literal
+   * belongs.
+   *
+   * These are the design system's own values, with three corrections WCAG
+   * forced and two additions it never needed until now:
+   *
+   *   --g-signal          the design system's #e23b22 is 4.05:1 on this paper,
+   *                       which fails AA as button text. 5.12:1 here.
+   *   --g-proc-ecn2       #0e8c7d was 4.15:1 against white. 5.67:1 here.
+   *   --g-quiet     (new) --g-faint is 3.23:1 — sound as a border, failing as
+   *                       type, and it was carrying most of the interface's
+   *                       small text.
+   *   --g-proc-c41-text
+   *                 (new) #c97112 is a legible fill and a 3.38:1 illegible
+   *                       foreground, so the process key needs two values.
+   *
+   * Structure and role names come from the installed token framework
+   * (tokens/colors.json, three tiers: primitive → semantic → component). Its
+   * *values* are a blue-and-grey product palette and are deliberately not used
+   * — see design-systems/crosswalk.md, which prescribes re-pointing the
+   * shadcn variables at our own values rather than adopting theirs.
+   * ───────────────────────────────────────────────────────────────────────── */
+  --g-paper: #f9f8f6; /* warm fine-art paper; never white */
+  --g-ink: #141412; /* 17.38:1 */
+  --g-ash: #55554f; /* 7.07:1  — secondary text */
+  --g-quiet: #6f6f69; /* 4.76:1  — tertiary text */
+  --g-faint: #8b8b84; /* 3.23:1  — borders and dots, never type */
+  --g-hair: #d8d7d1; /* 1.36:1  — decorative dividers only */
+  --g-sunk: #f1f0ec; /* placeholder and inset surfaces */
+  --g-signal: #c7301a; /* 5.12:1  — the one action colour */
+  --g-flag: #b3402a; /* 5.37:1  — failure and deletion */
 
-  --primary: #141412;
-  --primary-foreground: #f9f8f6;
-  --secondary: #f1f0ec; /* sunk */
-  --secondary-foreground: #141412;
-  --muted: #f1f0ec;
-  --muted-foreground: #55554f; /* ash */
-  --accent: #f1f0ec;
-  --accent-foreground: #141412;
-  --destructive: #b3402a; /* flag */
+  /* Process key — data identity, not theme. Fill and text values differ. */
+  --g-proc-c41: #c97112;
+  --g-proc-c41-text: #a25a0d;
+  --g-proc-ecn2: #0b7466;
+  --g-proc-e6: #1d4fd8;
+  --g-proc-bw: var(--g-ink);
 
-  --border: #d8d7d1; /* hairline */
-  --input: #d8d7d1;
-  --ring: #8b8b84; /* faint */
+  /* Duotone stops — placeholder art standing in for a community photo,
+     keyed to the stock's process. Decoration rather than a role, so they sit
+     in the primitive tier and are consumed directly by [data-duo]. */
+  --g-duo-c41-from: #f0b570;
+  --g-duo-c41-to: #3a2308;
+  --g-duo-ecn2-from: #5fd6c2;
+  --g-duo-ecn2-to: #082623;
+  --g-duo-e6-from: #6e8cff;
+  --g-duo-e6-to: #050a2e;
+  --g-duo-bw-from: #f4f4f2;
+  --g-duo-bw-to: #0d0d0c;
 
-  --chart-1: #141412;
-  --chart-2: #55554f;
-  --chart-3: #8b8b84;
-  --chart-4: #b3402a;
-  --chart-5: #d8d7d1;
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Tier 2 — semantic roles, named as the framework names them.
+   *
+   * The split that matters: `action-primary` is the thing to press and
+   * `feedback-error` is the thing that went wrong. They were one token until
+   * now, which is why the save button and the failure banner were the same
+   * colour. Two roles, two values, no overlap.
+   * ───────────────────────────────────────────────────────────────────────── */
+  --action-primary: var(--g-signal);
+  --action-destructive: var(--g-flag);
 
-  --sidebar: #f1f0ec;
-  --sidebar-foreground: #141412;
-  --sidebar-primary: #141412;
-  --sidebar-primary-foreground: #f9f8f6;
-  --sidebar-accent: #f9f8f6;
-  --sidebar-accent-foreground: #141412;
-  --sidebar-border: #d8d7d1;
-  --sidebar-ring: #8b8b84;
+  --feedback-error-text: var(--g-flag);
+  --feedback-error-border: var(--g-flag);
+  /* Framework says red.50. Grains has no tinted surfaces — error reads from
+     border, text and icon on an untinted ground. See the spec's deviations. */
+  --feedback-error-bg: var(--g-sunk);
+
+  --border-default: var(--g-hair); /* dividers: non-interactive       */
+  --border-strong: var(--g-faint); /* input boundaries: 1.4.11 needs 3:1 */
+  --border-focus: var(--g-ink);
+
+  /* Lab status is deliberately achromatic: colour in Grains already means
+     chemical process, and the design system's do-not list is explicit that a
+     status pill never borrows the process or signal colour. Phase 2 consumes
+     these; they are weights and styles, not hues. */
+  --status-open: var(--g-ink);
+  --status-temporary: var(--g-ash);
+  --status-permanent: var(--g-quiet);
+  --status-pending: var(--g-ash);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Tier 3 — the shadcn bridge. Every variable shadcn components read,
+   * pointed at a role above. Changing a colour means changing a primitive,
+   * never one of these.
+   * ───────────────────────────────────────────────────────────────────────── */
+  --background: var(--g-paper);
+  --foreground: var(--g-ink);
+  --card: var(--g-paper); /* was #ffffff, against "never white" */
+  --card-foreground: var(--g-ink);
+  --popover: var(--g-paper); /* was #ffffff */
+  --popover-foreground: var(--g-ink);
+
+  /* The action colour, not ink. This is the disentangle: a filled primary
+     button is now signal, and --destructive is free to mean only failure. */
+  --primary: var(--action-primary);
+  --primary-foreground: var(--g-paper);
+  --secondary: var(--g-sunk);
+  --secondary-foreground: var(--g-ink);
+  --muted: var(--g-sunk);
+  --muted-foreground: var(--g-ash);
+  --accent: var(--g-sunk);
+  --accent-foreground: var(--g-ink);
+  --destructive: var(--feedback-error-text);
+
+  --border: var(--border-default);
+  --input: var(--border-strong); /* was --g-hair at 1.36:1 */
+  --ring: var(--border-focus); /* was --g-faint */
+
+  --chart-1: var(--g-ink);
+  --chart-2: var(--g-ash);
+  --chart-3: var(--g-quiet);
+  --chart-4: var(--g-flag);
+  --chart-5: var(--g-hair);
+
+  --sidebar: var(--g-sunk);
+  --sidebar-foreground: var(--g-ink);
+  --sidebar-primary: var(--g-ink);
+  --sidebar-primary-foreground: var(--g-paper);
+  --sidebar-accent: var(--g-paper);
+  --sidebar-accent-foreground: var(--g-ink);
+  --sidebar-border: var(--g-hair);
+  --sidebar-ring: var(--border-focus);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * The process key as an attribute contract.
+ *
+ * `data-process` sets three locals, and the third is the one that was missing:
+ *
+ *   --proc       the fill
+ *   --proc-ink   text *on* that fill
+ *   --proc-text  the colour when the process is the foreground — an unselected
+ *                chip's text and border
+ *
+ * C-41 is why --proc-text exists. #c97112 is a legible background and a 3.38:1
+ * illegible foreground, and `.grains-toggle[data-process]` was using the fill
+ * as text. The other three pass either way and point at the same value, so the
+ * contract stays uniform and a future colour change cannot silently regress
+ * one of them.
+ *
+ * This lives here rather than in a component stylesheet because it was living
+ * in *two* — lab-detail.css and lab-form.css held byte-identical copies, and
+ * /films/[id] imported the detail page's stylesheet purely to borrow it. One
+ * definition, loaded by the root layout, is what stops the two drifting.
+ * ─────────────────────────────────────────────────────────────────────────── */
+[data-process="c41"] {
+  --proc: var(--g-proc-c41);
+  --proc-text: var(--g-proc-c41-text);
+  --proc-ink: var(--g-ink);
+}
+[data-process="ecn2"] {
+  --proc: var(--g-proc-ecn2);
+  --proc-text: var(--g-proc-ecn2);
+  --proc-ink: var(--g-paper);
+}
+[data-process="e6"] {
+  --proc: var(--g-proc-e6);
+  --proc-text: var(--g-proc-e6);
+  --proc-ink: var(--g-paper);
+}
+[data-process="bw"] {
+  --proc: var(--g-proc-bw);
+  --proc-text: var(--g-proc-bw);
+  --proc-ink: var(--g-paper);
+}
+
+/* The three frames film actually comes in.
+ *
+ * A shared utility rather than films.css's, because it is now read by the film
+ * catalogue, a stock's gallery, and every loading skeleton that reserves a
+ * frame before its image arrives — and a skeleton on /u/@someone would
+ * otherwise collapse to zero height, since that route has no reason to import
+ * the film stylesheet.
+ *
+ * Reserving the ratio is the point: nothing here is cropped to square up a
+ * grid, so a placeholder that guessed one shape would reflow the page the
+ * moment the real frame loaded. */
+[data-ratio="1/1"] {
+  aspect-ratio: 1/1;
+}
+[data-ratio="3/2"] {
+  aspect-ratio: 3/2;
+}
+[data-ratio="6/7"] {
+  aspect-ratio: 6/7;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
+
+  /* One focus treatment for the whole app.
+   *
+   * This replaces `@apply outline-ring/50` on `*`, which set an outline
+   * *colour* and neither a style nor a width — so it drew nothing, and the
+   * three components that define their own `:focus-visible` were the only
+   * focusable things in the app with a visible ring. `--ring` is ink at
+   * 17.38:1 rather than the old #8b8b84 at 3.23:1.
+   *
+   * `:focus-visible` rather than `:focus` so a mouse click does not leave a
+   * ring behind; the offset keeps it clear of the 1.5px borders this design
+   * uses everywhere. Components may override, but none has to. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   /* Latin first, Thai second, in both stacks.
    *
    * A font stack falls through per *glyph*, not per element, so this is not a

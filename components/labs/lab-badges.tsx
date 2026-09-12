@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 
 import { toggleLabBadge } from "@/app/labs/[id]/actions";
@@ -50,7 +50,10 @@ export function LabBadges({
   labId: string;
   signedIn: boolean;
 }) {
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  /** What went wrong, and the same sentence for a screen reader. */
+  const [problem, setProblem] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
 
   const [shown, applyToggle] = useOptimistic(
     badges,
@@ -99,10 +102,28 @@ export function LabBadges({
                   // The pressed state is the whole point of the control, and a
                   // screen reader gets it from here rather than from the fill.
                   aria-pressed={badge.endorsedByViewer}
+                  // A vote in flight is not a chip to press again: the
+                  // optimistic count would move twice for one round trip.
+                  disabled={pending}
                   onClick={() =>
                     startTransition(async () => {
+                      setProblem(null);
                       applyToggle({ key: badge.key });
-                      await toggleLabBadge(labId, badge.key);
+                      const result = await toggleLabBadge(labId, badge.key);
+
+                      // `useOptimistic` drops the local guess when the
+                      // transition ends, so a failed vote reverts on its own.
+                      // What it cannot do is say why — and a chip that springs
+                      // back in silence is indistinguishable from a mis-click,
+                      // which is what this branch is for.
+                      if (!result.ok) {
+                        setProblem(result.message);
+                        setAnnouncement(result.message);
+                        return;
+                      }
+                      setAnnouncement(
+                        `${badge.labelEn} ${result.endorsed ? "endorsed" : "endorsement withdrawn"}.`,
+                      );
                     })
                   }
                 >
@@ -123,6 +144,27 @@ export function LabBadges({
           );
         })}
       </ul>
+
+      {/* Polite and atomic: this confirms an action the reader just took, so
+          it must not interrupt, and it reads as one sentence rather than as a
+          diff of the previous one. */}
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </p>
+
+      {problem && (
+        <p
+          role="alert"
+          className="mt-2.5 border-[1.5px] border-destructive px-2.5 py-2 font-sans text-xs text-destructive"
+        >
+          {problem}
+        </p>
+      )}
 
       <SectionNote className="mt-2.5">
         {total === 0

@@ -198,7 +198,7 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
               {lab.scanners.map((model) => (
                 <span
                   key={model}
-                  className="border border-ring px-2.5 py-[3px] font-sans text-xs text-muted-foreground"
+                  className="border border-faint px-2.5 py-[3px] font-sans text-xs text-muted-foreground"
                 >
                   {model}
                 </span>
@@ -229,6 +229,9 @@ export default async function LabPage({ params }: PageProps<"/labs/[id]">) {
               lastEditedAt={lab.lastEditedAt}
               lastEditorUsername={lab.lastEditorUsername}
               status={lab.status}
+              statusNote={lab.statusNote}
+              version={lab.version}
+              signedIn={Boolean(viewer?.username)}
             />
           </div>
 

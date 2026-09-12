@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 
-import { LANGS, isLang, t, translator } from "@/lib/i18n";
+import { LANGS, isLang, langHref, t, translator } from "@/lib/i18n";
 import { proxy } from "@/proxy";
 
 /**
@@ -68,6 +68,49 @@ describe("the dictionary", () => {
     expect(isLang("")).toBe(false);
     expect(isLang(undefined)).toBe(false);
     expect(isLang("TH")).toBe(false);
+  });
+});
+
+/**
+ * The href the toggle links to.
+ *
+ * The proxy below preserves whatever query string it is handed, and the tests
+ * for it always passed — but the toggle used to hand it the bare string
+ * `?lang=th`, which replaces the query rather than adding to it. The two halves
+ * were each correct and the feature was still broken, so this is the half that
+ * was missing.
+ */
+describe("the language href", () => {
+  it("adds lang to the query that is already there", () => {
+    const href = langHref("/labs", "lat=13.7&lng=100.5&process=c41", "th");
+    const url = new URL(href, "https://grains.test");
+    expect(url.pathname).toBe("/labs");
+    expect(url.searchParams.get("lat")).toBe("13.7");
+    expect(url.searchParams.get("lng")).toBe("100.5");
+    expect(url.searchParams.get("process")).toBe("c41");
+    expect(url.searchParams.get("lang")).toBe("th");
+  });
+
+  it("works from a page with no query at all", () => {
+    expect(langHref("/films", "", "en")).toBe("/films?lang=en");
+  });
+
+  it("replaces a lang that is somehow already there", () => {
+    const url = new URL(
+      langHref("/labs", "lang=en&process=c41", "th"),
+      "https://grains.test",
+    );
+    expect(url.searchParams.getAll("lang")).toEqual(["th"]);
+    expect(url.searchParams.get("process")).toBe("c41");
+  });
+
+  it("keeps repeated parameters", () => {
+    // A filter can appear more than once — ?process=c41&process=e6.
+    const url = new URL(
+      langHref("/labs", "process=c41&process=e6", "th"),
+      "https://grains.test",
+    );
+    expect(url.searchParams.getAll("process")).toEqual(["c41", "e6"]);
   });
 });
 

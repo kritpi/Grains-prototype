@@ -6,33 +6,14 @@
  * writing them as conditional class strings in the markup buries the rule that
  * is actually being expressed.
  *
- * Colours map onto the palette already in app/globals.css rather than
- * redefining it. The prototype's own tokens are a shade different — its paper is
- * #FDFDFC where ours is #F9F8F6 — but the palette is a foundation decision (P7,
- * enforced in globals.css) and is not Track A's to move. Only the process
- * colours are genuinely new, and those are data vocabulary rather than palette:
- * a process is identified by its colour everywhere it appears.
+ * Colours map onto the palette in app/globals.css rather than redefining it,
+ * and the palette is a foundation decision (P7) rather than this track's to
+ * move. The process key is data vocabulary rather than theme, but it is
+ * declared once, as the [data-process] contract in globals.css, because two
+ * component stylesheets used to hold identical copies of it.
  */
 
-/* Chemical process identity colours, straight from the prototype. */
-/* C-41 pairs with dark ink, not paper — the one process colour light enough
- * that the component library specifies #0D0D0C on it. */
-[data-process="c41"] {
-  --proc: #c97112;
-  --proc-ink: #0d0d0c;
-}
-[data-process="ecn2"] {
-  --proc: #0e8c7d;
-  --proc-ink: #ffffff;
-}
-[data-process="e6"] {
-  --proc: #1d4fd8;
-  --proc-ink: #ffffff;
-}
-[data-process="bw"] {
-  --proc: var(--foreground);
-  --proc-ink: var(--background);
-}
+/* The [data-process] contract lives in app/globals.css. */
 
 /* A filled chip when the lab offers the process, an outline when it does not. */
 .grains-proc {
@@ -78,7 +59,7 @@
   font-style: italic;
 }
 .grains-status[data-status="closed"] {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* Services read as a checklist, so an un-offered service is an unticked box
@@ -95,10 +76,10 @@
 }
 
 [data-svstate="unknown"] {
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 [data-svstate="unknown"] .grains-svbox {
-  border-color: var(--ring);
+  border-color: var(--g-quiet);
 }
 
 /* A badge nobody has endorsed keeps its slot, dashed — an invitation rather
@@ -112,21 +93,36 @@
   gap: 7px;
 }
 
+/* The design system's badge dot is the signal colour. It read --destructive
+ * while signal and failure shared one token; --primary is that colour now. */
 .grains-badge i {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--destructive);
+  background: var(--primary);
   align-self: center;
 }
 
+/* A vote in flight. Every chip in the row goes quiet, because the optimistic
+ * count has already moved and pressing a second one would queue a write
+ * against a number that is still settling. */
+.grains-badge:disabled {
+  color: var(--g-quiet);
+  border-color: var(--border);
+  cursor: progress;
+}
+
+.grains-badge:disabled i {
+  background: var(--g-faint);
+}
+
 .grains-badge[data-zero="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   border-style: dashed;
-  border-color: var(--ring);
+  border-color: var(--g-quiet);
 }
 .grains-badge[data-zero="true"] i {
-  background: var(--ring);
+  background: var(--g-faint);
 }
 
 /* Pressable, and visibly pressed.
@@ -177,8 +173,331 @@ a.grains-badge:hover {
   );
 }
 
+/* --- The atmosphere mosaic, and the viewer behind it --------------------- */
+
+/* An invisible target over a frame, rather than wrapping the whole tile in a
+ * <button>. The frames are `position: relative` boxes that next/image fills
+ * absolutely; making the box itself a button would put a button in the layout's
+ * flex chain and change how it sizes. This sits on top instead and carries the
+ * accessible name. */
+.grains-photo-open {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.grains-photo-open:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -3px;
+}
+
+/* The third tile. The prototype hangs `viewAllAtmos` off it, so it is a button
+ * here as it is there — it used to be a <span>, which is why every photograph
+ * past the second was fetched and then unreachable. */
+.grains-photo-more {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font: 400 11px var(--font-sans);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.grains-photo-more:hover {
+  color: var(--foreground);
+}
+
+/* The viewer.
+ *
+ * A native <dialog>, opened with showModal(): the backdrop, the focus trap and
+ * Esc are the platform's, and none of the three is worth hand-rolling. There is
+ * no dialog in components/ui and no carousel anywhere in the repo, so this is
+ * the first of either — built from the prototype's one modal (the Connect
+ * sheet: a scrim, a 1.5px ink panel on paper, a ✕ top-right) rather than from a
+ * new vocabulary.
+ *
+ * The scrim is darker than that sheet's rgba(13,13,12,.4), and deliberately: a
+ * sheet sits over a page somebody is still reading, while a lightbox exists to
+ * make everything except the photograph go away. */
+.grains-lightbox {
+  border: 1.5px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0;
+  max-width: min(1100px, 94vw);
+  max-height: 94vh;
+  overflow: hidden;
+}
+
+.grains-lightbox::backdrop {
+  background: rgba(13, 13, 12, 0.78);
+}
+
+.grains-lightbox-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+}
+
+.grains-lightbox-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font: 400 11px var(--font-sans);
+  color: var(--muted-foreground);
+}
+
+.grains-lightbox-bar:last-child {
+  border-bottom: 0;
+  border-top: 1px solid var(--border);
+}
+
+.grains-lightbox-x {
+  margin-left: auto;
+  border: 1.5px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  font: 700 11px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-lightbox-step {
+  border: 1.5px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  min-width: 34px;
+  padding: 3px 8px;
+  font: 700 13px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-lightbox-step:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* The one line that must not be lost on the way into a full-screen view. */
+.grains-lightbox-note {
+  margin-left: auto;
+  text-align: right;
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+/* Frame respect, here and not in the mosaic. The tiles are fixed shapes and
+ * crop to fill them; this is the place somebody actually looks at the
+ * photograph, so it keeps its own proportions and is bounded by the viewport
+ * rather than by a box. */
+.grains-lightbox-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--secondary);
+  display: grid;
+  place-items: center;
+}
+
+/* The 160px is the two bars plus room for them to wrap, which they do on a
+ * narrow viewport — measured against `calc(94vh - 86px)`, which was the two
+ * bars at their unwrapped height and let a tall frame overflow its own stage by
+ * a few pixels. `overflow: auto` above is the backstop, not the plan. */
+.grains-lightbox-stage img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(1100px, 94vw);
+  max-height: calc(94vh - 160px);
+}
+
+@media (max-width: 560px) {
+  .grains-lightbox-note {
+    display: none;
+  }
+}
+
 /* A field nobody has filled in: stated, not omitted. */
 [data-filled="false"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   font-style: italic;
+}
+
+/* ── Reporting a status change ───────────────────────────────────────────── */
+
+/* A disclosure under the "Mark as closed" link, not a popover: it pushes the
+ * column rather than covering it, which keeps the status pill and the hours
+ * table — the two things a reader checks before deciding — visible while they
+ * decide. */
+.grains-statusset {
+  margin-top: 10px;
+  border: 1.5px solid var(--foreground);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grains-statusset-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.grains-statusset-legend {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-quiet);
+}
+
+.grains-statusset-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font: 400 12.5px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-statusset-row input {
+  margin: 2px 0 0;
+  accent-color: var(--foreground);
+  flex: none;
+}
+
+.grains-statusset-row input:disabled,
+.grains-statusset-row:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--g-quiet);
+}
+
+.grains-statusset-label {
+  display: block;
+  font-weight: 700;
+}
+
+.grains-statusset-help {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin-top: 1px;
+}
+
+.grains-statusset-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.grains-statusset-note span {
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g-quiet);
+}
+
+/* The confirm step for a permanent closure. Ink rather than red: it is asking
+ * a question, and the answer below it is the thing that carries the weight. */
+.grains-statusset-confirm {
+  margin: 0;
+  background: var(--secondary);
+  padding: 9px 11px;
+  font: 400 12px/1.6 var(--font-sans);
+}
+
+.grains-statusset-problem {
+  margin: 0;
+  border: 1.5px solid var(--destructive);
+  padding: 8px 10px;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--destructive);
+}
+
+.grains-statusset-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Ink by default. It turns --destructive only once the choice is a permanent
+ * closure, which is the one irreversible-in-practice option in the set —
+ * everything else here is a correction somebody else can correct back. */
+.grains-statusset-save {
+  border: 1.5px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+  padding: 8px 13px;
+  font: 700 12px var(--font-sans);
+  cursor: pointer;
+}
+
+.grains-statusset-save[data-danger="true"] {
+  border-color: var(--destructive);
+  background: var(--destructive);
+}
+
+.grains-statusset-save:disabled {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--g-quiet);
+  cursor: progress;
+}
+
+.grains-statusset-cancel {
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: 400 12px var(--font-sans);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.grains-statusset-cancel:disabled {
+  color: var(--g-quiet);
+  cursor: not-allowed;
+}
+
+/* ── The banner for a lab somebody has marked closed ─────────────────────── */
+
+/* Achromatic, like every other status surface. Status in Grains never borrows
+ * the process key or the signal colour (design system, do-not list), and this
+ * banner was the one place that did: red read as "something is wrong" when the
+ * truth is "somebody told us this shut", which is a fact, not a fault. The
+ * weight difference carries the two states instead — ash for a closure that
+ * keeps the lab in search, quiet grey for one that removes it. */
+.grains-status-banner {
+  border: 1.5px solid var(--g-faint);
+  padding: 12px 20px;
+}
+
+.grains-status-banner[data-status="permanently_closed"] {
+  border-color: var(--border);
+}
+
+.grains-status-banner-label {
+  margin: 0;
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--status-temporary);
+}
+
+.grains-status-banner[data-status="permanently_closed"]
+  .grains-status-banner-label {
+  color: var(--status-permanent);
+}
+
+.grains-status-banner-body {
+  margin: 4px 0 0;
+  font: 400 13px/1.6 var(--font-sans);
 }

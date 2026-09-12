@@ -1,11 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { confirmLabPhoto, requestUploadUrl } from "@/app/photos/actions";
+import {
+  confirmLabPhoto,
+  deleteLabPhoto,
+  requestUploadUrl,
+} from "@/app/photos/actions";
 import { putObject, readDimensions } from "@/components/upload/browser-upload";
-import { ALLOWED_CONTENT_TYPES } from "@/lib/photos/limits";
+import { ALLOWED_CONTENT_TYPES, checkUpload } from "@/lib/photos/limits";
 
 /**
  * Atmosphere photos on the lab form — venue documentation, and nothing else.
@@ -25,28 +30,89 @@ import { ALLOWED_CONTENT_TYPES } from "@/lib/photos/limits";
  * cannot be placed before the lab it documents has an id. On `/labs/new` the
  * control stays disabled and says so, rather than being hidden — an absent
  * affordance reads as "never" instead of "not yet".
+ *
+ * **The tiles are the prototype's, and they are what this section was missing.**
+ * It used to render the *number* of photographs and a "+", so a contributor
+ * could add one but never see it, check it, or take it down — a one-way door
+ * with no way to correct a mistake, and no way to tell whether the upload had
+ * worked at all. Now: the photographs that are there, a preview of the one
+ * landing, and a ✕ on each.
+ *
+ * **Nothing here is part of the draft the Save button diffs**, and that is not
+ * an oversight to be fixed by adding photos to `LabDraft`. An upload commits at
+ * the moment it finishes and a removal at the moment it is confirmed; both are
+ * live before Save is pressed and survive Cancel. What the form owes the reader
+ * is to say so, which is what the outcome line under the tiles is for — "Nothing
+ * changed yet." sitting under a photograph that had just been saved was the
+ * whole of the reported bug.
  */
+
+/** What the page hands over: the rows, already resolved to public URLs. */
+export type LabFormPhoto = {
+  id: string;
+  url: string;
+  width: number;
+  height: number;
+};
+
+/** The one being uploaded right now — a local object URL, not a row. */
+type Pending = { url: string; progress: number };
+
 export function AtmospherePhotos({
   labId,
-  count,
+  photos,
 }: {
   /** Absent while creating a lab, because the lab has no id yet. */
   labId?: string;
-  count: number;
+  photos: LabFormPhoto[];
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
-  const [progress, setProgress] = useState<number | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [busyRemoving, setBusyRemoving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
+
+  // The preview's object URL is the one piece of state here that is not
+  // garbage-collected on its own. Revoking it when the component goes rather
+  // than only on the happy path means an unmount mid-upload does not leak it.
+  const live = useRef<string | null>(null);
+  useEffect(() => {
+    return () => {
+      if (live.current) URL.revokeObjectURL(live.current);
+    };
+  }, []);
+
+  function release() {
+    if (live.current) {
+      URL.revokeObjectURL(live.current);
+      live.current = null;
+    }
+  }
 
   async function upload(file: File) {
     setProblem(null);
-    setProgress(0);
+    setOutcome(null);
 
-    let objectUrl: string | null = null;
+    // The same check the server will run, run here first. Without it a 40 MB
+    // file is pushed all the way to R2 before anything refuses it, which on a
+    // phone connection is a minute of upload and then a sentence saying it was
+    // never going to work.
+    const allowed = checkUpload({ contentType: file.type, bytes: file.size });
+    if (!allowed.ok) {
+      setProblem(allowed.message);
+      if (input.current) input.current.value = "";
+      return;
+    }
+
     try {
       const measured = await readDimensions(file);
-      objectUrl = measured.url;
+      // Kept, not revoked: this is the preview. `readDimensions` hands back the
+      // URL it made rather than making a second one.
+      release();
+      live.current = measured.url;
+      setPending({ url: measured.url, progress: 0 });
 
       const signed = await requestUploadUrl({
         kind: "lab_atmosphere",
@@ -65,7 +131,9 @@ export function AtmospherePhotos({
         return;
       }
 
-      await putObject(signed.url, file, setProgress);
+      await putObject(signed.url, file, (progress) =>
+        setPending((current) => (current ? { ...current, progress } : current)),
+      );
 
       const saved = await confirmLabPhoto({
         labId,
@@ -84,8 +152,10 @@ export function AtmospherePhotos({
         return;
       }
 
+      setOutcome("Photograph added — it is on the lab page now.");
       // The lab page and this form both read `lab_photos`; the server action
-      // has already revalidated the former.
+      // has already revalidated the former. This is what re-reads the rows here,
+      // turning the local preview into a real tile a moment later.
       router.refresh();
     } catch (error) {
       setProblem(
@@ -94,13 +164,34 @@ export function AtmospherePhotos({
           : "The upload did not finish. Try again.",
       );
     } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-      setProgress(null);
+      // Clear the tile before revoking its URL, not after: the other order
+      // points a rendered <img> at an address that no longer resolves.
+      setPending(null);
+      release();
       if (input.current) input.current.value = "";
     }
   }
 
-  const busy = progress !== null;
+  async function remove(photoId: string) {
+    setProblem(null);
+    setOutcome(null);
+    setBusyRemoving(true);
+    try {
+      const result = await deleteLabPhoto(photoId);
+      if (!result.ok) {
+        setProblem(result.message);
+        return;
+      }
+      setRemoving(null);
+      setOutcome("Photograph removed — it is off the lab page now.");
+      router.refresh();
+    } finally {
+      setBusyRemoving(false);
+    }
+  }
+
+  const uploading = pending !== null;
+  const count = photos.length;
 
   return (
     <section>
@@ -108,7 +199,41 @@ export function AtmospherePhotos({
         ATMOSPHERE PHOTOS{count > 0 ? ` · ${count}` : ""}
       </div>
 
-      <div className="grains-chips">
+      <div className="grains-photo-tiles">
+        {photos.map((photo) => (
+          <div key={photo.id} className="grains-photo-tile">
+            <Image
+              src={photo.url}
+              alt=""
+              width={84}
+              height={84}
+              // 84px squares at up to 2× — the stored file is a several-megabyte
+              // scan and the tile is a thumbnail, so `sizes` is what keeps
+              // Cloudflare from billing a full-width variant for a form field.
+              sizes="84px"
+            />
+            <button
+              type="button"
+              className="grains-photo-remove"
+              aria-label="Remove this photograph"
+              disabled={busyRemoving || uploading}
+              onClick={() => setRemoving(photo.id)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {pending ? (
+          <div className="grains-photo-tile" data-pending="true">
+            {/* A local object URL: not on the R2 origin, so next/image's loader
+                would pass it through unchanged and Next would still want
+                dimensions it cannot have. A plain img is the honest element. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pending.url} alt="" />
+          </div>
+        ) : null}
+
         <input
           ref={input}
           type="file"
@@ -122,11 +247,11 @@ export function AtmospherePhotos({
         <button
           type="button"
           className="grains-photo-add"
-          disabled={labId === undefined || busy}
+          disabled={labId === undefined || uploading || busyRemoving}
           aria-label="Add an atmosphere photo"
           onClick={() => input.current?.click()}
         >
-          {busy ? `${Math.round(progress * 100)}%` : "+"}
+          {uploading ? `${Math.round(pending.progress * 100)}%` : "+"}
         </button>
       </div>
 
@@ -136,6 +261,36 @@ export function AtmospherePhotos({
           ? " Photographs can be added once the lab has been published."
           : null}
       </p>
+
+      {outcome ? <p className="grains-photo-outcome">{outcome}</p> : null}
+
+      {removing !== null ? (
+        <div className="grains-photo-confirm">
+          <p>
+            This photograph comes off the lab page immediately and its file is
+            deleted. Anyone signed in can add another, but this one does not
+            come back.
+          </p>
+          <div className="grains-actions">
+            <button
+              type="button"
+              className="grains-photo-confirm-go"
+              disabled={busyRemoving}
+              onClick={() => void remove(removing)}
+            >
+              {busyRemoving ? "Removing…" : "Remove permanently"}
+            </button>
+            <button
+              type="button"
+              className="grains-secondary"
+              disabled={busyRemoving}
+              onClick={() => setRemoving(null)}
+            >
+              Keep it
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {problem ? <div className="grains-problem">{problem}</div> : null}
     </section>

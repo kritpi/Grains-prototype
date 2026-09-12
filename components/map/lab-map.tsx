@@ -11,6 +11,29 @@ import "./lab-map.css";
 const RADIUS_SOURCE = "search-radius";
 
 /**
+ * A palette token, as a string MapLibre can use.
+ *
+ * MapLibre paint properties are set in JavaScript and take concrete colours —
+ * `var(--g-ink)` in a paint object is not resolved by anything. So the two
+ * colours this map draws were written as hex literals here, out of reach of
+ * the stylesheet and of any theme change, which is exactly how a map ends up
+ * a shade off the page it sits on.
+ *
+ * Reading the computed value keeps one source of truth. The fallback matters:
+ * this runs in an effect, so the custom property is available, but a browser
+ * that returns an empty string should get a colour rather than `""`, which
+ * MapLibre rejects with a style error.
+ */
+function paletteColor(token: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
+    .trim();
+  return value || fallback;
+}
+
+/**
  * Below this the container has not been laid out yet and any framing computed
  * from it would be wrong. Framing waits rather than guessing.
  */
@@ -178,14 +201,17 @@ export function LabMap({
             id: `${RADIUS_SOURCE}-fill`,
             type: "fill",
             source: RADIUS_SOURCE,
-            paint: { "fill-color": "#141412", "fill-opacity": 0.04 },
+            paint: {
+              "fill-color": paletteColor("--g-ink", "#141412"),
+              "fill-opacity": 0.04,
+            },
           });
           map.addLayer({
             id: `${RADIUS_SOURCE}-line`,
             type: "line",
             source: RADIUS_SOURCE,
             paint: {
-              "line-color": "#8b8b84",
+              "line-color": paletteColor("--g-faint", "#8b8b84"),
               "line-width": 1,
               "line-dasharray": [3, 3],
             },

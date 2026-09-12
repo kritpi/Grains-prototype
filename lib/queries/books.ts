@@ -468,6 +468,66 @@ export async function appendPhotobookItem(
   return rows.length === 1;
 }
 
+export type FileResult =
+  | { ok: true }
+  | { ok: false; reason: "not-your-photobook" }
+  | { ok: false; reason: "no-such-photo" }
+  | { ok: false; reason: "not-your-photo" }
+  | { ok: false; reason: "already-there" };
+
+/**
+ * File your own Photo into your own Photobook — ordinary curation.
+ *
+ * The sibling of `connectPhoto` below, and the half of the model that had no
+ * caller. `appendPhotobookItem` has done this from the start, but its only user
+ * is the upload path, so a Photo that was already uploaded could not be put
+ * into a book by any route: the one "add" the UI could reach went through
+ * `connectPhoto`, which refuses your own Photo by design, and an uploader
+ * looking at their own frame was offered Edit and Delete and nothing else. The
+ * loop closed with the Photo outside every book.
+ *
+ * Refusing somebody else's Photo here is not a permission check — anyone may
+ * put a public Photo in their book — it is a routing check. That path is a
+ * Connection, it carries a credit line and a reference rather than a filing,
+ * and the two must not be reachable through one function that guesses which
+ * was meant.
+ *
+ * Reads then writes, for the reason `connectPhoto` gives: the caller needs to
+ * know which rule refused it, and neither a Photo's owner nor a Photobook's
+ * ever changes, so the two facts this decides on cannot move under it.
+ */
+export async function addOwnPhoto(
+  tx: LabTx,
+  photobookId: string,
+  photoId: string,
+  ownerId: string,
+): Promise<FileResult> {
+  const rows = await tx.execute<{
+    book_owner: string;
+    photo_owner: string | null;
+  }>(sql`
+    select b.owner_id as book_owner, p.owner_id as photo_owner
+      from photobooks b
+      left join photos p on p.id = ${photoId}::uuid
+     where b.id = ${photobookId}::uuid
+  `);
+
+  const found = rows[0];
+  // One reason for "no such book" and "not yours", as in `connectPhoto`.
+  if (!found || found.book_owner !== ownerId) {
+    return { ok: false, reason: "not-your-photobook" };
+  }
+  if (found.photo_owner === null) {
+    return { ok: false, reason: "no-such-photo" };
+  }
+  if (found.photo_owner !== ownerId) {
+    return { ok: false, reason: "not-your-photo" };
+  }
+
+  const appended = await appendPhotobookItem(tx, photobookId, photoId, ownerId);
+  return appended ? { ok: true } : { ok: false, reason: "already-there" };
+}
+
 export type ConnectResult =
   | { ok: true }
   | { ok: false; reason: "not-your-photobook" }

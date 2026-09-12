@@ -1,0 +1,113 @@
+/* Loading placeholders.
+ *
+ * Static --secondary blocks, deliberately without a travelling shimmer. A
+ * sweeping gradient is the one loading convention this design language has no
+ * room for: the page is flat, hairlined and unanimated everywhere else, and a
+ * moving highlight would be the most eye-catching thing on a screen that is
+ * showing nothing yet.
+ *
+ * The placeholders reserve the real geometry rather than approximating it —
+ * `photos` stores width and height so a grid can reserve true aspect ratio
+ * before an image loads, and a skeleton that ignored that would reflow the
+ * moment content arrived, which is the problem it exists to prevent. */
+
+.grains-skel {
+  background: var(--secondary);
+}
+
+/* A line of text that has not arrived. Height matches the line box rather than
+ * the glyphs, so a bar does not sit visibly higher or lower than the text it
+ * stands in for. */
+.grains-skel-line {
+  height: 11px;
+  background: var(--secondary);
+}
+
+.grains-skel-line[data-size="title"] {
+  height: 19px;
+}
+
+.grains-skel-line[data-size="lede"] {
+  height: 13px;
+}
+
+/* The hatch the design system reserves for lab venue imagery, and the only
+ * placeholder texture that belongs on a lab card. Film content gets duotone
+ * instead — see [data-duo] — and the two are never swapped. */
+.grains-skel-hatch {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--secondary) 0 6px,
+    var(--background) 6px 12px
+  );
+  border: 1px solid var(--border);
+}
+
+/* One row of the lab list, at the card's real padding so the list does not
+ * jump height when the search resolves. */
+.grains-skel-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.grains-skel-card-thumb {
+  width: 78px;
+  height: 78px;
+  flex: none;
+}
+
+.grains-skel-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 3px;
+}
+
+.grains-skel-chips {
+  display: flex;
+  gap: 5px;
+}
+
+.grains-skel-chip {
+  height: 18px;
+  width: 46px;
+  background: var(--secondary);
+}
+
+/* The map half of the discovery split, which is the slower of the two to
+ * arrive: MapLibre plus tiles against a list of rows. It gets the same grid
+ * the map itself draws under its pins, so the transition is a fill rather
+ * than a redraw. */
+.grains-skel-map {
+  height: 100%;
+  width: 100%;
+  /* The lines are drawn and the cells left transparent, rather than the other
+   * way round. Two opaque gradients stack instead of crossing — the first
+   * covers the second everywhere except its own 1px gaps — which renders as
+   * horizontal banding, not a grid. Transparent cells over one flat ground
+   * lets both axes through. */
+  background-color: var(--background);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 24px,
+      var(--secondary) 24px 25px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 24px,
+      var(--secondary) 24px 25px
+    );
+}
+
+.grains-skel-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 1.5px solid var(--foreground);
+  padding: 16px 20px;
+}

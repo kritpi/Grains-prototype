@@ -17,6 +17,7 @@ import { checkUpload, UPLOAD_CAP } from "@/lib/photos/limits";
 import { appendPhotobookItem } from "@/lib/queries/books";
 import {
   countOriginals,
+  deleteLabPhoto as deleteLabPhotoRow,
   deletePhoto as deletePhotoRow,
   insertLabPhoto,
   insertPhoto,
@@ -275,6 +276,52 @@ export async function confirmLabPhoto(input: unknown): Promise<ConfirmResult> {
 
 export type PhotoWriteResult =
   { ok: true } | { ok: false; reason: "rejected"; message: string };
+
+/**
+ * Remove a lab's atmosphere photo.
+ *
+ * There was no way to do this at all, which made the "+" on the edit form a
+ * one-way door: a photograph of the wrong shopfront, or of somebody's lunch,
+ * could be added by anyone and removed by no one.
+ *
+ * Anyone signed in, matching how every other field on a lab is edited — trust
+ * by default, and the history rather than a permission is the guard (PRD A).
+ * `uploaded_by` on `lab_photos` is provenance, not ownership; a photo only its
+ * contributor could delete would be a page nobody else could correct. This is
+ * also why the deletion is not itself an edit-history entry: the history
+ * records field diffs, and a photo is not a field. PROPOSED, and the cheap
+ * version — a `lab_photos` audit row is a schema change, and `db/migrations/`
+ * is frozen while the tracks run.
+ *
+ * The row goes first and the object second, as in `deletePhoto`: what must not
+ * survive is the row.
+ */
+export async function deleteLabPhoto(
+  photoId: string,
+): Promise<PhotoWriteResult> {
+  await requireUser();
+
+  const id = z.uuid().safeParse(photoId);
+  if (!id.success) {
+    return { ok: false, reason: "rejected", message: "No such photograph." };
+  }
+
+  const removed = await getDb().transaction((tx) =>
+    deleteLabPhotoRow(tx, id.data),
+  );
+  if (removed === null) {
+    return {
+      ok: false,
+      reason: "rejected",
+      message: "That photograph is already gone.",
+    };
+  }
+
+  await forget(removed.storageKey);
+  revalidatePath(`/labs/${removed.labId}`);
+  revalidatePath(`/labs/${removed.labId}/edit`);
+  return { ok: true };
+}
 
 /**
  * Rewrite a Photo's metadata. Owner only, enforced in the UPDATE's WHERE clause

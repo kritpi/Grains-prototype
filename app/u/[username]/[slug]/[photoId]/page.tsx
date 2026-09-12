@@ -87,9 +87,11 @@ export default async function PhotoPage({
 
   const [appearsIn, targets, catalog] = await Promise.all([
     alsoAppearsIn(photoId),
-    viewer && !isOwner
-      ? listPhotobooksForConnect(viewer.id, photoId)
-      : Promise.resolve([]),
+    // The owner's books too. This used to be fetched only for a visitor,
+    // because the owner was offered no sheet at all — which is precisely why
+    // there was no way to put your own photograph into your own photobook from
+    // the page that shows it.
+    viewer ? listPhotobooksForConnect(viewer.id, photoId) : Promise.resolve([]),
     isOwner ? listFormCatalog() : Promise.resolve(null),
   ]);
 
@@ -193,12 +195,18 @@ export default async function PhotoPage({
         </dl>
 
         {isOwner && catalog ? (
-          <PhotoOwnerActions
-            photo={photo}
-            alsoAppearsIn={appearsIn}
-            scannerModels={catalog.scanners}
-            afterDelete={book ? `/u/${handle}/${book.slug}` : `/u/${handle}`}
-          />
+          <>
+            {/* Filing first, editing second: putting a frame into a book is the
+                thing an uploader does often, and deleting it is the thing they
+                do once. */}
+            <ConnectSheet photoId={photoId} targets={targets} mode="file" />
+            <PhotoOwnerActions
+              photo={photo}
+              alsoAppearsIn={appearsIn}
+              scannerModels={catalog.scanners}
+              afterDelete={book ? `/u/${handle}/${book.slug}` : `/u/${handle}`}
+            />
+          </>
         ) : viewer ? (
           <ConnectSheet photoId={photoId} targets={targets} />
         ) : (

@@ -8,7 +8,8 @@
  * palette, the same rule lab-form.css follows — the palette is a foundation
  * decision (P7) and is not this track's to move. The prototype's tokens map
  * --paper -> --background, --ink -> --foreground, --ash -> --muted-foreground,
- * --faint -> --ring, --hair -> --border, --flag/--signal -> --destructive,
+ * --faint -> --g-quiet (text) or --g-faint (borders), --hair -> --border,
+ * --flag -> --destructive, --signal -> --primary,
  * --sunk -> --secondary.
  *
  * TWO DELIBERATE DEVIATIONS FROM THE PROTOTYPE, both because CLAUDE.md's design
@@ -80,7 +81,7 @@
 /* The prototype sets this in ui-monospace. See deviation 2. */
 .grains-profile-url {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 4px;
 }
 
@@ -99,7 +100,7 @@
 .grains-stat {
   text-align: right;
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-stat b {
@@ -111,7 +112,7 @@
 /* The cap meter, next to the action it constrains (PRD D #10). */
 .grains-cap {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 /* --- Section headers and empty states ------------------------------------ */
@@ -119,7 +120,7 @@
 .grains-section-label {
   font: 700 10.5px var(--font-sans);
   letter-spacing: 0.1em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-empty {
@@ -237,7 +238,7 @@
   gap: 10px;
   font: 700 10px var(--font-sans);
   letter-spacing: 0.12em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-crumb a {
@@ -326,14 +327,14 @@
 
 .grains-frame-label {
   font: 400 10px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 7px;
 }
 
 /* Own photos show no credit line at all; only a Connection carries one (K3). */
 .grains-frame-credit {
   font: 400 10px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 3px;
 }
 
@@ -373,7 +374,7 @@
   gap: 10px;
   font: 700 10px var(--font-sans);
   letter-spacing: 0.12em;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-photo-nav a,
@@ -386,7 +387,7 @@
 }
 
 .grains-photo-nav [aria-disabled="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   pointer-events: none;
 }
 
@@ -406,7 +407,7 @@
 /* The one place the reference model is demonstrated rather than asserted. */
 .grains-also {
   font: 400 11px var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
   margin-top: 6px;
 }
 
@@ -434,7 +435,7 @@
   font: 700 10px var(--font-sans);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ring);
+  color: var(--g-quiet);
 }
 
 .grains-meta-row dd {
@@ -444,7 +445,7 @@
 }
 
 .grains-meta-row dd[data-empty="true"] {
-  color: var(--ring);
+  color: var(--g-quiet);
   font-style: italic;
 }
 
@@ -487,7 +488,7 @@
 
 .grains-confirm-go {
   background: var(--destructive);
-  color: #fdfdfc;
+  color: var(--background);
   border: 1.5px solid var(--destructive);
   padding: 9px 16px;
   font: 700 12.5px var(--font-sans);
@@ -501,6 +502,72 @@
   padding: 9px 16px;
   font: 700 12.5px var(--font-sans);
   cursor: pointer;
+}
+
+/* --- The owner's photo picker --------------------------------------------- */
+
+/* Square tiles, unlike everything else in this stylesheet.
+ *
+ * The grid a photobook is made of respects true aspect ratios and crops
+ * nothing, and that rule is the whole feature. This is not that grid: it is a
+ * chooser, and a ragged masonry of twelve frames is harder to pick from than a
+ * row of even targets. The photograph is shown at its real proportions the
+ * moment it is filed — one tap away, on the page below. */
+.grains-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grains-pick {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border: 1.5px solid var(--border);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.grains-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.72;
+}
+
+.grains-pick[data-on="true"] {
+  border-color: var(--foreground);
+}
+
+.grains-pick[data-on="true"] img {
+  opacity: 1;
+}
+
+.grains-pick:disabled {
+  cursor: not-allowed;
+}
+
+/* The same 14px box the service checklist and the connect sheet use, so a tick
+ * means one thing everywhere in the product. */
+.grains-pick-tick {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  font: 700 10px var(--font-sans);
+  display: grid;
+  place-items: center;
+}
+
+.grains-pick[data-on="true"] .grains-pick-tick {
+  background: var(--foreground);
+  color: var(--background);
 }
 
 /* --- Connect sheet -------------------------------------------------------- */
@@ -550,5 +617,5 @@
 
 .grains-sheet-note {
   font: 400 11px/1.6 var(--font-sans);
-  color: var(--ring);
+  color: var(--g-quiet);
 }

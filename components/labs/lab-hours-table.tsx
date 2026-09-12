@@ -108,7 +108,7 @@ export function LabHoursTable({
             </p>
           ) : null}
 
-          <p className="mt-2 border border-dashed border-ring px-2.5 py-2 font-sans text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 border border-dashed border-faint px-2.5 py-2 font-sans text-[10px] leading-relaxed text-muted-foreground">
             Open/closed is computed from this schedule. A manual override wins
             over it when set.
           </p>

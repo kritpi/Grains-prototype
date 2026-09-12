@@ -365,7 +365,7 @@ export function PhotoUploader({
           <div className="grains-actions">
             <button
               type="button"
-              className="grains-save"
+              className="grains-upload-save"
               disabled={busy}
               onClick={save}
             >

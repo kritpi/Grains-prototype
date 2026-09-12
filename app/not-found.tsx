@@ -16,8 +16,9 @@ export const metadata: Metadata = {
  *
  * It offers the two sections rather than only a way home, because discovery is
  * the entire product: somebody who followed a dead link to a lab is looking for
- * a lab, and the home page is a wordmark on paper. The links are the same two
- * the header now carries, so the page never contradicts the chrome above it.
+ * a lab, and `/` is now a redirect to the first of these two anyway. The links
+ * are the same two the header carries, so the page never contradicts the chrome
+ * above it.
  *
  * A dead URL here is usually a real deletion rather than a typo — PRD D #8 says
  * a Photo removed from someone's Photobook goes silently, and a lab or a

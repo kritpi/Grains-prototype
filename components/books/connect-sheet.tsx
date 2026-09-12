@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { addToPhotobook, removeFromPhotobook } from "@/app/u/actions";
+import {
+  addToPhotobook,
+  fileIntoPhotobook,
+  removeFromPhotobook,
+} from "@/app/u/actions";
 import type { ConnectTarget } from "@/lib/queries/books";
 
 /**
@@ -23,14 +27,27 @@ import type { ConnectTarget } from "@/lib/queries/books";
  * The line under it explains what a Connection costs, at the moment somebody is
  * deciding to make one — PRD D #5 in the place it applies, rather than in a
  * help page nobody opens (gap plan L7).
+ *
+ * **Two modes, because the same control serves two different acts.** Looking at
+ * somebody else's frame, this is the Connection: a reference, a credit line,
+ * nothing copied. Looking at your own, it is ordinary filing — and that had no
+ * surface at all until now, because an uploader was offered Edit and Delete and
+ * the one "add" action the UI could reach refuses your own Photo by design. The
+ * component is shared and the two actions are not: which one a row calls is
+ * decided here, by the page that already knows whose photograph it is, rather
+ * than by a query guessing from the rows it finds.
  */
 export function ConnectSheet({
   photoId,
   targets,
+  mode = "connect",
 }: {
   photoId: string;
   targets: ConnectTarget[];
+  /** `file` when the reader owns this Photo: their own work, into their own book. */
+  mode?: "connect" | "file";
 }) {
+  const own = mode === "file";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [state, setState] = useState(targets);
@@ -42,7 +59,9 @@ export function ConnectSheet({
     startTransition(async () => {
       const result = target.contains
         ? await removeFromPhotobook(target.id, photoId)
-        : await addToPhotobook(target.id, photoId);
+        : own
+          ? await fileIntoPhotobook(target.id, photoId)
+          : await addToPhotobook(target.id, photoId);
 
       if (!result.ok) {
         setProblem(
@@ -72,7 +91,11 @@ export function ConnectSheet({
           className="grains-action"
           onClick={() => setOpen(true)}
         >
-          {connected > 0 ? `Connected · ${connected}` : "Connect"}
+          {connected > 0
+            ? `${own ? "Filed" : "Connected"} · ${connected}`
+            : own
+              ? "Add to a photobook"
+              : "Connect"}
         </button>
       </div>
     );
@@ -80,12 +103,14 @@ export function ConnectSheet({
 
   return (
     <div className="grains-sheet">
-      <div className="grains-section-label">CONNECT INTO</div>
+      <div className="grains-section-label">
+        {own ? "FILE INTO" : "CONNECT INTO"}
+      </div>
 
       {state.length === 0 ? (
         <p className="grains-sheet-note">
-          You have no photobooks yet. Make one on your profile, then connect
-          this photograph into it.
+          You have no photobooks yet. Make one on your profile, then{" "}
+          {own ? "file" : "connect"} this photograph into it.
         </p>
       ) : (
         state.map((book) => (
@@ -107,8 +132,9 @@ export function ConnectSheet({
       )}
 
       <p className="grains-sheet-note">
-        No re-upload, and it does not count against your upload cap. The
-        photograph stays its author&rsquo;s.
+        {own
+          ? "Nothing is copied — one photograph can sit in several of your photobooks at once, and taking it out of one leaves the others alone."
+          : "No re-upload, and it does not count against your upload cap. The photograph stays its author’s."}
       </p>
 
       <div className="grains-photo-actions">

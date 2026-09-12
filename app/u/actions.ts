@@ -11,6 +11,7 @@ import {
 } from "@/lib/constraint-messages";
 import { getDb } from "@/lib/db";
 import {
+  addOwnPhoto,
   connectPhoto,
   deletePhotobook as deletePhotobookRow,
   insertPhotobook,
@@ -241,6 +242,60 @@ export async function addToPhotobook(
   revalidatePath("/u/[username]/[slug]", "page");
   return { ok: true };
 }
+
+/**
+ * File one of your own Photos into one of your own Photobooks.
+ *
+ * The action that did not exist. `addToPhotobook` above is the Connection —
+ * somebody else's work, by reference — and it refuses your own Photo on
+ * purpose, which left filing your own with no route at all: the query layer has
+ * had `appendPhotobookItem` from the start, and only the upload path ever
+ * called it. A Photo uploaded without a book could not be put into one
+ * afterwards from anywhere in the product.
+ *
+ * Two actions rather than one that guesses, because the two are different
+ * facts. A Connection carries a credit line and a reference to another
+ * person's frame; a filing carries neither. Collapsing them into one entry
+ * point would mean the difference was decided by whichever row the database
+ * happened to find.
+ */
+export async function fileIntoPhotobook(
+  photobookId: string,
+  photoId: string,
+): Promise<WriteResult> {
+  const user = await requireUser();
+
+  const ids = z
+    .object({ photobookId: z.uuid(), photoId: z.uuid() })
+    .safeParse({ photobookId, photoId });
+  if (!ids.success) return notYours("photobook");
+
+  const result = await getDb().transaction((tx) =>
+    addOwnPhoto(tx, ids.data.photobookId, ids.data.photoId, user.id),
+  );
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      reason: "rejected",
+      message: FILE_REFUSALS[result.reason],
+    };
+  }
+
+  revalidatePath(`/u/${user.username}`);
+  revalidatePath("/u/[username]/[slug]", "page");
+  return { ok: true };
+}
+
+const FILE_REFUSALS: Record<string, string> = {
+  "not-your-photobook": "That is not one of your photobooks.",
+  "no-such-photo": "That photograph is no longer here.",
+  // Reachable only if a surface offered the wrong action for the photo it was
+  // looking at. The sentence says which action it should have been.
+  "not-your-photo":
+    "That photograph is somebody else's — connect it instead of filing it.",
+  "already-there": "That photograph is already in this photobook.",
+};
 
 const CONNECT_REFUSALS: Record<string, string> = {
   "not-your-photobook": "That is not one of your photobooks.",

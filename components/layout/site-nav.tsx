@@ -77,7 +77,7 @@ export function SiteNav({ lang }: { lang: Lang }) {
             // `[data-tabon] { color: faint }`, `[data-tabon="true"] { ink }`.
             data-tabon={active}
             aria-current={active ? "page" : undefined}
-            className="font-sans text-[13px] font-bold text-ring transition-colors hover:text-foreground data-[tabon=true]:text-foreground"
+            className="font-sans text-[13px] font-bold text-quiet transition-colors hover:text-foreground data-[tabon=true]:text-foreground"
           >
             {t(lang, section.label)}
           </Link>

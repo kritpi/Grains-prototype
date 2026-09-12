@@ -89,7 +89,7 @@ export default function Error({
       {error.digest ? (
         <>
           {" "}
-          <span className="text-ring">
+          <span className="text-quiet">
             {t(lang, "error.reference")} {error.digest}.
           </span>
         </>

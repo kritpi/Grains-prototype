@@ -24,13 +24,14 @@
 }
 
 .grains-pin:hover {
-  background: var(--destructive);
+  background: var(--primary);
 }
 
+/* The selected pin, filled in the signal colour the prototype gives it. */
 .grains-pin[data-selected="true"] {
   width: 17px;
   height: 17px;
-  background: var(--destructive);
+  background: var(--primary);
   border-color: var(--background);
 }
 

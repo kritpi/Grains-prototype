@@ -29,8 +29,13 @@ export const dynamic = "force-dynamic";
  * `/sign-in`, `/welcome` and `/labs/new` are deliberately absent: they are
  * either auth-gated or a form, and none of them is content. `robots.ts`
  * disallows them as well, so the two files agree.
+ *
+ * `/` is absent for a different reason: it redirects to `/labs`, and listing a
+ * redirect next to its own destination asks a crawler to discover the same page
+ * twice under two addresses — which is the thing the language cookie exists to
+ * avoid elsewhere in this codebase.
  */
-const STATIC_PATHS = ["/", "/labs", "/films"] as const;
+const STATIC_PATHS = ["/labs", "/films"] as const;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = siteUrl();

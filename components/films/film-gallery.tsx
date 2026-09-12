@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { PhotoGrid, type GridPhoto } from "@/components/books/photo-grid";
-import { currentUser } from "@/lib/auth";
 import { listGalleryPhotos } from "@/lib/queries/photos";
 
 /**
@@ -24,10 +23,14 @@ import { listGalleryPhotos } from "@/lib/queries/photos";
  * 1. **No format/scanner filter chips.** The prototype draws them above the
  *    grid. `listGalleryPhotos` takes a stock and a cursor and nothing else, so
  *    they need a query change; that is a Track C change and its own task.
- * 2. **"Add a sample" links to your profile rather than opening an uploader.**
- *    PRD D #10 put the upload surface next to the cap meter that constrains it,
- *    deliberately rather than behind a global "+". A second uploader here would
- *    overturn that decision as a side effect of building a grid.
+ * 2. **There is no "Add a sample" action.** There was one, and it linked to the
+ *    reader's own profile — no anchor, so it landed above an UPLOAD section
+ *    that is the last block on that page, and no stock id, so the stock they
+ *    had just been looking at was not preselected. A button that navigates away
+ *    from what you were doing and then abandons you is worse than no button.
+ *    The upload surface stays where PRD D #10 put it, next to the cap meter
+ *    that constrains it; the empty state below explains the actual mechanism,
+ *    which is that a photo arrives here by being tagged with this stock.
  */
 export async function FilmGallery({
   filmStockId,
@@ -40,10 +43,10 @@ export async function FilmGallery({
   sampleCount: number;
   cursor?: string;
 }) {
-  const [{ photos, nextCursor }, viewer] = await Promise.all([
-    listGalleryPhotos(filmStockId, cursor ?? null),
-    currentUser(),
-  ]);
+  const { photos, nextCursor } = await listGalleryPhotos(
+    filmStockId,
+    cursor ?? null,
+  );
 
   return (
     <section className="grains-stock-section">
@@ -51,12 +54,6 @@ export async function FilmGallery({
         <div className="grains-stock-label">
           INSPIRATION GALLERY · {sampleCount}
         </div>
-        <Link
-          href={viewer?.username ? `/u/${viewer.username}` : "/sign-in"}
-          className="grains-facet"
-        >
-          + Add a sample
-        </Link>
       </div>
 
       {photos.length === 0 ? (

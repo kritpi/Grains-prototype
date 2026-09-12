@@ -214,6 +214,34 @@ export async function insertLabPhoto(
   return rows[0].id;
 }
 
+/**
+ * Remove venue documentation, returning the lab it belonged to and the object
+ * to delete with it.
+ *
+ * **No owner clause, and that is not an oversight.** `uploaded_by` on this
+ * table is provenance rather than ownership — the comment on `insertLabPhoto`
+ * says so — and a lab's page is edited by anyone signed in under PRD A's trust
+ * model. A photograph of the wrong shopfront that only its uploader could take
+ * down would be a page nobody else could correct, which is the opposite of how
+ * every other field on a lab works.
+ *
+ * Returns null when the row was already gone, which the caller must not treat
+ * as licence to delete the object: the key is only known to have been this
+ * row's if this delete is the one that removed it.
+ */
+export async function deleteLabPhoto(
+  tx: LabTx,
+  id: string,
+): Promise<{ labId: string; storageKey: string } | null> {
+  const rows = await tx.execute<{ lab_id: string; storage_key: string }>(sql`
+    delete from lab_photos
+     where id = ${id}::uuid
+    returning lab_id, storage_key
+  `);
+  const row = rows[0];
+  return row ? { labId: row.lab_id, storageKey: row.storage_key } : null;
+}
+
 // ---------------------------------------------------------------------------
 // The Film Stock Gallery, and the reference model's one visible proof.
 // ---------------------------------------------------------------------------
@@ -453,5 +481,53 @@ export async function listUnfiledPhotos(
     frameSize: row.frame_size,
     format: row.format,
     uploaderUsername: null,
+  }));
+}
+
+/**
+ * The owner's Photos, each marked with whether this Photobook already holds it.
+ *
+ * Everything the "add photographs" picker needs in one statement, and the same
+ * shape `listPhotobooksForConnect` produces for the Connect sheet — one row per
+ * candidate, carrying its current state, because the picker toggles rather than
+ * only adds. A sheet that could add but not show what was already filed would
+ * make "add" look idempotent and "remove" look impossible.
+ *
+ * Unbounded, and safe to be: a person's originals are capped at `UPLOAD_CAP`
+ * (PRD D #5), so this is fifty rows at the very most. Connections are not
+ * listed — a Photo that is somebody else's is Connected from its own page,
+ * where the credit line and the reference model are visible.
+ */
+export async function listOwnPhotosForBook(
+  ownerId: string,
+  photobookId: string,
+): Promise<(GalleryPhoto & { inBook: boolean })[]> {
+  const rows = await getDb().execute<{
+    id: string;
+    storage_key: string;
+    width: number;
+    height: number;
+    frame_size: string | null;
+    format: FilmFormat | null;
+    in_book: boolean;
+  }>(sql`
+    select p.id, p.storage_key, p.width, p.height, p.frame_size, p.format,
+           exists (select 1 from photobook_items i
+                    where i.photo_id = p.id
+                      and i.photobook_id = ${photobookId}::uuid) as in_book
+      from photos p
+     where p.owner_id = ${ownerId}
+     order by p.created_at desc
+  `);
+
+  return rows.map((row) => ({
+    id: row.id,
+    storageKey: row.storage_key,
+    width: row.width,
+    height: row.height,
+    frameSize: row.frame_size,
+    format: row.format,
+    uploaderUsername: null,
+    inBook: row.in_book,
   }));
 }

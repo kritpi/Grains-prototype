@@ -33,7 +33,12 @@ export default async function SignInPage({
           await signIn("google", { redirectTo: destination });
         }}
       >
-        <Button type="submit" className="w-full">
+        {/* Outlined, not filled. The prototype draws this as a 1.5px ink
+            border on paper, and --primary is now the signal colour: a filled
+            red "Continue with Google" would both contradict the design and
+            fight Google's own button guidance. The sign-in screen has one
+            action, so nothing here competes with it for emphasis. */}
+        <Button type="submit" variant="outline" size="lg" className="w-full">
           Continue with Google
         </Button>
       </form>
